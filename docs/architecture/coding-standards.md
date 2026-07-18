@@ -16,8 +16,12 @@ Règles que tout agent BMAD (`dev`, `qa`) doit respecter dans ce dépôt.
 - Créer les fichiers avec `php artisan make:*` et `--no-interaction`.
 - Eloquent d'abord : relations typées, pas de `DB::`, eager loading pour éviter les N+1.
 - Validation dans des Form Requests, jamais inline dans un contrôleur.
-- Pages rendues par Inertia. **Pas d'API publique**, pas de `routes/api.php`, pas de versioning de
-  routes. Les API Resources servent à former les props Inertia.
+- Pages rendues par Inertia. **Pas d'API publique**, pas de `routes/api.php`. Les API Resources
+  servent à former les props Inertia.
+- Trois exceptions répondent en JSON, toutes internes et authentifiées par session : brouillons et
+  autocomplétion, téléversement de pièce jointe, et `/up`. Les deux premières sont **versionnées
+  `/internal/v1/…`** — un client mobile de phase 2 ne doit pas forcer la réécriture des chemins
+  (architecture § 10.1).
 - Logique métier transactionnelle dans `app/Services/{Module}/`, jamais dans le contrôleur.
 - Opérations longues : jobs en file (`ShouldQueue`).
 - `env()` uniquement dans `config/` ; ailleurs, `config('...')`.

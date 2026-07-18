@@ -20,6 +20,14 @@ puis régénérer `docs/prd/`. Ne pas éditer les fichiers epic à la main : ils
 | `⛔` | Règle métier bloquante — test dédié obligatoire (architecture § 23.2) |
 | `Jalon n` | Étape de livraison du PRD § 3.1 — chaque jalon est déployable |
 
+> **Deux numérotations coexistent, ne pas les confondre.** Ce plan compte **11 epics** ; le § 10 du
+> PRD en compte **4**. « Story 1.2 » ne désigne donc pas la même chose selon le document. La
+> correspondance complète est au § 5.
+>
+> `docs/architecture.md` a été réaligné sur **cette** numérotation en v1.1 : son § 28 utilise les
+> identifiants du plan, avec l'ancien entre crochets (`Story 1.4  [PRD 1.2]`). Le PRD, lui, garde
+> sa numérotation d'origine — il n'est pas régénéré.
+
 Onze epics, **82 stories**, quatre jalons MVP. Le découpage suit l'ordre d'analyse demandé, corrigé
 sur trois points où il entrait en conflit avec une dépendance technique ou une décision de la
 direction — ces écarts sont énoncés au § 4, pas appliqués en silence.
@@ -60,9 +68,21 @@ terminée, quel que soit l'état de ses critères d'acceptation spécifiques.
 | **6** | Rapport quotidien et blocages | 3 | 6 | Epic 5 |
 | **7** | Stagiaires et revues hebdomadaires | 3 | 6 | Epic 6 |
 | **8** | Finances : comptes, contrats, encaissements, parts, réserve, clôture | 4 | 13 | Epic 4, Epic 5 |
-| **9** | Alertes, tableaux de bord et notifications | 4 | 6 | Epic 8 |
+| **9** | Alertes, tableaux de bord et notifications | 4 | 6 | **Epic 7 et Epic 8** |
 | **10** | Recherche, exports et qualité finale | 4 | 5 | Epic 9 |
-| **11** | Exploitation, sauvegarde, supervision et mise en service | **transverse** | 7 | Epic 1 |
+| **11** | Exploitation, sauvegarde, supervision et mise en service | **transverse** | 7 | **par tranche — voir ci-dessous** |
+
+**Epic 9 dépend d'Epic 7 autant que d'Epic 8.** Le tableau de bord consolidé (9.5) agrège rapports
+manquants et stagiaires par tuteur, produits par les epics 6 et 7 : ils ne sont pas accessibles
+transitivement depuis Epic 8.
+
+**Les dépendances d'Epic 11 se déclarent par tranche**, pas globalement :
+
+| Tranche | Dépend de | Livrée pour |
+|---|---|---|
+| 11.1 – 11.3 — sauvegarde, restauration, supervision | Epic 1 | avant la première production |
+| 11.4 – 11.6 — ordonnanceur, préproduction, déploiement | Epic 4 | porte du Jalon 1 |
+| 11.7 — recette de mise en service | le jalon concerné | rejouée à chaque jalon |
 
 ```
 Jalon 1 — Socle          Epic 1 → Epic 2 → Epic 3 → Epic 4 ─┐
@@ -96,9 +116,32 @@ Epic 9, deux jalons plus tard. Le point de contrôle est donc **posé en 7.3** d
 écrit en **9.2**. Sans cette précaution, la règle serait recâblée après coup dans un chemin déjà
 en production.
 
-**Décisions en attente qui pèsent sur ce plan.** DEC-06 (hébergeur des sauvegardes — la donnée quitte
-le Niger, 11.1), DEC-09 (comptes financiers réels — 8.1), CONTRA-01 et CONTRA-04 (base des parts
-et employé apporteur — 8.3 et 8.7). Aucune ne bloque le Jalon 1.
+### Registre des arbitrages en attente
+
+**Aucun n'est tranché à ce jour.** Chacun porte une résolution provisoire appliquée dans le plan ;
+aucun ne bloque la story 1.1. Ils sont listés avec leur échéance réelle, pas avec une urgence
+uniforme.
+
+| Réf. | Sujet | Échéance réelle | Qui décide |
+|---|---|---|---|
+| **DEC-06** | Hébergeur des sauvegardes hors site — **la donnée quitte le Niger** | **Bloque la mise en production du Jalon 1** (11.1) | Direction — décision non technique |
+| **CONTRA-03** | Aucune soupape d'exception à la double approbation | **Avant 4.5** — le renversement après mise en production coûterait cher | Direction |
+| **DEC-05** | Préproduction sur le même VPS ou VPS séparé | Avant 1.5 (provisionnement) | Direction |
+| **DEC-10** | Q9 — vérification d'identité à la réinitialisation | Avant 2.8 | Direction — procédure humaine |
+| **DEC-08** | Q11 — types et taille des pièces jointes | Avant 3.5 — défaut appliqué : PDF/JPEG/PNG/WebP/HEIC, 8 Mo | Direction |
+| **DEC-07** | Suivi des erreurs — Sentry auto-hébergé ou fichiers seuls | Avant 11.3 | Direction |
+| **CONTRA-01** | Base des parts — prévisionnel + régularisation, ou versement à la clôture | **Avant le modèle financier de l'Epic 8** | Direction |
+| **CONTRA-04** | Un employé apporteur perçoit-il 10 % ? | **Avant Epic 8** (8.3) | Direction |
+| **DEC-09** | Q6 — comptes financiers réels à initialiser | **Avant Epic 8** (8.1) | Direction |
+| **CONTRA-05** | Un non-associé voit sa propre ligne de répartition | Avant 8.8 | Direction |
+| **CONTRA-07** | L'alerte rouge n'a aucun effet sur les parts | Avant 9.2 | Direction |
+| **DEC-11** | Q12 — conservation 10 ans | Avant 11.1 (dimensionnement disque) | Direction |
+| DEC-01 à DEC-04 | Fuseau UTC, tests MySQL, `spatie/laravel-permission`, Redis | Appliqués par défaut, révocables | Architecte |
+
+**Impact si renversé** — seul CONTRA-03 est coûteux : il introduirait un état et un circuit
+dérogatoires dans un mécanisme déjà en production. CONTRA-01 est contenu (`ShareCalculator` prend la
+base en paramètre, le schéma ne change pas). CONTRA-04, 05 et 07 sont des règles de validation ou de
+visibilité.
 
 ---
 
@@ -124,6 +167,10 @@ que toute story ultérieure s'appuie sur une base testée.* — [PRD 1.1]
 4. `/up` retourne en HTTP 200 : version applicative, état de la connexion base, état Redis, espace disque libre, horodatage en `Africa/Niamey`. Le point est accessible **sans authentification** et n'expose aucun secret ni nom d'hôte interne.
 5. `/up` retourne un statut d'échec explicite lorsque la base est injoignable ; testé en coupant la connexion.
 6. `php artisan test` passe intégralement ; `vendor/bin/pint --dirty` ne remonte aucune violation.
+7. Le dépôt git est initialisé avec une branche `main` et un **premier commit** contenant l'application, `.bmad-core/`, `AGENTS.md` et `docs/`. Sans cela, la protection de branche de la story 1.3 n'a rien à protéger, et Codex Web ne voit ni les agents ni le backlog.
+8. `.gitignore` exclut `vendor/`, `node_modules/`, `.env`, `storage/app/private/`, `database/database.sqlite` et `.ai/`. ⛔ Un test de la chaîne échoue si un fichier `.env` est versionné.
+9. Un `README.md` décrit l'installation locale de bout en bout, vérifiée sur une machine vierge : `export PATH` vers PHP 8.3 de MAMP, alias Composer, `composer install`, `npm ci`, copie de `.env.example`, `php artisan key:generate`, `php artisan migrate`, `npm run dev`, `php artisan serve`.
+10. `.env.example` est complet et à jour : base, Redis, fuseau `Africa/Niamey`, locale `fr`, aucun secret réel.
 
 **Migrations :** aucune table métier. **Audit :** sans objet.
 
@@ -188,7 +235,7 @@ privilèges base, afin qu'un `.env` compromis ne suffise pas à effacer le journ
 3. **Deux utilisateurs MySQL** existent : `ptrstaff_app` (`SELECT, INSERT, UPDATE`, **sans `DELETE`** sur les tables protégées, `INSERT` seul sur `audit_logs`) et `ptrstaff_migrate` (`ALL`).
 4. Les identifiants de `ptrstaff_migrate` **ne figurent pas dans le `.env` applicatif** : ils sont injectés par le script de déploiement depuis le magasin de secrets, le temps de la migration.
 5. `.env` en `chmod 600` dans `shared/`, jamais versionné. `APP_KEY` généré et **sauvegardé hors ligne** — sans lui, les données chiffrées au repos sont définitivement illisibles.
-6. Les secrets de CI sont en place : clé SSH de déploiement dédiée sans accès `root`, identifiants de migration, clés du stockage de sauvegarde.
+6. Les secrets de CI sont en place : clé SSH de déploiement dédiée sans accès `root`, identifiants de migration. Les **emplacements de secrets du stockage de sauvegarde sont préparés et documentés, sans valeur** : celles-ci ne peuvent être fournies qu'en 11.1, une fois DEC-06 arbitré.
 7. La procédure de rotation des secrets est écrite dans `docs/ops/`.
 
 > **DEC-05 en attente.** Préproduction sur le même VPS (~0 €) ou VPS séparé (~5 €/mois). La première
@@ -235,8 +282,8 @@ et non réinventés story par story. Elle rend SOC-06 à SOC-10 exécutables.
 
 ## ✅ Critères de fin de l'epic 1
 
-1. `/up` répond en production et en préproduction, avec base, Redis, disque et dernière sauvegarde.
-2. La chaîne CI est verte sur `main`, tourne sur MySQL, et bloque la fusion en cas d'échec.
+1. `/up` répond en production et en préproduction, avec base, Redis et disque. **L'âge de la dernière sauvegarde n'est pas encore exposé** — il est ajouté en 11.1, seule story qui crée une sauvegarde.
+2. Le dépôt a une branche `main` et un premier commit ; la chaîne CI est verte, tourne sur MySQL, et bloque la fusion en cas d'échec.
 3. **Le journal d'audit est opérationnel et prouvé inaltérable** : les trois barrières sont posées par migration et le test d'annulation transactionnelle passe.
 4. Le socle d'interface rend les quatre états transverses ; une page de démonstration les expose tous.
 5. Aucun secret n'est versionné ; `APP_KEY` est sauvegardé hors ligne.
@@ -304,6 +351,14 @@ versionné, afin que l'installation ne soit pas le maillon faible du contrôle d
 8. Elle rappelle à l'écran que `super_admin` ne détient aucune permission métier et que sa première tâche est de créer les **deux** comptes `direction`.
 9. Tant que les deux comptes `direction` n'existent pas, l'application **affiche explicitement** qu'aucune dépense n'est approuvable, plutôt que de laisser croire à un dysfonctionnement.
 10. `DemoSeeder` lève une exception si `app()->environment('production')` ; testé.
+11. **Première version de `php artisan ptr:check-invariants`**, portant les seuls invariants vérifiables à ce stade : `APP_DEBUG=false` et `APP_ENV` cohérents, aucun `super_admin` porteur d'une permission métier, déclencheurs d'immuabilité présents sur `audit_logs`, utilisateur applicatif dépourvu de `DELETE` sur `audit_logs`.
+12. La commande **échoue avec un code de sortie non nul** en cas d'écart, afin d'être utilisable en porte de déploiement.
+
+> **Commande à croissance progressive.** `ptr:check-invariants` est enrichie à mesure que les
+> invariants deviennent vérifiables : **4.5** ajoute « aucune dépense `payee` sans deux approbations
+> distinctes » et « exactement 2 comptes porteurs de `depense.approuver` », **11.1** ajoute l'âge de
+> la dernière sauvegarde, **10.4** finalise la campagne complète. Elle est exigée dès la porte du
+> Jalon 1 : elle ne peut donc pas naître en 10.4.
 
 ---
 
@@ -450,7 +505,7 @@ fonction et un statut identifiés.* — [PRD 1.6]
 1. La fiche porte nom, téléphone, photo optionnelle, rôles, service, fonction, **responsable direct**, type de relation (`dirigeant`, `employe`, `contractuel`, `stagiaire`), dates de début et de fin de contrat ou de stage.
 2. L'application affiche pour toute personne la liste de ses **responsables et subordonnés directs à la date courante** (FR19).
 3. Un cycle hiérarchique est refusé : une personne ne peut pas être son propre responsable, directement ou indirectement ; testé sur une chaîne de trois.
-4. Une fin de contrat ou de stage proche déclenche une notification (FR31) ; le délai est paramétrable.
+4. Un service métier **expose** la liste des fins de contrat ou de stage proches, avec un délai paramétrable ; il est testé directement, sans passer par une notification. **L'émission effective de la notification est en 9.6** — le centre de notifications n'existe qu'en 3.7, et les rappels planifiés en 9.6.
 5. Chacun consulte sa fiche ; le responsable celles de son équipe ; `direction` toutes. Tout autre accès est refusé, y compris par URL directe.
 6. La fiche est lisible et modifiable à 320 px, les champs empilés, sans défilement horizontal.
 
@@ -474,13 +529,26 @@ changement de responsable ou de rôle ne se discute pas de mémoire.* — [PRD 1
 *En tant que direction, je veux administrer moi-même les règles chiffrées, afin de changer une limite
 sans demander de développement.* — [PRD 1.7]
 
-1. Sont paramétrables depuis l'interface : jours travaillés, jours fériés, heure limite du rapport, délai de rappel, limite de stagiaires par tuteur, pourcentage de réserve, objectif de réserve en mois, types et taille des pièces jointes, catégories de dépense, charges fixes, créneaux de suivi.
+Cette story livre le **mécanisme** de paramétrage et les paramètres **scalaires immédiatement
+exploitables**. Les familles de paramètres qui portent une liste d'objets arrivent avec la story qui
+les consomme — sinon on livrerait un écran qui configure quelque chose d'inexistant.
+
+1. Sont paramétrables depuis l'interface, et exploitables dès cette story : jours travaillés de la semaine, heure limite du rapport, délai de rappel, limite de stagiaires par tuteur, pourcentage de réserve, objectif de réserve en mois, types et taille maximale des pièces jointes, nombre de tentatives de connexion et durée de blocage.
 2. `SettingSeeder` pose les valeurs initiales : stagiaires **3**, réserve **20 %**, objectif **3 mois**, heure limite **17 h 45**, rappel **60 minutes** (FR27 à FR29).
-3. ⛔ **Aucune de ces valeurs n'apparaît en dur dans le code.** Un test modifie chaque paramètre et vérifie le changement de comportement associé, **sans redéploiement**.
+3. ⛔ **Aucune de ces valeurs n'apparaît en dur dans le code.** Un test modifie chaque paramètre livré ici et vérifie le changement de comportement associé, **sans redéploiement**.
 4. Toute modification est auditée avec ancienne et nouvelle valeur et porte une **date d'effet** (FR26).
 5. La modification est réservée à `direction` ; tout autre rôle est refusé, y compris par URL directe.
-6. Un paramètre dont la modification a un effet chiffré (réserve, charges) affiche cet effet **avant confirmation**.
+6. Un paramètre dont la modification a un effet chiffré affiche cet effet **avant confirmation** ; le mécanisme d'aperçu est livré ici, ses premiers usages chiffrés arrivent en 8.2.
 7. Le cache de configuration est invalidé à l'écriture ; un test vérifie que la valeur nouvelle est lue à la requête suivante.
+
+**Familles de paramètres livrées ailleurs**, chacune avec son consommateur :
+
+| Famille | Story | Pourquoi pas ici |
+|---|---|---|
+| Jours fériés et fermetures | **4.1** | Le calendrier qui les interprète n'existe pas encore |
+| Catégories de dépense et marqueur « essentielle » | **4.3** | Consommées par la demande de dépense |
+| Créneaux de suivi par tuteur | **7.6** | Le regroupement des demandes n'existe qu'en Epic 7 |
+| Charges fixes et montants mensuels | **8.2** | L'assiette d'alerte et l'objectif de réserve sont en Epic 8 |
 
 ---
 
@@ -526,7 +594,7 @@ Livrée ici et non au Jalon 4 : les relances de double approbation (4.6) et les 
 1. Un centre de notifications avec **compteur de non-lues** est accessible depuis toute page authentifiée.
 2. Le système de notifications Laravel est utilisé avec le **canal `database` seul** (A-07) ; l'architecture permet d'ajouter SMS ou WhatsApp en phase 2 sans refonte.
 3. Chaque notification porte un **lien direct vers l'objet concerné**.
-4. ⛔ Depuis la notification, l'action attendue est atteignable en **au plus 3 interactions** ; mesuré en recette sur l'approbation de dépense et la validation de rapport (FR32).
+4. ⛔ Depuis la notification, l'objet lié est atteignable en **au plus 3 interactions**, prouvé ici sur une notification générique et son lien autorisé (FR32). **La mesure sur les deux parcours réels est faite là où ils naissent** : approbation de dépense en **4.6**, validation de rapport en **6.3**.
 5. Une notification est marquée lue **explicitement** par l'utilisateur ou **implicitement** à l'ouverture de l'objet ; les deux comportements sont testés.
 6. ⛔ Aucun envoi SMS, WhatsApp ou courriel n'est déclenché ; un test vérifie qu'aucun canal externe n'est appelé (FR34).
 7. État vide : « Vous êtes à jour. » — ton positif, le vide étant ici une bonne nouvelle.
@@ -552,7 +620,7 @@ engagement soit opposable.* — [PRD 3.13] — **avancée au Jalon 1, voir ÉCAR
 ## ✅ Critères de fin de l'epic 3
 
 1. Chaque membre a une fiche complète avec responsable direct, et la chaîne hiérarchique est sans cycle.
-2. Les onze paramètres de FR25 sont modifiables à l'écran, et un test prouve pour chacun le changement de comportement **sans redéploiement**.
+2. Les paramètres livrés à ce jalon — jours travaillés, heure limite, délai de rappel, limite de stagiaires, pourcentage et objectif de réserve, types et taille des pièces jointes, tentatives et durée de blocage — sont modifiables à l'écran, et un test prouve pour chacun le changement de comportement **sans redéploiement**. Les quatre familles restantes de FR25 arrivent en 4.1, 4.3, 7.6 et 8.2.
 3. ⛔ Aucune pièce jointe n'est atteignable par URL publique ; le refus de type et de taille est prouvé côté serveur.
 4. Le centre de notifications fonctionne et **aucun canal externe n'est appelé**.
 5. Le règlement intérieur est publié et l'état des acceptations est visible par `direction`.
@@ -652,6 +720,7 @@ C'est la story qui porte la valeur centrale du Jalon 1. Chacun de ses critères 
 7. Chaque approbation et chaque refus produit une entrée d'audit nommant l'auteur et l'horodatage.
 8. L'approbation est protégée contre la concurrence : deux approbations simultanées du même compte ne comptent pas double ; testé sous verrou.
 9. Lorsque les deux comptes `direction` n'existent pas encore, l'écran explique pourquoi aucune approbation n'est possible plutôt que d'échouer silencieusement (2.3 AC9).
+10. ⛔ `ptr:check-invariants` (créée en 2.3) est **étendue** de deux invariants vérifiés **dans les données** : exactement **2** comptes porteurs de `depense.approuver` (PERM-05), et **aucune dépense `payee` sans deux approbations distinctes**. Le second est le plus important du dispositif : il détecte une manipulation en base ou une régression déjà passée en production.
 
 ---
 
@@ -796,11 +865,20 @@ qui a réellement été remis au client.* — [PRD 2.8]
 *En tant qu'utilisateur, je veux voir en dix secondes ce que j'ai à faire aujourd'hui, afin de ne pas
 découvrir mes priorités en réunion.* — [PRD 2.1]
 
-Placée en fin d'epic : elle agrège les objets créés par les stories précédentes.
+**Le tableau de bord grandit par incréments.** Il est livré ici avec les blocs dont les objets
+existent, puis chaque epic ultérieur y ajoute le sien. L'alternative — le déplacer après l'epic 7 —
+laisserait le Jalon 2 sans écran d'accueil, ce qui est pire qu'un écran partiel.
 
-1. Le tableau de bord affiche : objectifs du mois avec progression, tâches du jour, rapport du jour à envoyer, blocages ouverts, prochaines échéances, notifications, dernière évaluation, demandes en attente.
+| Bloc | Ajouté par |
+|---|---|
+| Objectifs du mois, tâches du jour, prochaines échéances, notifications, demandes en attente | **5.8** (ici) |
+| Rapport du jour à envoyer | **6.1** |
+| Blocages ouverts | **6.6** |
+| Dernière évaluation | **7.5** |
+
+1. Le tableau de bord affiche les blocs disponibles à ce jalon : objectifs du mois avec progression, tâches du jour, prochaines échéances, notifications, demandes en attente. FR166 n'est **intégralement satisfait qu'à l'issue de 7.5**.
 2. ⛔ Chaque bloc n'est rendu que si l'utilisateur détient la permission correspondante ; un bloc non autorisé est **absent**, sans bloc vide ni message d'erreur technique (FR172).
-3. Le bloc le plus urgent figure en tête : « En attente de mon approbation » pour `direction`, « Mon rapport du jour » pour les autres (UX § 1.3).
+3. Le bloc le plus urgent figure en tête : « En attente de mon approbation » pour `direction`. Pour les autres rôles, « Mon rapport du jour » **prend cette place dès 6.1** ; à ce jalon, ce sont les objectifs du mois.
 4. Les blocs sont **empilés verticalement** et lisibles sans défilement horizontal à 320 px.
 5. Le premier rendu utile intervient en **moins de 3 secondes** en 3G dégradée simulée ; mesuré par Playwright avec bridage réseau **et** en recette sur téléphone réel.
 6. Les blocs vides portent un message de vide propre à chacun ; aucun ne reste blanc.
@@ -847,6 +925,7 @@ téléphone, afin que rendre compte reste un geste tenable tous les jours.* — 
 8. Le formulaire est utilisable à 320 px, cibles ≥ 44 × 44 px, sans défilement horizontal, saisissable à une main.
 9. ⛔ Une action interrompue par une perte de connexion ne produit **jamais d'enregistrement partiel** : tout ou rien (NFR6).
 10. Hors connexion, le bandeau explique « L'envoi n'a pas abouti — pas de connexion. Votre rapport est conservé sur cet appareil. [Réessayer] » sans promettre d'envoi automatique.
+11. Le bloc **« Mon rapport du jour »** est ajouté au tableau de bord personnel (5.8) et y prend la **première position** pour tout rôle autre que `direction` (UX § 1.3). Il n'apparaît pas les jours non travaillés ni sur une absence approuvée.
 
 > **Si la mesure des 3 minutes échoue en recette réelle**, l'arbitrage remonte au produit : réduire
 > les champs obligatoires ou accepter la friction (CONTRA-08). Ce n'est pas une décision de
@@ -866,6 +945,7 @@ afin de ne plus courir après les rapports.* — [PRD 3.2]
 5. Un rapport envoyé après l'heure limite affiche le retard constaté et propose une **explication courte facultative** — sans ton accusatoire (FR71, NFR29).
 6. ⛔ La modification de l'heure limite au paramétrage change le comportement **sans redéploiement** ; testé.
 7. Les rappels sont émis par tâche planifiée ; un test vérifie qu'un rappel n'est pas envoyé deux fois pour le même jour.
+8. La tâche planifiée de rappel est **ajoutée au registre d'ordonnancement** de `docs/ops/` et à la supervision de 11.4 — une tâche qui ne s'exécute pas à l'heure attendue doit alerter.
 
 ---
 
@@ -880,7 +960,7 @@ qui est enregistré à mon nom soit exactement ce que j'ai écrit.* — [PRD 3.3
 4. Un rapport retourné revient à l'auteur avec le **motif du retour** et une notification.
 5. ⛔ Le périmètre de validation respecte la matrice : `tuteur` son équipe, `direction` tous ; hors périmètre par URL directe → refus.
 6. Chaque validation, retour et nouvelle version produit une entrée d'audit.
-7. Depuis la notification, la validation est atteignable en au plus 3 interactions (UX § 4.3).
+7. ⛔ Depuis la notification, la validation est atteignable en **au plus 3 interactions** ; c'est ici que la mesure annoncée en 3.7 AC4 est réellement faite, en recette sur téléphone réel (UX § 4.3).
 
 ---
 
@@ -925,6 +1005,7 @@ obstacle ne consomme pas une journée entière.* — [PRD 3.6]
 6. La fermeture sans solution exige un **motif**.
 7. La création d'un blocage depuis le rapport quotidien ne fait pas perdre la saisie en cours.
 8. Vide positif : « Aucun blocage ouvert. »
+9. Le bloc **« Blocages ouverts »** est ajouté au tableau de bord personnel (5.8).
 
 ---
 
@@ -1020,6 +1101,7 @@ stage produise des compétences et une trace, pas seulement une présence.* — 
 4. Une **checklist de sortie** est générée : livrables remis, matériel rendu, accès fermés, documents sauvegardés, évaluation finale enregistrée.
 5. ⛔ Le stagiaire consulte son dossier, le tuteur ceux de ses stagiaires, `direction` tous ; **tout autre accès est refusé**, y compris par URL directe.
 6. Aucune évaluation validée n'est modifiable ni supprimable.
+7. Le bloc **« Dernière évaluation »** est ajouté au tableau de bord personnel (5.8). **FR166 est dès lors intégralement satisfait.**
 
 ---
 
@@ -1072,7 +1154,7 @@ connaître à tout moment l'argent réellement disponible.* — [PRD 4.1]
 
 1. Un compte porte type (`caisse`, `banque`, `mobile_money`), libellé, **solde initial en XOF entier**, date du solde initial.
 2. ⛔ Le solde affiché est **calculé** depuis le solde initial et les mouvements validés ; **aucune interface ne permet de saisir un solde courant** (FR100).
-3. ⛔ Un test vérifie qu'après un encaissement de 50 000 et une dépense payée de 20 000, le solde progresse **exactement** de 30 000.
+3. ⛔ Le solde est calculé par agrégation des mouvements validés ; testé sur des mouvements créés par factory, les encaissements réels n'existant qu'en 8.5. **Le test de bout en bout « encaissement de 50 000 moins dépense payée de 20 000 = +30 000 » est en 8.6**, une fois les deux écritures réelles disponibles.
 4. ⛔ L'accès est limité à `direction` et `finance` ; l'accès par URL directe depuis tout autre rôle est refusé. ⛔ Un `stagiaire` n'atteint **aucune** donnée financière globale (NFR19).
 5. ⛔ Aucune intégration bancaire ou Mobile Money ; un test vérifie qu'**aucun appel externe** n'est émis (FR101).
 6. Aucun compte n'est supprimable ; désactivation motivée uniquement.
@@ -1090,7 +1172,7 @@ une modification de code.* — [PRD 4.2, reste]
 1. `FixedChargeSeeder` initialise **exactement quatre postes** : loyer, électricité, Internet, salaires. Aucun autre.
 2. Chaque charge porte un montant mensuel et un état `active` / `inactive` ; ⛔ **seules les actives** entrent dans l'assiette d'alerte et dans l'objectif de réserve (FR139).
 3. ⛔ L'ajout d'une charge affiche **avant confirmation** l'impact chiffré sur l'objectif de réserve (FR147).
-4. ⛔ Aucun poste n'est codé en dur ; un test ajoute une charge et vérifie que **l'assiette d'alerte change sans redéploiement**.
+4. ⛔ Aucun poste n'est codé en dur ; un test ajoute une charge et vérifie que **la somme des charges actives change sans redéploiement**. Cette somme *est* l'assiette d'alerte (FR161), mais le **niveau** d'alerte qu'elle produit n'existe qu'en 9.1 : le test prouvant qu'une nouvelle charge modifie le niveau recalculé y est écrit.
 5. ⛔ Les **coûts directs de projet n'entrent pas** dans l'assiette des charges fixes ; testé (FR141).
 6. Toute création, modification de montant ou changement d'état est auditée.
 
@@ -1118,8 +1200,8 @@ afin que le calcul des parts repose sur un cadre écrit et non sur un accord ora
 les créances cessent d'être suivies de mémoire.* — [PRD 4.4]
 
 1. Une facture porte **numéro unique**, client, contrat, montant, date d'émission, date d'échéance.
-2. ⛔ Le statut `impayee` / `partiellement_payee` / `payee` / `annulee` est **déduit** des encaissements imputés ; **aucune interface ne permet de le saisir** (FR106).
-3. ⛔ Une créance est déduite **automatiquement** de toute facture non intégralement payée dont l'échéance est atteinte (FR107).
+2. ⛔ Les quatre statuts `impayee` / `partiellement_payee` / `payee` / `annulee` existent, l'état initial est **`impayee`**, et ⛔ **aucune interface ne permet de les saisir** — ils sont déduits (FR106). **Les transitions vers `partiellement_payee` et `payee` sont testées en 8.5**, où les encaissements qui les déclenchent apparaissent.
+3. ⛔ Une créance est déduite **automatiquement** de toute facture non intégralement payée dont l'échéance est atteinte (FR107) ; testé sur une facture `impayee` échue.
 4. La liste des créances affiche le montant restant dû et l'**ancienneté en jours**, triable par ancienneté.
 5. ⛔ L'annulation exige un motif et **ne supprime jamais** l'enregistrement.
 6. Aucune facture PDF, aucune relance automatisée en MVP.
@@ -1135,10 +1217,14 @@ tout argent reçu soit rattaché à un compte et à un client.* — [PRD 4.5]
 1. Un encaissement porte client, contrat ou projet, facture optionnelle, montant, date, **compte crédité**, mode de paiement, référence, justificatif.
 2. ⛔ Chaque encaissement reçoit un **numéro de reçu unique attribué par le système, non réutilisable même après annulation** ; testé en annulant puis en créant un nouvel encaissement (FR110).
 3. ⛔ **Aucune interface ne permet de supprimer un encaissement validé.** Seules la **correction** (nouvelle version motivée) et l'**annulation** (contre-écriture motivée) existent ; les deux sont auditées (FR111, CA-12).
-4. Un encaissement imputé à un contrat déclenche le calcul des parts (8.7) — **dans la même transaction**.
+4. ⛔ Le statut de la facture rattachée bascule à `partiellement_payee` puis `payee` selon les encaissements imputés ; les deux transitions sont testées (complète 8.4 AC2).
 5. L'application **signale les encaissements créés plus de 24 h** après leur date de réception déclarée (FR112).
-6. ⛔ Toute tentative d'imputation à un **mois clôturé** est refusée avec un message nommant le mois : « Le mois de juin 2026 est clôturé. Aucune écriture ne peut y être imputée. » (FR114).
-7. L'écriture est atomique et protégée par verrou : deux encaissements simultanés sur le même contrat ne produisent pas de parts en double ; testé.
+6. Cette story livre la **migration minimale `month_closures` et le service `MonthGuard`**, sans aucune interface de clôture : la garde doit exister au moment où naît la première écriture imputable. ⛔ Toute tentative d'imputation à un **mois clôturé** est refusée avec un message nommant le mois : « Le mois de juin 2026 est clôturé. Aucune écriture ne peut y être imputée. » (FR114). Le rapport mensuel, la validation, la clôture et la réouverture sont en **8.13**.
+7. L'écriture est atomique : un encaissement interrompu ne laisse ni reçu orphelin ni imputation partielle ; testé.
+
+**Le calcul des parts n'est pas dans cette story.** Il est livré en **8.7**, qui l'intègre au service
+d'encaissement dans la même transaction et porte le test de concurrence correspondant. Poser ici
+l'exigence reviendrait à dépendre d'un calculateur qui n'existe pas encore.
 
 ---
 
@@ -1149,6 +1235,7 @@ l'approbation, le paiement et l'écriture comptable restent trois faits distinct
 
 1. ⛔ **Seule une dépense `approuvee` est payable** ; le paiement d'une dépense `demandee` ou `refusee` est refusé côté serveur.
 2. Le paiement enregistre compte débité, date, mode de paiement, référence, puis fait passer la dépense à `payee`.
+2 bis. ⛔ **Test de bout en bout du solde** : après un encaissement de 50 000 et une dépense payée de 20 000, le solde du compte progresse **exactement** de 30 000 (reporté de 8.1, les deux écritures existant enfin).
 3. Un **justificatif de paiement** est attaché après le paiement ; ⛔ une dépense payée sans justificatif apparaît dans une **liste dédiée jusqu'à régularisation** (FR124).
 4. Une dépense peut être imputée à un contrat ou à un projet ; cette imputation alimente les **coûts directs** (8.9).
 5. Une **demande de remboursement** d'une avance personnelle suit le même circuit à deux signatures et porte le justificatif d'origine (FR125) — c'est la soupape prévue en lieu et place de toute dérogation (CONTRA-03).
@@ -1173,6 +1260,8 @@ client, afin que l'entreprise ne distribue jamais un argent qu'elle n'a pas reç
 6. ⛔ Le calcul est affiché avec sa **méthode** : bénéfice retenu, période, encaissement d'origine, taux appliqué, montant. **Un calcul opaque est un défaut** (FR135).
 7. ⛔ Les parts **restent dues et calculées en niveau d'alerte rouge** ; testé en 9.2 (RM-14, FR165).
 8. `ShareCalculator` prend la **base de calcul en paramètre**, afin qu'un renversement de CONTRA-01 ne modifie pas le schéma.
+9. Le calcul est **intégré au service d'encaissement de 8.5**, exécuté **dans la même transaction** que l'enregistrement de l'encaissement (FR113) : un calcul de parts qui survivrait à un encaissement annulé serait un défaut.
+10. ⛔ L'intégration est protégée par verrou : deux encaissements simultanés sur le même contrat **ne produisent pas de parts en double** ; testé sous concurrence (reporté de 8.5, où le calculateur n'existait pas encore).
 
 ---
 
@@ -1265,7 +1354,7 @@ arrêtés plutôt que sur une impression.* — [PRD 4.13]
 5. L'application **notifie à l'approche du 5 du mois suivant** et signale un dépassement (FR157).
 6. ⛔ Après validation, le mois est **clôturé** : toute écriture imputée à ce mois est refusée côté serveur ; testé **pour un encaissement et pour une dépense** (FR158).
 7. ⛔ La **réouverture** exige une autorisation `direction` **avec motif**, produit une entrée d'audit, et **marque comme telle** toute écriture postérieure (FR159).
-8. La validation **recalcule et fige le niveau d'alerte du mois** (FR160) — consommé par 9.1.
+8. ⛔ Cette story crée le **calculateur pur du niveau d'alerte** — assiette = somme des charges actives, comparaison aux encaissements du mois, séquence de deux mois — et la validation **fige le niveau du mois clôturé** (FR160). Un mois clôturé ne peut pas voir son niveau changer rétroactivement. **9.1 réutilise ce calculateur** et y ajoute le recalcul planifié, l'affichage courant et les trois niveaux.
 9. Le rapport reste consultable sur téléphone : les douze lignes s'empilent en cartes plutôt qu'en tableau à défilement horizontal.
 
 ---
@@ -1296,12 +1385,16 @@ vigilance de quiconque, et réunir le travail et l'argent sur un seul écran.
 *En tant que direction, je veux être avertie automatiquement avant la séquence qui a déjà fermé
 l'entreprise, afin que le mécanisme ne dépende de la vigilance de personne.* — [PRD 4.14]
 
+Cette story **réutilise le calculateur pur créé en 8.13** — elle ne le réécrit pas — et lui ajoute le
+recalcul planifié, l'affichage courant et les effets visibles.
+
 1. ⛔ L'assiette d'alerte est la **somme des charges fixes actives du paramétrage** ; **aucune liste codée en dur** (FR161).
 2. ⛔ **Vert** : encaissements du mois ≥ assiette. **Orange** : un mois sous l'assiette. **Rouge** : **deux mois consécutifs** sous l'assiette. Les trois cas sont testés sur des jeux de données dédiés (FR162 à FR164, CA-15).
-3. ⛔ L'ajout d'une charge fixe modifie l'assiette et **peut changer le niveau au recalcul suivant** ; testé (FR147).
+3. ⛔ L'ajout d'une charge fixe modifie l'assiette et **change effectivement le niveau au recalcul suivant** ; testé de bout en bout (complète 8.2 AC4, FR147).
 4. Le niveau est affiché en permanence sur le tableau de bord direction, **avec libellé textuel en plus de la couleur** (NFR31).
-5. Le recalcul est une tâche planifiée idempotente ; le niveau figé à la clôture mensuelle (8.13) fait foi pour le mois clos.
+5. Le recalcul est une tâche planifiée **idempotente** ; le niveau figé à la clôture mensuelle (8.13) fait foi pour le mois clos et n'est jamais réécrit.
 6. Le calcul affiche sa **méthode et la date des données source**.
+7. La tâche planifiée de recalcul est **ajoutée au registre d'ordonnancement** de `docs/ops/` et à la supervision de 11.4.
 
 ---
 
@@ -1367,6 +1460,7 @@ trace, sans réunion supplémentaire.* — [PRD 4.16]
 afin de ne rien découvrir en retard.* — [FR31, reste]
 
 1. Les onze événements de FR31 notifient : rapport bientôt en retard, rapport en retard, objectif proche de l'échéance, commentaire ou correction demandée, blocage affecté, dépense à approuver, rapprochement ou rapport financier à préparer, document interne à accepter, fin de contrat ou de stage proche.
+1 bis. La notification de **fin de contrat ou de stage proche** consomme le service exposé en **3.2 AC4**, qui n'émettait rien faute de centre de notifications à ce jalon. ⛔ Un test vérifie que l'échéance détectée en 3.2 produit bien une notification ici.
 2. ⛔ Chaque notification permet d'atteindre l'action attendue en **au plus 3 interactions** ; mesuré pour les trois plus fréquentes.
 3. Les tâches planifiées d'émission sont **idempotentes** : un test rejoue la tâche et vérifie qu'aucune notification n'est dupliquée.
 4. ⛔ **Aucun canal externe n'est appelé** ; testé à nouveau en fin de MVP (FR34).
@@ -1442,8 +1536,8 @@ préparer un contrôle.* — [PRD 4.17]
 *En tant que direction, je veux une vérification automatique qui détecte une dérive dans les données
 elles-mêmes, afin qu'une manipulation en base ou une régression ne passe pas inaperçue.*
 
-1. `php artisan ptr:check-invariants` s'exécute **quotidiennement** et alerte en cas d'écart.
-2. Il vérifie : `APP_DEBUG=false` et `APP_ENV=production` ; **exactement 2 comptes** porteurs de `depense.approuver` ; aucun `super_admin` porteur d'une permission métier ; déclencheurs d'immuabilité présents sur `audit_logs` ; utilisateur applicatif dépourvu de `DELETE` sur `audit_logs` ; dernière sauvegarde de moins de 26 h.
+1. Cette story **complète la commande créée en 2.3** et enrichie en 4.5 et 11.1 ; elle ne la crée pas. Elle porte sa version finale, son exécution **quotidienne** planifiée et son alerte.
+2. La commande vérifie l'ensemble cumulé : `APP_DEBUG=false` et `APP_ENV=production` ; **exactement 2 comptes** porteurs de `depense.approuver` ; aucun `super_admin` porteur d'une permission métier ; déclencheurs d'immuabilité présents sur `audit_logs` ; utilisateur applicatif dépourvu de `DELETE` sur `audit_logs` ; dernière sauvegarde de moins de 26 h.
 3. ⛔ Il vérifie **dans les données** qu'aucune dépense `payee` n'existe sans deux approbations distinctes. C'est le point le plus important : il détecte une manipulation en base ou une régression **déjà passée en production**.
 4. La **campagne d'autorisation complète** (2.9) couvre l'intégralité des ressources du MVP, tous rôles × toutes ressources protégées ; ⛔ elle est verte, et aucune route protégée n'est absente de la matrice.
 5. Les quatorze règles métier bloquantes de l'architecture § 23.2 disposent chacune d'un test nommé ; ⛔ **l'absence d'un seul de ces tests bloque la porte de qualité**.
@@ -1464,7 +1558,9 @@ supposées, afin que « ça marche sur mon téléphone » cesse d'être une opin
 6. ⛔ **WCAG 2.1 AA** : contraste, libellés associés, navigation clavier complète. Vérifié à l'outil **et** au lecteur d'écran sur les cinq parcours critiques.
 7. ⛔ **NFR31** : aucune information portée par la couleur seule ; vérifié en niveaux de gris sur tous les écrans porteurs d'un code couleur.
 8. Compatibilité vérifiée sur Chrome Android (priorité 1), Chrome desktop, Safari courant et n-1 (NFR9).
-9. Les écarts constatés sont consignés avec leur décision — corrigé, accepté, reporté — jamais laissés implicites.
+9. ⛔ **NFR27 — capacité.** L'application est exercée sur un jeu représentatif de **100 utilisateurs actifs** avec un volume de données correspondant à une année d'exploitation, **sans ajout de composant ni changement de topologie** : même VPS, même base, même Redis. Sont mesurés et consignés : temps de réponse du tableau de bord direction et du rapport quotidien, nombre de requêtes base par rendu, occupation disque et mémoire.
+   *La charge simultanée à simuler reste **à confirmer** — 100 comptes ne signifient pas 100 sessions concurrentes. À défaut d'arbitrage, l'hypothèse retenue et testée est consignée explicitement plutôt que laissée implicite.*
+10. Les écarts constatés sont consignés avec leur décision — corrigé, accepté, reporté — jamais laissés implicites.
 
 ---
 
@@ -1499,11 +1595,14 @@ qu'un incident matériel ne referme pas l'entreprise une seconde fois.* — [NFR
 2. La sauvegarde comprend un `mysqldump` **`--single-transaction`** (cohérent sans verrouiller l'application) **et** l'archive de `storage/app/private`.
 3. L'archive est **chiffrée par mot de passe**, la clé étant conservée **hors du serveur**.
 4. Elle est envoyée vers un **stockage objet hors site** ; une copie locale est conservée 48 h pour restauration rapide.
-5. Rétention : **7 quotidiennes, 4 hebdomadaires, 12 mensuelles**. Conservation longue de 10 ans sur les données financières (NFR26, DEC-11).
+5. **Deux horizons distincts, à ne pas confondre.** *Rotation des archives* : 7 quotidiennes, 4 hebdomadaires, 12 mensuelles — c'est la profondeur de restauration. *Conservation métier* : les **données du personnel et les justificatifs financiers sont conservés au moins dix ans** (NFR26), ce que la rotation des sauvegardes ne garantit pas à elle seule. Le dispositif de conservation longue est documenté et son coût disque chiffré, **sous réserve de DEC-11**.
 6. ⛔ **`backup:monitor` alerte quand la dernière sauvegarde est trop ancienne.** Une sauvegarde qui cesse silencieusement est le mode de défaillance normal de ce dispositif — c'est l'absence, pas l'échec, qu'il faut surveiller.
 7. `.env` est sauvegardé **séparément et manuellement**, hors du dispositif automatique : il contient les secrets et ne doit pas voyager avec les données.
 8. Redis, `storage/logs`, `node_modules` et `vendor` ne sont pas sauvegardés — reconstructibles.
 9. **RPO ≤ 24 h** ; l'objectif est documenté et vérifié.
+10. `/up` est **étendu** pour exposer l'âge de la dernière sauvegarde (reporté de 1.1, la sauvegarde n'existant pas avant cette story).
+11. ⛔ `ptr:check-invariants` (2.3, étendue en 4.5) reçoit l'invariant **« dernière sauvegarde de moins de 26 h »**.
+12. Les **valeurs** des secrets du stockage de sauvegarde sont renseignées dans les emplacements préparés en 1.5, une fois DEC-06 arbitré.
 
 > **DEC-06 — décision de direction, non technique.** Les sauvegardes contiennent des données de
 > personnel et des justificatifs financiers, et **sortiront du Niger** vers l'hébergeur retenu
@@ -1519,8 +1618,16 @@ cesse d'être une intention.* — [NFR25]
 
 1. `php artisan ptr:test-restore` s'exécute **mensuellement** par tâche planifiée.
 2. Il récupère la dernière sauvegarde **hors site** et la restaure dans une **base jetable**.
-3. Il vérifie des **invariants** : nombre de lignes d'audit, somme des encaissements, dernier utilisateur créé, **présence des déclencheurs d'immuabilité**.
-4. ⛔ Il **écrit le résultat daté dans `docs/ops/restore-log.md`** — la procédure et son dernier résultat sont consignés, comme NFR25 l'exige explicitement.
+3. Les **invariants vérifiés sont cumulatifs** et suivent les tables réellement présentes — ⛔ aucun accès n'est tenté sur une table absente, sous peine d'un test de restauration qui échoue pour la mauvaise raison :
+
+   | Invariant | Disponible à partir de |
+   |---|---|
+   | Nombre de lignes d'audit, présence des déclencheurs d'immuabilité | Jalon 1 (1.4) |
+   | Dernier utilisateur créé, nombre de comptes actifs | Jalon 1 (2.1) |
+   | Nombre de dépenses et d'approbations | Jalon 1 (4.4) |
+   | Somme des encaissements, soldes de comptes | **Jalon 4 (8.5)** |
+
+4. ⛔ Le résultat daté est écrit dans un **registre persistant du répertoire partagé** (`shared/ops/restore-log.md`), **jamais dans le `docs/` d'une release** : les releases sont atomiques par lien symbolique, et un journal écrit à l'intérieur serait **effacé au déploiement suivant**. La procédure elle-même est versionnée dans `docs/ops/restore-procedure.md` ; le registre des exécutions, non. NFR25 exige la conservation des deux.
 5. Il alerte en cas d'échec.
 6. Une **restauration complète manuelle en préproduction est exécutée et chronométrée avant chaque mise en service de jalon**, pour valider le **RTO de 4 h** avec un opérateur humain dans la boucle.
 7. Un test vérifie que la commande **échoue bruyamment** si la sauvegarde est corrompue ou illisible — un test de restauration qui réussit toujours ne prouve rien.
@@ -1554,8 +1661,8 @@ qu'un rappel manqué ne soit pas un incident silencieux.*
 1. `cron` déclenche `schedule:run` à la minute ; Supervisor maintient `queue:work` avec redémarrage automatique.
 2. Un travail échoué est conservé, visible et rejouable ; il n'est jamais perdu silencieusement.
 3. `queue:restart` est appelé à chaque déploiement — un worker qui tourne encore sur l'ancien code est un mode de défaillance classique.
-4. Les tâches planifiées sont **idempotentes** : rejouer une tâche ne duplique ni notification ni écriture ; testé sur les rappels de rapport et les relances de dépense.
-5. Les tâches critiques (sauvegarde, invariants, rappels, alerte financière) sont listées avec leur horaire dans `docs/ops/`.
+4. Les tâches planifiées sont **idempotentes** : rejouer une tâche ne duplique ni notification ni écriture. **Au Jalon 1, seules trois tâches existent et sont testées** : sauvegarde quotidienne, `ptr:check-invariants`, relances de dépense J+1 / J+2. Le **rappel de rapport quotidien est ajouté et testé en 6.2**, le **recalcul d'alerte financière en 9.1**.
+5. Le registre des tâches critiques de `docs/ops/` reflète le **périmètre réellement livré à chaque jalon**, pas le périmètre cible : un registre qui annonce une tâche inexistante rend la supervision inexploitable.
 6. Une tâche qui ne s'est pas exécutée à l'heure attendue **alerte** — c'est l'absence, non l'échec, qui est dangereuse ici aussi.
 
 ---
@@ -1567,7 +1674,14 @@ que le test de restauration soit une vérification continue plutôt qu'une théo
 
 1. `php artisan ptr:anonymize` remplace noms, téléphones et pièces jointes par des valeurs factices.
 2. ⛔ La commande **refuse de s'exécuter en production** ; testé.
-3. La préproduction est alimentée par une **restauration de la sauvegarde de production, anonymisée** — la préproduction *est* ainsi la vérification permanente de la sauvegarde.
+3. **Deux régimes d'alimentation, selon qu'une production existe ou non** — avant la première mise en service, il n'y a aucune sauvegarde de production à restaurer :
+
+   | Moment | Source de la préproduction |
+   |---|---|
+   | **Amorçage, avant la première production** | Jeu de données de recette **construit par factories**, sans aucune donnée personnelle réelle |
+   | **À partir du Jalon 1 en service** | **Restauration de la sauvegarde de production, anonymisée** — la préproduction devient alors la vérification permanente de la sauvegarde |
+
+   Le basculement d'un régime à l'autre est explicite et documenté ; il ne se déduit pas.
 4. Aucune donnée personnelle réelle ne subsiste après anonymisation ; un test parcourt les colonnes sensibles et échoue s'il en trouve.
 5. La préproduction ne reçoit **aucune sauvegarde** et n'envoie aucune notification externe.
 6. La procédure d'alimentation est documentée dans `docs/ops/`.
@@ -1609,7 +1723,7 @@ jalon**
 ## ✅ Critères de fin de l'epic 11
 
 1. ⛔ Une sauvegarde chiffrée part chaque nuit hors site, et **l'absence de sauvegarde alerte**.
-2. ⛔ `ptr:test-restore` s'est exécuté au moins une fois avec succès, et son résultat daté figure dans `docs/ops/restore-log.md`.
+2. ⛔ `ptr:test-restore` s'est exécuté au moins une fois avec succès, et son résultat daté figure dans le registre persistant `shared/ops/restore-log.md` — **hors du répertoire de release**, qu'un déploiement remplace. La procédure est versionnée dans `docs/ops/restore-procedure.md`.
 3. ⛔ Une restauration complète a été **chronométrée** et le RTO de 4 h est validé avec un opérateur humain.
 4. La supervision alerte sur : indisponibilité, travaux échoués, sauvegarde absente, requêtes lentes, certificat proche de l'expiration.
 5. ⛔ Le retour arrière de déploiement a été exécuté avec succès **en conditions réelles**, pas seulement documenté.
@@ -1620,7 +1734,8 @@ jalon**
 
 ## 5. Traçabilité PRD → plan d'exécution
 
-Les 54 stories du § 10 du PRD sont intégralement couvertes.
+Les **51** stories du § 10 du PRD (13 + 8 + 13 + 17) sont intégralement couvertes. Vérification PO
+du 18/07/2026 : **176 FR sur 176 couvertes, aucune orpheline.**
 
 | PRD | Plan | PRD | Plan |
 |---|---|---|---|
@@ -1645,6 +1760,48 @@ Les 54 stories du § 10 du PRD sont intégralement couvertes.
 | 2.6 | 5.5 | 4.16 | 9.5 |
 | 2.7 | 5.6 *(+ 3.5)* | 4.17 | 10.1, 10.2, 10.3 |
 | 2.8 | 5.7 | | |
+
+### Couverture des exigences non fonctionnelles
+
+**32 NFR sur 32 couvertes**, dont 14 par le socle transverse plutôt que par une story isolée — c'est
+le rôle du socle : une exigence qui s'applique partout ne doit pas dépendre d'une story qui pourrait
+être oubliée.
+
+| NFR | Objet | Couvert par |
+|---|---|---|
+| NFR1 | Premier rendu utile < 3 s en 3G | SOC-09, 5.8, 9.5, **10.5** |
+| NFR2 | ≤ 300 Ko / 80 Ko | SOC-09, 1.3 (budget en CI), **10.5** |
+| NFR3 | Aucune ressource tierce | SOC-09, 1.7, **10.5** |
+| NFR4 | Rapport quotidien < 3 min | **6.1 AC7**, 10.5 |
+| NFR5 | Brouillon ≤ 10 s | 1.7 (`useDraft`), **6.1 AC5** |
+| NFR6 | Aucun enregistrement partiel | **6.1 AC9**, SOC-02 |
+| NFR7 / NFR8 | 320 px, cibles 44 px | SOC-09, 1.7, **10.5** |
+| NFR9 | Navigateurs supportés | **10.5 AC8** |
+| NFR10 | Aucun écran exigeant un ordinateur | SOC-09, 8.13 AC9, 9.5 AC6 |
+| NFR11 | HTTPS, HSTS, aucun contenu mixte | **1.6** |
+| NFR12 | Hachage, aucun secret journalisé | **1.6 AC6**, 2.4 AC3, 11.3 AC7 |
+| NFR13 | CSRF, XSS, injection, bourrage | **1.6 AC3**, 2.6 |
+| NFR14 | Autorisation serveur, URL directe | SOC-01, **2.9**, 10.4 |
+| NFR15 | Pièces jointes hors racine web | **3.5** |
+| NFR16 | Types et taille paramétrables | **3.5 AC3-AC5** |
+| NFR17 | Erreurs sans secret ni donnée | SOC-08, **1.6 AC7**, 11.3 |
+| NFR18 | Moindre privilège | SOC-01, 2.2 |
+| NFR19 | Stagiaires sans donnée financière | **8.1 AC4**, 10.4 |
+| NFR20 | Immuabilité au niveau du modèle | SOC-03, **1.4** |
+| NFR21 | Audit dans la même transaction | SOC-02, **1.4 AC2** |
+| NFR22 | Entiers XOF | SOC-11, **1.2**, 8.3 AC4 |
+| NFR23 | Dates non ambiguës, Niamey | SOC-11, **1.2 AC5** |
+| NFR24 | Sauvegarde quotidienne | **11.1** |
+| NFR25 | Test de restauration documenté | **11.2** |
+| NFR26 | Conservation 10 ans | **11.1 AC5** *(sous réserve DEC-11)* |
+| **NFR27** | **5 à 100 utilisateurs sans changement d'architecture** | **10.5 AC9** *(charge simultanée à confirmer)* |
+| NFR28 | Pas de multi-entreprise | **3.1 AC1**, tech-stack |
+| NFR29 | Français simple, vocabulaire de contribution | SOC-10, 6.2 AC5, 7.2 AC5 |
+| NFR30 | WCAG 2.1 AA | SOC-10, 1.7 AC7, **10.5 AC6** |
+| NFR31 | Rien porté par la couleur seule | SOC-10, **10.5 AC7** |
+| NFR32 | Messages d'erreur exploitables | SOC-08, **1.6 AC4** |
+
+---
 
 **Stories sans équivalent dans le PRD** — comblant les manques signalés au § 1 de ce document :
 1.3 (CI), 1.5 (préproduction et secrets), 1.6 (durcissement HTTP), 1.7 (socle d'interface et
@@ -1678,4 +1835,6 @@ employés, application native, multi-entreprise.
 
 | Date | Version | Description | Auteur |
 |---|---|---|---|
-| 18/07/2026 | 1.0 | Plan d'exécution initial. 11 epics, 82 stories, 4 jalons. Couvre les 54 stories du PRD et comble dix manques : CI, sécurité HTTP, socle d'interface, amorçage du premier administrateur, données initiales, campagne d'autorisation, sauvegarde, restauration, supervision et livraison. Trois écarts d'ordonnancement signalés au § 4. | John (PM) |
+| 18/07/2026 | 1.0 | Plan d'exécution initial. 11 epics, 82 stories, 4 jalons. Couvre les 51 stories du PRD et comble dix manques : CI, sécurité HTTP, socle d'interface, amorçage du premier administrateur, données initiales, campagne d'autorisation, sauvegarde, restauration, supervision et livraison. Trois écarts d'ordonnancement signalés au § 4. | John (PM) |
+| 18/07/2026 | 1.1 | Corrections après revue PO : compte de stories PRD rétabli à 51 ; couverture FR confirmée 176/176. | John (PM) |
+| 18/07/2026 | 1.2 | **Séquencement corrigé — 24 corrections issues de la revue PO.** Les sept dépendances avant intra-epic sont levées : notification de fin de contrat (3.2 → 9.6), tableau de bord personnel livré par incréments (5.8 → 6.1, 6.6, 7.5), test de solde reporté (8.1 → 8.6), statuts de facture (8.4 → 8.5), calcul des parts (8.5 → 8.7), `MonthGuard` avancé en 8.5, calculateur d'alerte créé en 8.13 et réutilisé en 9.1, `ptr:check-invariants` créée en 2.3 puis enrichie en 4.5, 11.1 et 10.4. NFR27 couverte par 10.5 AC9. Ajouts : table de couverture NFR 32/32, registre complet des arbitrages, dépôt git et README en 1.1. Trois défauts d'exploitation corrigés : `/up` n'expose la sauvegarde qu'à partir de 11.1, le journal de restauration sort du `docs/` d'une release, la préproduction a un régime d'amorçage distinct. | John (PM) |

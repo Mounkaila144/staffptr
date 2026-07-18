@@ -93,6 +93,7 @@ C'est la story qui porte la valeur centrale du Jalon 1. Chacun de ses critères 
 7. Chaque approbation et chaque refus produit une entrée d'audit nommant l'auteur et l'horodatage.
 8. L'approbation est protégée contre la concurrence : deux approbations simultanées du même compte ne comptent pas double ; testé sous verrou.
 9. Lorsque les deux comptes `direction` n'existent pas encore, l'écran explique pourquoi aucune approbation n'est possible plutôt que d'échouer silencieusement (2.3 AC9).
+10. ⛔ `ptr:check-invariants` (créée en 2.3) est **étendue** de deux invariants vérifiés **dans les données** : exactement **2** comptes porteurs de `depense.approuver` (PERM-05), et **aucune dépense `payee` sans deux approbations distinctes**. Le second est le plus important du dispositif : il détecte une manipulation en base ou une régression déjà passée en production.
 
 ---
 

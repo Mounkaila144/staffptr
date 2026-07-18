@@ -61,6 +61,14 @@ versionné, afin que l'installation ne soit pas le maillon faible du contrôle d
 8. Elle rappelle à l'écran que `super_admin` ne détient aucune permission métier et que sa première tâche est de créer les **deux** comptes `direction`.
 9. Tant que les deux comptes `direction` n'existent pas, l'application **affiche explicitement** qu'aucune dépense n'est approuvable, plutôt que de laisser croire à un dysfonctionnement.
 10. `DemoSeeder` lève une exception si `app()->environment('production')` ; testé.
+11. **Première version de `php artisan ptr:check-invariants`**, portant les seuls invariants vérifiables à ce stade : `APP_DEBUG=false` et `APP_ENV` cohérents, aucun `super_admin` porteur d'une permission métier, déclencheurs d'immuabilité présents sur `audit_logs`, utilisateur applicatif dépourvu de `DELETE` sur `audit_logs`.
+12. La commande **échoue avec un code de sortie non nul** en cas d'écart, afin d'être utilisable en porte de déploiement.
+
+> **Commande à croissance progressive.** `ptr:check-invariants` est enrichie à mesure que les
+> invariants deviennent vérifiables : **4.5** ajoute « aucune dépense `payee` sans deux approbations
+> distinctes » et « exactement 2 comptes porteurs de `depense.approuver` », **11.1** ajoute l'âge de
+> la dernière sauvegarde, **10.4** finalise la campagne complète. Elle est exigée dès la porte du
+> Jalon 1 : elle ne peut donc pas naître en 10.4.
 
 ---
 

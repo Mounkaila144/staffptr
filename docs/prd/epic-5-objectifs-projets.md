@@ -115,11 +115,20 @@ qui a réellement été remis au client.* — [PRD 2.8]
 *En tant qu'utilisateur, je veux voir en dix secondes ce que j'ai à faire aujourd'hui, afin de ne pas
 découvrir mes priorités en réunion.* — [PRD 2.1]
 
-Placée en fin d'epic : elle agrège les objets créés par les stories précédentes.
+**Le tableau de bord grandit par incréments.** Il est livré ici avec les blocs dont les objets
+existent, puis chaque epic ultérieur y ajoute le sien. L'alternative — le déplacer après l'epic 7 —
+laisserait le Jalon 2 sans écran d'accueil, ce qui est pire qu'un écran partiel.
 
-1. Le tableau de bord affiche : objectifs du mois avec progression, tâches du jour, rapport du jour à envoyer, blocages ouverts, prochaines échéances, notifications, dernière évaluation, demandes en attente.
+| Bloc | Ajouté par |
+|---|---|
+| Objectifs du mois, tâches du jour, prochaines échéances, notifications, demandes en attente | **5.8** (ici) |
+| Rapport du jour à envoyer | **6.1** |
+| Blocages ouverts | **6.6** |
+| Dernière évaluation | **7.5** |
+
+1. Le tableau de bord affiche les blocs disponibles à ce jalon : objectifs du mois avec progression, tâches du jour, prochaines échéances, notifications, demandes en attente. FR166 n'est **intégralement satisfait qu'à l'issue de 7.5**.
 2. ⛔ Chaque bloc n'est rendu que si l'utilisateur détient la permission correspondante ; un bloc non autorisé est **absent**, sans bloc vide ni message d'erreur technique (FR172).
-3. Le bloc le plus urgent figure en tête : « En attente de mon approbation » pour `direction`, « Mon rapport du jour » pour les autres (UX § 1.3).
+3. Le bloc le plus urgent figure en tête : « En attente de mon approbation » pour `direction`. Pour les autres rôles, « Mon rapport du jour » **prend cette place dès 6.1** ; à ce jalon, ce sont les objectifs du mois.
 4. Les blocs sont **empilés verticalement** et lisibles sans défilement horizontal à 320 px.
 5. Le premier rendu utile intervient en **moins de 3 secondes** en 3G dégradée simulée ; mesuré par Playwright avec bridage réseau **et** en recette sur téléphone réel.
 6. Les blocs vides portent un message de vide propre à chacun ; aucun ne reste blanc.

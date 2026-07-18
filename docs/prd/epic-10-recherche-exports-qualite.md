@@ -57,8 +57,8 @@ préparer un contrôle.* — [PRD 4.17]
 *En tant que direction, je veux une vérification automatique qui détecte une dérive dans les données
 elles-mêmes, afin qu'une manipulation en base ou une régression ne passe pas inaperçue.*
 
-1. `php artisan ptr:check-invariants` s'exécute **quotidiennement** et alerte en cas d'écart.
-2. Il vérifie : `APP_DEBUG=false` et `APP_ENV=production` ; **exactement 2 comptes** porteurs de `depense.approuver` ; aucun `super_admin` porteur d'une permission métier ; déclencheurs d'immuabilité présents sur `audit_logs` ; utilisateur applicatif dépourvu de `DELETE` sur `audit_logs` ; dernière sauvegarde de moins de 26 h.
+1. Cette story **complète la commande créée en 2.3** et enrichie en 4.5 et 11.1 ; elle ne la crée pas. Elle porte sa version finale, son exécution **quotidienne** planifiée et son alerte.
+2. La commande vérifie l'ensemble cumulé : `APP_DEBUG=false` et `APP_ENV=production` ; **exactement 2 comptes** porteurs de `depense.approuver` ; aucun `super_admin` porteur d'une permission métier ; déclencheurs d'immuabilité présents sur `audit_logs` ; utilisateur applicatif dépourvu de `DELETE` sur `audit_logs` ; dernière sauvegarde de moins de 26 h.
 3. ⛔ Il vérifie **dans les données** qu'aucune dépense `payee` n'existe sans deux approbations distinctes. C'est le point le plus important : il détecte une manipulation en base ou une régression **déjà passée en production**.
 4. La **campagne d'autorisation complète** (2.9) couvre l'intégralité des ressources du MVP, tous rôles × toutes ressources protégées ; ⛔ elle est verte, et aucune route protégée n'est absente de la matrice.
 5. Les quatorze règles métier bloquantes de l'architecture § 23.2 disposent chacune d'un test nommé ; ⛔ **l'absence d'un seul de ces tests bloque la porte de qualité**.
@@ -79,7 +79,9 @@ supposées, afin que « ça marche sur mon téléphone » cesse d'être une opin
 6. ⛔ **WCAG 2.1 AA** : contraste, libellés associés, navigation clavier complète. Vérifié à l'outil **et** au lecteur d'écran sur les cinq parcours critiques.
 7. ⛔ **NFR31** : aucune information portée par la couleur seule ; vérifié en niveaux de gris sur tous les écrans porteurs d'un code couleur.
 8. Compatibilité vérifiée sur Chrome Android (priorité 1), Chrome desktop, Safari courant et n-1 (NFR9).
-9. Les écarts constatés sont consignés avec leur décision — corrigé, accepté, reporté — jamais laissés implicites.
+9. ⛔ **NFR27 — capacité.** L'application est exercée sur un jeu représentatif de **100 utilisateurs actifs** avec un volume de données correspondant à une année d'exploitation, **sans ajout de composant ni changement de topologie** : même VPS, même base, même Redis. Sont mesurés et consignés : temps de réponse du tableau de bord direction et du rapport quotidien, nombre de requêtes base par rendu, occupation disque et mémoire.
+   *La charge simultanée à simuler reste **à confirmer** — 100 comptes ne signifient pas 100 sessions concurrentes. À défaut d'arbitrage, l'hypothèse retenue et testée est consignée explicitement plutôt que laissée implicite.*
+10. Les écarts constatés sont consignés avec leur décision — corrigé, accepté, reporté — jamais laissés implicites.
 
 ---
 

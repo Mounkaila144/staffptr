@@ -36,7 +36,7 @@ Traitées dans `bootstrap/app.php` (structure slim) :
 
 | Besoin | Moyen |
 |---|---|
-| Point de santé | `/up` — base, Redis, disque, dernière sauvegarde (Story 1.1) |
+| Point de santé | `/up` — base, Redis, disque (Story 1.1) ; **âge de la dernière sauvegarde ajouté en Story 11.1**, seule story qui crée une sauvegarde |
 | Disponibilité | Surveillance externe (UptimeRobot ou équivalent) sur `/up`, alerte SMS |
 | Erreurs applicatives | DEC-07 |
 | Files d'attente | `queue:monitor` + alerte sur travaux échoués |

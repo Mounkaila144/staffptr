@@ -27,6 +27,7 @@ téléphone, afin que rendre compte reste un geste tenable tous les jours.* — 
 8. Le formulaire est utilisable à 320 px, cibles ≥ 44 × 44 px, sans défilement horizontal, saisissable à une main.
 9. ⛔ Une action interrompue par une perte de connexion ne produit **jamais d'enregistrement partiel** : tout ou rien (NFR6).
 10. Hors connexion, le bandeau explique « L'envoi n'a pas abouti — pas de connexion. Votre rapport est conservé sur cet appareil. [Réessayer] » sans promettre d'envoi automatique.
+11. Le bloc **« Mon rapport du jour »** est ajouté au tableau de bord personnel (5.8) et y prend la **première position** pour tout rôle autre que `direction` (UX § 1.3). Il n'apparaît pas les jours non travaillés ni sur une absence approuvée.
 
 > **Si la mesure des 3 minutes échoue en recette réelle**, l'arbitrage remonte au produit : réduire
 > les champs obligatoires ou accepter la friction (CONTRA-08). Ce n'est pas une décision de
@@ -46,6 +47,7 @@ afin de ne plus courir après les rapports.* — [PRD 3.2]
 5. Un rapport envoyé après l'heure limite affiche le retard constaté et propose une **explication courte facultative** — sans ton accusatoire (FR71, NFR29).
 6. ⛔ La modification de l'heure limite au paramétrage change le comportement **sans redéploiement** ; testé.
 7. Les rappels sont émis par tâche planifiée ; un test vérifie qu'un rappel n'est pas envoyé deux fois pour le même jour.
+8. La tâche planifiée de rappel est **ajoutée au registre d'ordonnancement** de `docs/ops/` et à la supervision de 11.4 — une tâche qui ne s'exécute pas à l'heure attendue doit alerter.
 
 ---
 
@@ -60,7 +62,7 @@ qui est enregistré à mon nom soit exactement ce que j'ai écrit.* — [PRD 3.3
 4. Un rapport retourné revient à l'auteur avec le **motif du retour** et une notification.
 5. ⛔ Le périmètre de validation respecte la matrice : `tuteur` son équipe, `direction` tous ; hors périmètre par URL directe → refus.
 6. Chaque validation, retour et nouvelle version produit une entrée d'audit.
-7. Depuis la notification, la validation est atteignable en au plus 3 interactions (UX § 4.3).
+7. ⛔ Depuis la notification, la validation est atteignable en **au plus 3 interactions** ; c'est ici que la mesure annoncée en 3.7 AC4 est réellement faite, en recette sur téléphone réel (UX § 4.3).
 
 ---
 
@@ -105,6 +107,7 @@ obstacle ne consomme pas une journée entière.* — [PRD 3.6]
 6. La fermeture sans solution exige un **motif**.
 7. La création d'un blocage depuis le rapport quotidien ne fait pas perdre la saisie en cours.
 8. Vide positif : « Aucun blocage ouvert. »
+9. Le bloc **« Blocages ouverts »** est ajouté au tableau de bord personnel (5.8).
 
 ---
 

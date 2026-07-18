@@ -32,7 +32,7 @@ fonction et un statut identifiés.* — [PRD 1.6]
 1. La fiche porte nom, téléphone, photo optionnelle, rôles, service, fonction, **responsable direct**, type de relation (`dirigeant`, `employe`, `contractuel`, `stagiaire`), dates de début et de fin de contrat ou de stage.
 2. L'application affiche pour toute personne la liste de ses **responsables et subordonnés directs à la date courante** (FR19).
 3. Un cycle hiérarchique est refusé : une personne ne peut pas être son propre responsable, directement ou indirectement ; testé sur une chaîne de trois.
-4. Une fin de contrat ou de stage proche déclenche une notification (FR31) ; le délai est paramétrable.
+4. Un service métier **expose** la liste des fins de contrat ou de stage proches, avec un délai paramétrable ; il est testé directement, sans passer par une notification. **L'émission effective de la notification est en 9.6** — le centre de notifications n'existe qu'en 3.7, et les rappels planifiés en 9.6.
 5. Chacun consulte sa fiche ; le responsable celles de son équipe ; `direction` toutes. Tout autre accès est refusé, y compris par URL directe.
 6. La fiche est lisible et modifiable à 320 px, les champs empilés, sans défilement horizontal.
 
@@ -56,13 +56,26 @@ changement de responsable ou de rôle ne se discute pas de mémoire.* — [PRD 1
 *En tant que direction, je veux administrer moi-même les règles chiffrées, afin de changer une limite
 sans demander de développement.* — [PRD 1.7]
 
-1. Sont paramétrables depuis l'interface : jours travaillés, jours fériés, heure limite du rapport, délai de rappel, limite de stagiaires par tuteur, pourcentage de réserve, objectif de réserve en mois, types et taille des pièces jointes, catégories de dépense, charges fixes, créneaux de suivi.
+Cette story livre le **mécanisme** de paramétrage et les paramètres **scalaires immédiatement
+exploitables**. Les familles de paramètres qui portent une liste d'objets arrivent avec la story qui
+les consomme — sinon on livrerait un écran qui configure quelque chose d'inexistant.
+
+1. Sont paramétrables depuis l'interface, et exploitables dès cette story : jours travaillés de la semaine, heure limite du rapport, délai de rappel, limite de stagiaires par tuteur, pourcentage de réserve, objectif de réserve en mois, types et taille maximale des pièces jointes, nombre de tentatives de connexion et durée de blocage.
 2. `SettingSeeder` pose les valeurs initiales : stagiaires **3**, réserve **20 %**, objectif **3 mois**, heure limite **17 h 45**, rappel **60 minutes** (FR27 à FR29).
-3. ⛔ **Aucune de ces valeurs n'apparaît en dur dans le code.** Un test modifie chaque paramètre et vérifie le changement de comportement associé, **sans redéploiement**.
+3. ⛔ **Aucune de ces valeurs n'apparaît en dur dans le code.** Un test modifie chaque paramètre livré ici et vérifie le changement de comportement associé, **sans redéploiement**.
 4. Toute modification est auditée avec ancienne et nouvelle valeur et porte une **date d'effet** (FR26).
 5. La modification est réservée à `direction` ; tout autre rôle est refusé, y compris par URL directe.
-6. Un paramètre dont la modification a un effet chiffré (réserve, charges) affiche cet effet **avant confirmation**.
+6. Un paramètre dont la modification a un effet chiffré affiche cet effet **avant confirmation** ; le mécanisme d'aperçu est livré ici, ses premiers usages chiffrés arrivent en 8.2.
 7. Le cache de configuration est invalidé à l'écriture ; un test vérifie que la valeur nouvelle est lue à la requête suivante.
+
+**Familles de paramètres livrées ailleurs**, chacune avec son consommateur :
+
+| Famille | Story | Pourquoi pas ici |
+|---|---|---|
+| Jours fériés et fermetures | **4.1** | Le calendrier qui les interprète n'existe pas encore |
+| Catégories de dépense et marqueur « essentielle » | **4.3** | Consommées par la demande de dépense |
+| Créneaux de suivi par tuteur | **7.6** | Le regroupement des demandes n'existe qu'en Epic 7 |
+| Charges fixes et montants mensuels | **8.2** | L'assiette d'alerte et l'objectif de réserve sont en Epic 8 |
 
 ---
 
@@ -108,7 +121,7 @@ Livrée ici et non au Jalon 4 : les relances de double approbation (4.6) et les 
 1. Un centre de notifications avec **compteur de non-lues** est accessible depuis toute page authentifiée.
 2. Le système de notifications Laravel est utilisé avec le **canal `database` seul** (A-07) ; l'architecture permet d'ajouter SMS ou WhatsApp en phase 2 sans refonte.
 3. Chaque notification porte un **lien direct vers l'objet concerné**.
-4. ⛔ Depuis la notification, l'action attendue est atteignable en **au plus 3 interactions** ; mesuré en recette sur l'approbation de dépense et la validation de rapport (FR32).
+4. ⛔ Depuis la notification, l'objet lié est atteignable en **au plus 3 interactions**, prouvé ici sur une notification générique et son lien autorisé (FR32). **La mesure sur les deux parcours réels est faite là où ils naissent** : approbation de dépense en **4.6**, validation de rapport en **6.3**.
 5. Une notification est marquée lue **explicitement** par l'utilisateur ou **implicitement** à l'ouverture de l'objet ; les deux comportements sont testés.
 6. ⛔ Aucun envoi SMS, WhatsApp ou courriel n'est déclenché ; un test vérifie qu'aucun canal externe n'est appelé (FR34).
 7. État vide : « Vous êtes à jour. » — ton positif, le vide étant ici une bonne nouvelle.
@@ -134,7 +147,7 @@ engagement soit opposable.* — [PRD 3.13] — **avancée au Jalon 1, voir ÉCAR
 ## ✅ Critères de fin de l'epic 3
 
 1. Chaque membre a une fiche complète avec responsable direct, et la chaîne hiérarchique est sans cycle.
-2. Les onze paramètres de FR25 sont modifiables à l'écran, et un test prouve pour chacun le changement de comportement **sans redéploiement**.
+2. Les paramètres livrés à ce jalon — jours travaillés, heure limite, délai de rappel, limite de stagiaires, pourcentage et objectif de réserve, types et taille des pièces jointes, tentatives et durée de blocage — sont modifiables à l'écran, et un test prouve pour chacun le changement de comportement **sans redéploiement**. Les quatre familles restantes de FR25 arrivent en 4.1, 4.3, 7.6 et 8.2.
 3. ⛔ Aucune pièce jointe n'est atteignable par URL publique ; le refus de type et de taille est prouvé côté serveur.
 4. Le centre de notifications fonctionne et **aucun canal externe n'est appelé**.
 5. Le règlement intérieur est publié et l'état des acceptations est visible par `direction`.

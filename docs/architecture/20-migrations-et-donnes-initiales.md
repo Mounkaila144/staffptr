@@ -42,7 +42,7 @@ Seeders **idempotents** (`updateOrCreate`), rejouables sans effet de bord :
 
 > **DEC-09 — Q6 en attente.** Les comptes financiers réels (caisse, quelle banque, Airtel Money,
 > Moov Money, autre) ne sont pas connus. Aucun seeder ne les invente : ils sont créés par écran à
-> l'Étape 4. La liste reste requise avant de figer les écrans de rapprochement (Story 4.1).
+> l'Étape 4. La liste reste requise avant de figer les écrans de rapprochement (Story 8.1 du plan d’exécution).
 
 ## 20.4 Données de démonstration
 

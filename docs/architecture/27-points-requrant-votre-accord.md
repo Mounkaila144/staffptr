@@ -7,14 +7,14 @@ appliqué selon la recommandation tant que vous n'en décidez pas autrement.
 |---|---|---|---|
 | **DEC-01** | Fuseau de stockage | UTC en base, Niamey à l'affichage | Étape 1 — première migration |
 | **DEC-02** | Base des tests | MySQL en CI, pas SQLite | Étape 1 — mise en place CI |
-| **DEC-03** | `spatie/laravel-permission` | Retenue | Étape 1 — Story 1.3 |
+| **DEC-03** | `spatie/laravel-permission` | Retenue | Jalon 1 — Story 2.2 |
 | **DEC-04** | Redis (cache et files) | Retenue ; sessions en base | Étape 1 — provisionnement |
 | **DEC-05** | Préproduction | Même VPS (~0 €) ou VPS séparé (~5 €/mois) | Étape 1 — provisionnement |
 | **DEC-06** | Hébergeur des sauvegardes | **La donnée quitte le Niger — décision non technique** | Étape 1 — mise en service |
 | **DEC-07** | Suivi des erreurs | Sentry auto-hébergé, ou fichiers seuls | Étape 1 |
 | **DEC-08** | Q11 — pièces jointes | PDF, JPEG, PNG, WebP, HEIC — 8 Mo | Étape 1 — Story pièces jointes |
-| **DEC-09** | Q6 — comptes financiers réels | Liste attendue | **Étape 4 — Story 4.1** |
-| **DEC-10** | Q9 — vérification d'identité | Procédure humaine à écrire | Étape 1 — Story 1.5 |
+| **DEC-09** | Q6 — comptes financiers réels | Liste attendue | **Jalon 4 — Story 8.1** |
+| **DEC-10** | Q9 — vérification d'identité | Procédure humaine à écrire | Jalon 1 — Story 2.8 |
 | **DEC-11** | Q12 — conservation 10 ans | Confirme NFR26 et le disque | Étape 4 |
 
 **Contradictions PRD toujours ouvertes, rappelées ici parce qu'elles pèsent sur le modèle de

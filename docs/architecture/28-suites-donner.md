@@ -7,21 +7,30 @@
    PRD ↔ architecture. Les fichiers `coding-standards.md`, `tech-stack.md` et `source-tree.md`
    existants seront **mis à jour** par le shard — `tech-stack.md` porte encore une section « À
    décider » que ce document rend caduque.
-4. **Démarrer la boucle `/sm` → `/dev` → `/qa`** sur l'Epic 1, Story 1.1.
+4. **Démarrer la boucle `/sm` → `/dev` → `/qa`** sur l’Epic 1, Story 1.1 du plan d’exécution (`docs/prd/epic-1-fondation-technique.md`).
 
 ## Ordre d'implémentation imposé par l'architecture
 
 Cet ordre n'est pas une préférence : chaque élément est un prérequis technique du suivant.
 
+> **Numérotation.** Les identifiants ci-dessous sont ceux du **plan d'exécution**
+> (`docs/epics-stories.md`, 11 epics), qui font foi pour la boucle `/sm` → `/dev`. Ils ne
+> correspondent pas aux stories du § 10 du PRD, qui suit un découpage en 4 epics. La
+> correspondance complète est dans `docs/prd/tracabilite.md`.
+
 ```
-1. Fondation + /up                         Story 1.1
-2. audit_logs + déclencheurs + AuditLogger Story 1.2  ← avant toute écriture sensible
-3. people / users + normalisation +227     Story 1.4
-4. Rôles, permissions, policies            Story 1.3
-5. Connexion, changement imposé, sessions  Story 1.5
-6. Campagne d'autorisation automatisée     NFR14  ← dès la première ressource protégée
-7. Paramètres + pièces jointes privées     Stories 1.6+
-8. Dépenses + double approbation           Stories 1.11–1.13
+1. Fondation + /up                         Story 1.1        [PRD 1.1]
+2. Monnaie XOF, fuseau, téléphone +227     Story 1.2        [PRD 1.1]
+3. audit_logs + déclencheurs + AuditLogger Story 1.4        [PRD 1.2]
+                                           ← avant toute écriture sensible
+4. people / users + unicité conditionnelle Story 2.1        [PRD 1.4]
+5. Rôles, permissions, policies            Story 2.2        [PRD 1.3]
+6. Premier administrateur + seeders        Story 2.3        [nouveau]
+7. Connexion, changement imposé, sessions  Stories 2.4-2.6  [PRD 1.5]
+8. Campagne d'autorisation automatisée     Story 2.9  NFR14
+                                           ← dès la première ressource protégée
+9. Paramètres + pièces jointes privées     Stories 3.4, 3.5 [PRD 1.7, 2.7]
+10. Dépenses + double approbation          Stories 4.4-4.6  [PRD 1.11-1.13]
 ```
 
 Le point 2 avant tout le reste est la traduction directe de l'exigence du PRD : le journal d'audit

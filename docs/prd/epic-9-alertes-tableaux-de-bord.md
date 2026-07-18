@@ -15,12 +15,16 @@ vigilance de quiconque, et réunir le travail et l'argent sur un seul écran.
 *En tant que direction, je veux être avertie automatiquement avant la séquence qui a déjà fermé
 l'entreprise, afin que le mécanisme ne dépende de la vigilance de personne.* — [PRD 4.14]
 
+Cette story **réutilise le calculateur pur créé en 8.13** — elle ne le réécrit pas — et lui ajoute le
+recalcul planifié, l'affichage courant et les effets visibles.
+
 1. ⛔ L'assiette d'alerte est la **somme des charges fixes actives du paramétrage** ; **aucune liste codée en dur** (FR161).
 2. ⛔ **Vert** : encaissements du mois ≥ assiette. **Orange** : un mois sous l'assiette. **Rouge** : **deux mois consécutifs** sous l'assiette. Les trois cas sont testés sur des jeux de données dédiés (FR162 à FR164, CA-15).
-3. ⛔ L'ajout d'une charge fixe modifie l'assiette et **peut changer le niveau au recalcul suivant** ; testé (FR147).
+3. ⛔ L'ajout d'une charge fixe modifie l'assiette et **change effectivement le niveau au recalcul suivant** ; testé de bout en bout (complète 8.2 AC4, FR147).
 4. Le niveau est affiché en permanence sur le tableau de bord direction, **avec libellé textuel en plus de la couleur** (NFR31).
-5. Le recalcul est une tâche planifiée idempotente ; le niveau figé à la clôture mensuelle (8.13) fait foi pour le mois clos.
+5. Le recalcul est une tâche planifiée **idempotente** ; le niveau figé à la clôture mensuelle (8.13) fait foi pour le mois clos et n'est jamais réécrit.
 6. Le calcul affiche sa **méthode et la date des données source**.
+7. La tâche planifiée de recalcul est **ajoutée au registre d'ordonnancement** de `docs/ops/` et à la supervision de 11.4.
 
 ---
 
@@ -86,6 +90,7 @@ trace, sans réunion supplémentaire.* — [PRD 4.16]
 afin de ne rien découvrir en retard.* — [FR31, reste]
 
 1. Les onze événements de FR31 notifient : rapport bientôt en retard, rapport en retard, objectif proche de l'échéance, commentaire ou correction demandée, blocage affecté, dépense à approuver, rapprochement ou rapport financier à préparer, document interne à accepter, fin de contrat ou de stage proche.
+1 bis. La notification de **fin de contrat ou de stage proche** consomme le service exposé en **3.2 AC4**, qui n'émettait rien faute de centre de notifications à ce jalon. ⛔ Un test vérifie que l'échéance détectée en 3.2 produit bien une notification ici.
 2. ⛔ Chaque notification permet d'atteindre l'action attendue en **au plus 3 interactions** ; mesuré pour les trois plus fréquentes.
 3. Les tâches planifiées d'émission sont **idempotentes** : un test rejoue la tâche et vérifie qu'aucune notification n'est dupliquée.
 4. ⛔ **Aucun canal externe n'est appelé** ; testé à nouveau en fin de MVP (FR34).

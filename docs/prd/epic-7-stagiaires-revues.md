@@ -81,6 +81,7 @@ stage produise des compétences et une trace, pas seulement une présence.* — 
 4. Une **checklist de sortie** est générée : livrables remis, matériel rendu, accès fermés, documents sauvegardés, évaluation finale enregistrée.
 5. ⛔ Le stagiaire consulte son dossier, le tuteur ceux de ses stagiaires, `direction` tous ; **tout autre accès est refusé**, y compris par URL directe.
 6. Aucune évaluation validée n'est modifiable ni supprimable.
+7. Le bloc **« Dernière évaluation »** est ajouté au tableau de bord personnel (5.8). **FR166 est dès lors intégralement satisfait.**
 
 ---
 

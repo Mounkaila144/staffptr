@@ -1159,7 +1159,7 @@ Seeders **idempotents** (`updateOrCreate`), rejouables sans effet de bord :
 
 > **DEC-09 — Q6 en attente.** Les comptes financiers réels (caisse, quelle banque, Airtel Money,
 > Moov Money, autre) ne sont pas connus. Aucun seeder ne les invente : ils sont créés par écran à
-> l'Étape 4. La liste reste requise avant de figer les écrans de rapprochement (Story 4.1).
+> l'Étape 4. La liste reste requise avant de figer les écrans de rapprochement (Story 8.1 du plan d’exécution).
 
 ### 20.4 Données de démonstration
 
@@ -1262,7 +1262,7 @@ Traitées dans `bootstrap/app.php` (structure slim) :
 
 | Besoin | Moyen |
 |---|---|
-| Point de santé | `/up` — base, Redis, disque, dernière sauvegarde (Story 1.1) |
+| Point de santé | `/up` — base, Redis, disque (Story 1.1) ; **âge de la dernière sauvegarde ajouté en Story 11.1**, seule story qui crée une sauvegarde |
 | Disponibilité | Surveillance externe (UptimeRobot ou équivalent) sur `/up`, alerte SMS |
 | Erreurs applicatives | DEC-07 |
 | Files d'attente | `queue:monitor` + alerte sur travaux échoués |
@@ -1552,14 +1552,14 @@ appliqué selon la recommandation tant que vous n'en décidez pas autrement.
 |---|---|---|---|
 | **DEC-01** | Fuseau de stockage | UTC en base, Niamey à l'affichage | Étape 1 — première migration |
 | **DEC-02** | Base des tests | MySQL en CI, pas SQLite | Étape 1 — mise en place CI |
-| **DEC-03** | `spatie/laravel-permission` | Retenue | Étape 1 — Story 1.3 |
+| **DEC-03** | `spatie/laravel-permission` | Retenue | Jalon 1 — Story 2.2 |
 | **DEC-04** | Redis (cache et files) | Retenue ; sessions en base | Étape 1 — provisionnement |
 | **DEC-05** | Préproduction | Même VPS (~0 €) ou VPS séparé (~5 €/mois) | Étape 1 — provisionnement |
 | **DEC-06** | Hébergeur des sauvegardes | **La donnée quitte le Niger — décision non technique** | Étape 1 — mise en service |
 | **DEC-07** | Suivi des erreurs | Sentry auto-hébergé, ou fichiers seuls | Étape 1 |
 | **DEC-08** | Q11 — pièces jointes | PDF, JPEG, PNG, WebP, HEIC — 8 Mo | Étape 1 — Story pièces jointes |
-| **DEC-09** | Q6 — comptes financiers réels | Liste attendue | **Étape 4 — Story 4.1** |
-| **DEC-10** | Q9 — vérification d'identité | Procédure humaine à écrire | Étape 1 — Story 1.5 |
+| **DEC-09** | Q6 — comptes financiers réels | Liste attendue | **Jalon 4 — Story 8.1** |
+| **DEC-10** | Q9 — vérification d'identité | Procédure humaine à écrire | Jalon 1 — Story 2.8 |
 | **DEC-11** | Q12 — conservation 10 ans | Confirme NFR26 et le disque | Étape 4 |
 
 **Contradictions PRD toujours ouvertes, rappelées ici parce qu'elles pèsent sur le modèle de
@@ -1584,21 +1584,30 @@ données de l'Étape 4 :**
    PRD ↔ architecture. Les fichiers `coding-standards.md`, `tech-stack.md` et `source-tree.md`
    existants seront **mis à jour** par le shard — `tech-stack.md` porte encore une section « À
    décider » que ce document rend caduque.
-4. **Démarrer la boucle `/sm` → `/dev` → `/qa`** sur l'Epic 1, Story 1.1.
+4. **Démarrer la boucle `/sm` → `/dev` → `/qa`** sur l’Epic 1, Story 1.1 du plan d’exécution (`docs/prd/epic-1-fondation-technique.md`).
 
 ### Ordre d'implémentation imposé par l'architecture
 
 Cet ordre n'est pas une préférence : chaque élément est un prérequis technique du suivant.
 
+> **Numérotation.** Les identifiants ci-dessous sont ceux du **plan d'exécution**
+> (`docs/epics-stories.md`, 11 epics), qui font foi pour la boucle `/sm` → `/dev`. Ils ne
+> correspondent pas aux stories du § 10 du PRD, qui suit un découpage en 4 epics. La
+> correspondance complète est dans `docs/prd/tracabilite.md`.
+
 ```
-1. Fondation + /up                         Story 1.1
-2. audit_logs + déclencheurs + AuditLogger Story 1.2  ← avant toute écriture sensible
-3. people / users + normalisation +227     Story 1.4
-4. Rôles, permissions, policies            Story 1.3
-5. Connexion, changement imposé, sessions  Story 1.5
-6. Campagne d'autorisation automatisée     NFR14  ← dès la première ressource protégée
-7. Paramètres + pièces jointes privées     Stories 1.6+
-8. Dépenses + double approbation           Stories 1.11–1.13
+1. Fondation + /up                         Story 1.1        [PRD 1.1]
+2. Monnaie XOF, fuseau, téléphone +227     Story 1.2        [PRD 1.1]
+3. audit_logs + déclencheurs + AuditLogger Story 1.4        [PRD 1.2]
+                                           ← avant toute écriture sensible
+4. people / users + unicité conditionnelle Story 2.1        [PRD 1.4]
+5. Rôles, permissions, policies            Story 2.2        [PRD 1.3]
+6. Premier administrateur + seeders        Story 2.3        [nouveau]
+7. Connexion, changement imposé, sessions  Stories 2.4-2.6  [PRD 1.5]
+8. Campagne d'autorisation automatisée     Story 2.9  NFR14
+                                           ← dès la première ressource protégée
+9. Paramètres + pièces jointes privées     Stories 3.4, 3.5 [PRD 1.7, 2.7]
+10. Dépenses + double approbation          Stories 4.4-4.6  [PRD 1.11-1.13]
 ```
 
 Le point 2 avant tout le reste est la traduction directe de l'exigence du PRD : le journal d'audit
@@ -1612,3 +1621,4 @@ opérations de l'application seront les seules à ne pas être traçables.
 | Date | Version | Description | Auteur |
 |---|---|---|---|
 | 18/07/2026 | 1.0 | Architecture initiale. A-01 à A-07 tranchés ; DEC-01 à DEC-11 soumis à la direction | Winston (Architect) |
+| 18/07/2026 | 1.1 | Réalignement sur le plan d'exécution en 11 epics (`docs/epics-stories.md`) : ordre d'implémentation du § 28 et échéances DEC-03, DEC-09, DEC-10 renumérotés, avec correspondance PRD conservée. Aucune décision d'architecture modifiée. | John (PM) |

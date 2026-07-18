@@ -24,7 +24,7 @@ connaître à tout moment l'argent réellement disponible.* — [PRD 4.1]
 
 1. Un compte porte type (`caisse`, `banque`, `mobile_money`), libellé, **solde initial en XOF entier**, date du solde initial.
 2. ⛔ Le solde affiché est **calculé** depuis le solde initial et les mouvements validés ; **aucune interface ne permet de saisir un solde courant** (FR100).
-3. ⛔ Un test vérifie qu'après un encaissement de 50 000 et une dépense payée de 20 000, le solde progresse **exactement** de 30 000.
+3. ⛔ Le solde est calculé par agrégation des mouvements validés ; testé sur des mouvements créés par factory, les encaissements réels n'existant qu'en 8.5. **Le test de bout en bout « encaissement de 50 000 moins dépense payée de 20 000 = +30 000 » est en 8.6**, une fois les deux écritures réelles disponibles.
 4. ⛔ L'accès est limité à `direction` et `finance` ; l'accès par URL directe depuis tout autre rôle est refusé. ⛔ Un `stagiaire` n'atteint **aucune** donnée financière globale (NFR19).
 5. ⛔ Aucune intégration bancaire ou Mobile Money ; un test vérifie qu'**aucun appel externe** n'est émis (FR101).
 6. Aucun compte n'est supprimable ; désactivation motivée uniquement.
@@ -42,7 +42,7 @@ une modification de code.* — [PRD 4.2, reste]
 1. `FixedChargeSeeder` initialise **exactement quatre postes** : loyer, électricité, Internet, salaires. Aucun autre.
 2. Chaque charge porte un montant mensuel et un état `active` / `inactive` ; ⛔ **seules les actives** entrent dans l'assiette d'alerte et dans l'objectif de réserve (FR139).
 3. ⛔ L'ajout d'une charge affiche **avant confirmation** l'impact chiffré sur l'objectif de réserve (FR147).
-4. ⛔ Aucun poste n'est codé en dur ; un test ajoute une charge et vérifie que **l'assiette d'alerte change sans redéploiement**.
+4. ⛔ Aucun poste n'est codé en dur ; un test ajoute une charge et vérifie que **la somme des charges actives change sans redéploiement**. Cette somme *est* l'assiette d'alerte (FR161), mais le **niveau** d'alerte qu'elle produit n'existe qu'en 9.1 : le test prouvant qu'une nouvelle charge modifie le niveau recalculé y est écrit.
 5. ⛔ Les **coûts directs de projet n'entrent pas** dans l'assiette des charges fixes ; testé (FR141).
 6. Toute création, modification de montant ou changement d'état est auditée.
 
@@ -70,8 +70,8 @@ afin que le calcul des parts repose sur un cadre écrit et non sur un accord ora
 les créances cessent d'être suivies de mémoire.* — [PRD 4.4]
 
 1. Une facture porte **numéro unique**, client, contrat, montant, date d'émission, date d'échéance.
-2. ⛔ Le statut `impayee` / `partiellement_payee` / `payee` / `annulee` est **déduit** des encaissements imputés ; **aucune interface ne permet de le saisir** (FR106).
-3. ⛔ Une créance est déduite **automatiquement** de toute facture non intégralement payée dont l'échéance est atteinte (FR107).
+2. ⛔ Les quatre statuts `impayee` / `partiellement_payee` / `payee` / `annulee` existent, l'état initial est **`impayee`**, et ⛔ **aucune interface ne permet de les saisir** — ils sont déduits (FR106). **Les transitions vers `partiellement_payee` et `payee` sont testées en 8.5**, où les encaissements qui les déclenchent apparaissent.
+3. ⛔ Une créance est déduite **automatiquement** de toute facture non intégralement payée dont l'échéance est atteinte (FR107) ; testé sur une facture `impayee` échue.
 4. La liste des créances affiche le montant restant dû et l'**ancienneté en jours**, triable par ancienneté.
 5. ⛔ L'annulation exige un motif et **ne supprime jamais** l'enregistrement.
 6. Aucune facture PDF, aucune relance automatisée en MVP.
@@ -87,10 +87,14 @@ tout argent reçu soit rattaché à un compte et à un client.* — [PRD 4.5]
 1. Un encaissement porte client, contrat ou projet, facture optionnelle, montant, date, **compte crédité**, mode de paiement, référence, justificatif.
 2. ⛔ Chaque encaissement reçoit un **numéro de reçu unique attribué par le système, non réutilisable même après annulation** ; testé en annulant puis en créant un nouvel encaissement (FR110).
 3. ⛔ **Aucune interface ne permet de supprimer un encaissement validé.** Seules la **correction** (nouvelle version motivée) et l'**annulation** (contre-écriture motivée) existent ; les deux sont auditées (FR111, CA-12).
-4. Un encaissement imputé à un contrat déclenche le calcul des parts (8.7) — **dans la même transaction**.
+4. ⛔ Le statut de la facture rattachée bascule à `partiellement_payee` puis `payee` selon les encaissements imputés ; les deux transitions sont testées (complète 8.4 AC2).
 5. L'application **signale les encaissements créés plus de 24 h** après leur date de réception déclarée (FR112).
-6. ⛔ Toute tentative d'imputation à un **mois clôturé** est refusée avec un message nommant le mois : « Le mois de juin 2026 est clôturé. Aucune écriture ne peut y être imputée. » (FR114).
-7. L'écriture est atomique et protégée par verrou : deux encaissements simultanés sur le même contrat ne produisent pas de parts en double ; testé.
+6. Cette story livre la **migration minimale `month_closures` et le service `MonthGuard`**, sans aucune interface de clôture : la garde doit exister au moment où naît la première écriture imputable. ⛔ Toute tentative d'imputation à un **mois clôturé** est refusée avec un message nommant le mois : « Le mois de juin 2026 est clôturé. Aucune écriture ne peut y être imputée. » (FR114). Le rapport mensuel, la validation, la clôture et la réouverture sont en **8.13**.
+7. L'écriture est atomique : un encaissement interrompu ne laisse ni reçu orphelin ni imputation partielle ; testé.
+
+**Le calcul des parts n'est pas dans cette story.** Il est livré en **8.7**, qui l'intègre au service
+d'encaissement dans la même transaction et porte le test de concurrence correspondant. Poser ici
+l'exigence reviendrait à dépendre d'un calculateur qui n'existe pas encore.
 
 ---
 
@@ -101,6 +105,7 @@ l'approbation, le paiement et l'écriture comptable restent trois faits distinct
 
 1. ⛔ **Seule une dépense `approuvee` est payable** ; le paiement d'une dépense `demandee` ou `refusee` est refusé côté serveur.
 2. Le paiement enregistre compte débité, date, mode de paiement, référence, puis fait passer la dépense à `payee`.
+2 bis. ⛔ **Test de bout en bout du solde** : après un encaissement de 50 000 et une dépense payée de 20 000, le solde du compte progresse **exactement** de 30 000 (reporté de 8.1, les deux écritures existant enfin).
 3. Un **justificatif de paiement** est attaché après le paiement ; ⛔ une dépense payée sans justificatif apparaît dans une **liste dédiée jusqu'à régularisation** (FR124).
 4. Une dépense peut être imputée à un contrat ou à un projet ; cette imputation alimente les **coûts directs** (8.9).
 5. Une **demande de remboursement** d'une avance personnelle suit le même circuit à deux signatures et porte le justificatif d'origine (FR125) — c'est la soupape prévue en lieu et place de toute dérogation (CONTRA-03).
@@ -125,6 +130,8 @@ client, afin que l'entreprise ne distribue jamais un argent qu'elle n'a pas reç
 6. ⛔ Le calcul est affiché avec sa **méthode** : bénéfice retenu, période, encaissement d'origine, taux appliqué, montant. **Un calcul opaque est un défaut** (FR135).
 7. ⛔ Les parts **restent dues et calculées en niveau d'alerte rouge** ; testé en 9.2 (RM-14, FR165).
 8. `ShareCalculator` prend la **base de calcul en paramètre**, afin qu'un renversement de CONTRA-01 ne modifie pas le schéma.
+9. Le calcul est **intégré au service d'encaissement de 8.5**, exécuté **dans la même transaction** que l'enregistrement de l'encaissement (FR113) : un calcul de parts qui survivrait à un encaissement annulé serait un défaut.
+10. ⛔ L'intégration est protégée par verrou : deux encaissements simultanés sur le même contrat **ne produisent pas de parts en double** ; testé sous concurrence (reporté de 8.5, où le calculateur n'existait pas encore).
 
 ---
 
@@ -217,7 +224,7 @@ arrêtés plutôt que sur une impression.* — [PRD 4.13]
 5. L'application **notifie à l'approche du 5 du mois suivant** et signale un dépassement (FR157).
 6. ⛔ Après validation, le mois est **clôturé** : toute écriture imputée à ce mois est refusée côté serveur ; testé **pour un encaissement et pour une dépense** (FR158).
 7. ⛔ La **réouverture** exige une autorisation `direction` **avec motif**, produit une entrée d'audit, et **marque comme telle** toute écriture postérieure (FR159).
-8. La validation **recalcule et fige le niveau d'alerte du mois** (FR160) — consommé par 9.1.
+8. ⛔ Cette story crée le **calculateur pur du niveau d'alerte** — assiette = somme des charges actives, comparaison aux encaissements du mois, séquence de deux mois — et la validation **fige le niveau du mois clôturé** (FR160). Un mois clôturé ne peut pas voir son niveau changer rétroactivement. **9.1 réutilise ce calculateur** et y ajoute le recalcul planifié, l'affichage courant et les trois niveaux.
 9. Le rapport reste consultable sur téléphone : les douze lignes s'empilent en cartes plutôt qu'en tableau à défilement horizontal.
 
 ---

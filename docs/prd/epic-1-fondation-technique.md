@@ -23,6 +23,10 @@ que toute story ultérieure s'appuie sur une base testée.* — [PRD 1.1]
 4. `/up` retourne en HTTP 200 : version applicative, état de la connexion base, état Redis, espace disque libre, horodatage en `Africa/Niamey`. Le point est accessible **sans authentification** et n'expose aucun secret ni nom d'hôte interne.
 5. `/up` retourne un statut d'échec explicite lorsque la base est injoignable ; testé en coupant la connexion.
 6. `php artisan test` passe intégralement ; `vendor/bin/pint --dirty` ne remonte aucune violation.
+7. Le dépôt git est initialisé avec une branche `main` et un **premier commit** contenant l'application, `.bmad-core/`, `AGENTS.md` et `docs/`. Sans cela, la protection de branche de la story 1.3 n'a rien à protéger, et Codex Web ne voit ni les agents ni le backlog.
+8. `.gitignore` exclut `vendor/`, `node_modules/`, `.env`, `storage/app/private/`, `database/database.sqlite` et `.ai/`. ⛔ Un test de la chaîne échoue si un fichier `.env` est versionné.
+9. Un `README.md` décrit l'installation locale de bout en bout, vérifiée sur une machine vierge : `export PATH` vers PHP 8.3 de MAMP, alias Composer, `composer install`, `npm ci`, copie de `.env.example`, `php artisan key:generate`, `php artisan migrate`, `npm run dev`, `php artisan serve`.
+10. `.env.example` est complet et à jour : base, Redis, fuseau `Africa/Niamey`, locale `fr`, aucun secret réel.
 
 **Migrations :** aucune table métier. **Audit :** sans objet.
 
@@ -87,7 +91,7 @@ privilèges base, afin qu'un `.env` compromis ne suffise pas à effacer le journ
 3. **Deux utilisateurs MySQL** existent : `ptrstaff_app` (`SELECT, INSERT, UPDATE`, **sans `DELETE`** sur les tables protégées, `INSERT` seul sur `audit_logs`) et `ptrstaff_migrate` (`ALL`).
 4. Les identifiants de `ptrstaff_migrate` **ne figurent pas dans le `.env` applicatif** : ils sont injectés par le script de déploiement depuis le magasin de secrets, le temps de la migration.
 5. `.env` en `chmod 600` dans `shared/`, jamais versionné. `APP_KEY` généré et **sauvegardé hors ligne** — sans lui, les données chiffrées au repos sont définitivement illisibles.
-6. Les secrets de CI sont en place : clé SSH de déploiement dédiée sans accès `root`, identifiants de migration, clés du stockage de sauvegarde.
+6. Les secrets de CI sont en place : clé SSH de déploiement dédiée sans accès `root`, identifiants de migration. Les **emplacements de secrets du stockage de sauvegarde sont préparés et documentés, sans valeur** : celles-ci ne peuvent être fournies qu'en 11.1, une fois DEC-06 arbitré.
 7. La procédure de rotation des secrets est écrite dans `docs/ops/`.
 
 > **DEC-05 en attente.** Préproduction sur le même VPS (~0 €) ou VPS séparé (~5 €/mois). La première
@@ -134,8 +138,8 @@ et non réinventés story par story. Elle rend SOC-06 à SOC-10 exécutables.
 
 ## ✅ Critères de fin de l'epic 1
 
-1. `/up` répond en production et en préproduction, avec base, Redis, disque et dernière sauvegarde.
-2. La chaîne CI est verte sur `main`, tourne sur MySQL, et bloque la fusion en cas d'échec.
+1. `/up` répond en production et en préproduction, avec base, Redis et disque. **L'âge de la dernière sauvegarde n'est pas encore exposé** — il est ajouté en 11.1, seule story qui crée une sauvegarde.
+2. Le dépôt a une branche `main` et un premier commit ; la chaîne CI est verte, tourne sur MySQL, et bloque la fusion en cas d'échec.
 3. **Le journal d'audit est opérationnel et prouvé inaltérable** : les trois barrières sont posées par migration et le test d'annulation transactionnelle passe.
 4. Le socle d'interface rend les quatre états transverses ; une page de démonstration les expose tous.
 5. Aucun secret n'est versionné ; `APP_KEY` est sauvegardé hors ligne.

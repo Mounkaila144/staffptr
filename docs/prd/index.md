@@ -33,17 +33,29 @@ Source technique : `docs/architecture.md`.
 
 | Epic | Titre | Jalon | Stories | Dépend de |
 |---|---|---|---|---|
-| **Epic 1** | Fondation technique, base de données, CI et sécurité | 1 | 7 | — |
-| **Epic 2** | Authentification, comptes, rôles et permissions | 1 | 10 | Epic 1 |
-| **Epic 3** | Organisation, profils, paramètres et documents internes | 1 | 8 | Epic 2 |
-| **Epic 4** | Calendrier, absences et autorisation des dépenses | 1 | 6 | Epic 3 |
-| **Epic 5** | Objectifs, projets, tâches et livrables | 2 | 8 | Epic 4 |
-| **Epic 6** | Rapport quotidien et blocages | 3 | 6 | Epic 5 |
-| **Epic 7** | Stagiaires et revues hebdomadaires | 3 | 6 | Epic 6 |
-| **Epic 8** | Finances : comptes, contrats, encaissements, parts, réserve, clôture | 4 | 13 | Epic 4, Epic 5 |
-| **Epic 9** | Alertes, tableaux de bord et notifications | 4 | 6 | Epic 8 |
-| **Epic 10** | Recherche, exports et qualité finale | 4 | 5 | Epic 9 |
-| **Epic 11** | Exploitation, sauvegarde, supervision et mise en service | **transverse** | 7 | Epic 1 |
+| **1** | Fondation technique, base de données, CI et sécurité | 1 | 7 | — |
+| **2** | Authentification, comptes, rôles et permissions | 1 | 10 | Epic 1 |
+| **3** | Organisation, profils, paramètres et documents internes | 1 | 8 | Epic 2 |
+| **4** | Calendrier, absences et autorisation des dépenses | 1 | 6 | Epic 3 |
+| **5** | Objectifs, projets, tâches et livrables | 2 | 8 | Epic 4 |
+| **6** | Rapport quotidien et blocages | 3 | 6 | Epic 5 |
+| **7** | Stagiaires et revues hebdomadaires | 3 | 6 | Epic 6 |
+| **8** | Finances : comptes, contrats, encaissements, parts, réserve, clôture | 4 | 13 | Epic 4, Epic 5 |
+| **9** | Alertes, tableaux de bord et notifications | 4 | 6 | **Epic 7 et Epic 8** |
+| **10** | Recherche, exports et qualité finale | 4 | 5 | Epic 9 |
+| **11** | Exploitation, sauvegarde, supervision et mise en service | **transverse** | 7 | **par tranche — voir ci-dessous** |
+
+**Epic 9 dépend d'Epic 7 autant que d'Epic 8.** Le tableau de bord consolidé (9.5) agrège rapports
+manquants et stagiaires par tuteur, produits par les epics 6 et 7 : ils ne sont pas accessibles
+transitivement depuis Epic 8.
+
+**Les dépendances d'Epic 11 se déclarent par tranche**, pas globalement :
+
+| Tranche | Dépend de | Livrée pour |
+|---|---|---|
+| 11.1 – 11.3 — sauvegarde, restauration, supervision | Epic 1 | avant la première production |
+| 11.4 – 11.6 — ordonnanceur, préproduction, déploiement | Epic 4 | porte du Jalon 1 |
+| 11.7 — recette de mise en service | le jalon concerné | rejouée à chaque jalon |
 
 ```
 Jalon 1 — Socle          Epic 1 → Epic 2 → Epic 3 → Epic 4 ─┐
