@@ -41,6 +41,27 @@ les contraintes `CHECK` et `lockForUpdate()` n'existent pas sous SQLite. **CI su
 | 13 | Les parts 10 % / 30 % restent payables en alerte rouge | RM-14, FR165 | 9 |
 | 14 | La somme des parts est exactement égale à la base (reste entier) | FR130, NFR22 | 8 |
 
+### Où ces règles atterrissent, story par story
+
+C'est cette correspondance qui décide d'un `*review` QA complet — **pas** le marqueur ⛔, présent sur
+70 stories sur 82.
+
+| Story | Règle | Story | Règle |
+|---|---|---|---|
+| 1.4 | 11 | 8.3 | 14 |
+| 2.1 | 12 | 8.5 | 7, 8 |
+| 2.2 | 9 | 8.6 | 7 |
+| 2.5 | 10 | 8.7 | 14 |
+| 4.5 | 4, 5 | 8.12 | 6 |
+| 5.1 | 2 | 8.13 | 6, 8 |
+| 5.2 | 1 | 9.2 | 13 |
+| 7.4 | 3 | | |
+
+S'y ajoutent cinq stories portant une **recette opposable** plutôt qu'une règle : **1.1** (gabarit des
+tests), **6.1** (rapport sous 3 minutes, NFR4), **10.5** (NFR de performance et d'accessibilité),
+**11.2** (restauration et RTO), **11.7** (porte de mise en service). Sur ces vingt stories, un gate
+`FAIL` interdit la mise en service du jalon.
+
 ## Campagne d'autorisation — NFR14 / CA-02
 
 `tests/Feature/Http/AuthorizationMatrixTest.php`, alimenté par `config/authorization-matrix.php`

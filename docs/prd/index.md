@@ -70,3 +70,40 @@ mise en production, à la fin du Jalon 1 : une application qui porte la comptabi
 ne va pas en production sans sauvegarde vérifiée ni supervision. La story 11.7 est rejouée à chaque jalon.
 
 ---
+
+---
+
+### Quelles stories passent obligatoirement au QA
+
+Le marqueur ⛔ signifie « ce critère exige un test dédié ». Il figure sur **70 stories sur 82** : il
+guide le dev, il ne sert **pas** à décider d'une revue QA.
+
+Le déclencheur d'un `*review` complet est différent — c'est le fait de porter l'une des **14 règles
+métier bloquantes** de l'architecture § 23.2, ou une **recette opposable**. Vingt stories sont
+concernées ; sur les autres, la relecture humaine suffit.
+
+| Story | Ce qu'elle porte | Règle § 23.2 |
+|---|---|---|
+| **1.1** | Gabarit : la forme de ses tests sera recopiée 81 fois | — |
+| **1.4** | L'échec d'écriture d'audit annule l'opération métier | 11 |
+| **2.1** | Unicité du téléphone sur comptes non archivés | 12 |
+| **2.2** | `super_admin` sans aucune permission métier | 9 |
+| **2.5** | La suspension invalide toutes les sessions immédiatement | 10 |
+| **4.5** | Deux approbateurs distincts sans seuil ; demandeur jamais approbateur | 4, 5 |
+| **5.1** | Maximum 5 priorités d'entreprise | 2 |
+| **5.2** | Maximum 3 objectifs majeurs par personne et par mois | 1 |
+| **6.1** | Recette opposable : saisie du rapport sous 3 minutes (NFR4) | — |
+| **7.4** | Maximum 3 stagiaires actifs par tuteur | 3 |
+| **8.3** | Somme des parts exactement égale à la base | 14 |
+| **8.5** | Suppression financière impossible ; aucune écriture sur mois clôturé | 7, 8 |
+| **8.6** | Suppression financière impossible après paiement | 7 |
+| **8.7** | Parts au prorata ; somme exactement égale à la base | 14 |
+| **8.12** | Préparateur ≠ contrôleur sur rapprochement | 6 |
+| **8.13** | Préparateur ≠ contrôleur ; clôture bloquant toute écriture | 6, 8 |
+| **9.2** | Les parts 10 % / 30 % restent payables en alerte rouge | 13 |
+| **10.5** | Recette opposable : NFR1, NFR2, NFR4, NFR7, NFR8, NFR27, WCAG AA | — |
+| **11.2** | Recette opposable : restauration vérifiée, RTO de 4 h | — |
+| **11.7** | Recette opposable : porte de mise en service d'un jalon | — |
+
+Sur ces vingt, un gate `FAIL` **interdit la mise en service du jalon**. Sur les soixante-deux autres,
+le QA reste possible mais n'est pas une porte.

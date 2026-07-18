@@ -20,15 +20,36 @@ que toute story ultérieure s'appuie sur une base testée.* — [PRD 1.1]
 1. Application Laravel 13 / PHP 8.3 en structure « slim » (middleware, exceptions et routes dans `bootstrap/app.php`), démarrable par `php artisan serve` sans erreur.
 2. Inertia.js 2 + Vue 3 + Vite 8 + Tailwind 4 en configuration CSS-first sont câblés ; une page de démonstration se rend.
 3. Les cinq espaces de noms de modules existent sous `Http/Controllers`, `Models`, `Policies`, `Services` et `resources/js/Pages` : `Platform`, `Identity`, `Work`, `Accountability`, `Finance`. Aucun dossier racine nouveau n'est créé.
-4. `/up` retourne en HTTP 200 : version applicative, état de la connexion base, état Redis, espace disque libre, horodatage en `Africa/Niamey`. Le point est accessible **sans authentification** et n'expose aucun secret ni nom d'hôte interne.
-5. `/up` retourne un statut d'échec explicite lorsque la base est injoignable ; testé en coupant la connexion.
+4. `/up` retourne en HTTP 200 : version applicative, état de la connexion base, état du cache, espace disque libre, horodatage en `Africa/Niamey`. Le point est accessible **sans authentification** et n'expose aucun secret, chemin sensible ni nom d'hôte interne. La route `health: '/up'` par défaut de `bootstrap/app.php` est **remplacée** — elle ne retourne qu'une page vide.
+5. `/up` retourne un statut d'échec explicite lorsque **la base** est injoignable ; testé en coupant la connexion. Chaque composant porte son **état individuel** : un cache indisponible dégrade la réponse sans la faire échouer. En local, Redis peut être absent — `php artisan serve` et `/up` doivent fonctionner sans lui.
 6. `php artisan test` passe intégralement ; `vendor/bin/pint --dirty` ne remonte aucune violation.
 7. Le dépôt git est initialisé avec une branche `main` et un **premier commit** contenant l'application, `.bmad-core/`, `AGENTS.md` et `docs/`. Sans cela, la protection de branche de la story 1.3 n'a rien à protéger, et Codex Web ne voit ni les agents ni le backlog.
 8. `.gitignore` exclut `vendor/`, `node_modules/`, `.env`, `storage/app/private/`, `database/database.sqlite` et `.ai/`. ⛔ Un test de la chaîne échoue si un fichier `.env` est versionné.
 9. Un `README.md` décrit l'installation locale de bout en bout, vérifiée sur une machine vierge : `export PATH` vers PHP 8.3 de MAMP, alias Composer, `composer install`, `npm ci`, copie de `.env.example`, `php artisan key:generate`, `php artisan migrate`, `npm run dev`, `php artisan serve`.
 10. `.env.example` est complet et à jour : base, Redis, fuseau `Africa/Niamey`, locale `fr`, aucun secret réel.
 
-**Migrations :** aucune table métier. **Audit :** sans objet.
+**Migrations : aucune table métier, et les migrations Laravel par défaut sont traitées ici.**
+Laravel livre `0001_01_01_000000_create_users_table.php`, qui crée en réalité **`users`,
+`password_reset_tokens` et `sessions`**. La conserver violerait deux règles : `audit_logs` doit
+précéder toute table métier (architecture § 20.2), et notre table `users` porte `people_id`, un état
+de cycle de vie et une **colonne générée d'unicité conditionnelle** (2.1) — la conserver imposerait
+de **modifier une migration déjà déployée**, ce que SOC-04 interdit.
+
+| Migration par défaut | Décision en 1.1 | Motif |
+|---|---|---|
+| `create_users_table` (users, password_reset_tokens, sessions) | **Supprimée** | Recréée en 2.1 avec le modèle personne / compte |
+| `create_cache_table` | **Supprimée** | Cache sur Redis (DEC-04) |
+| `create_jobs_table` (jobs, job_batches, failed_jobs) | **Conservée** | Infrastructure, sans donnée métier ; `failed_jobs` est requise par la supervision (11.4) |
+
+⛔ Un test vérifie qu'après `migrate:fresh`, **aucune table `users` n'existe** — c'est ce qui
+garantit que l'ordre `audit_logs` d'abord n'a pas été contourné par un artefact d'installation.
+
+**`SESSION_DRIVER=file` en 1.1**, aucune authentification n'existant encore. Il bascule sur
+`database` en **2.4**, quand la table `sessions` existe et que l'invalidation immédiate de toutes les
+sessions (FR8, PERM-08) le rend nécessaire. `CACHE_STORE` et `QUEUE_CONNECTION` suivent la même
+logique : `file` et `sync` en local, Redis en préproduction et production (1.5).
+
+**Audit :** sans objet — `audit_logs` est créée en 1.4.
 
 ---
 
@@ -37,9 +58,10 @@ que toute story ultérieure s'appuie sur une base testée.* — [PRD 1.1]
 *En tant qu'équipe de développement, je veux des types partagés pour l'argent, le temps et les
 numéros, afin qu'aucune story ne réinvente une règle qui doit être identique partout.* — [PRD 1.1]
 
-1. `Support\Money` stocke des **entiers XOF** et formate sans décimale (`1 250 000 FCFA`). ⛔ Un test échoue si une valeur à virgule flottante est persistée dans une colonne monétaire.
-2. Les colonnes monétaires sont `BIGINT UNSIGNED` ; aucun `DECIMAL`, aucun `FLOAT` dans le schéma. Un test parcourt le schéma et échoue si l'un apparaît.
-3. `Support\PhoneNumber` normalise au format international avec `+227` par défaut. `90123456`, `+22790123456` et `00227 90 12 34 56` produisent la **même** valeur normalisée ; les trois cas sont testés.
+1. `Support\Money` stocke des **entiers XOF** et formate sans décimale (`1 250 000 FCFA`). ⛔ Un test échoue si une valeur à virgule flottante franchit le contrat partagé.
+1 bis. ⛔ `Money::format()` est réservé à l'**affichage**. Tout export, calcul, comparaison ou écriture en base manipule l'**entier brut** ; un test prouve que la valeur persistable est un `int` PHP, jamais une chaîne formatée. Sans cette règle, l'export CSV de 10.3 produirait des montants qu'aucun tableur français ne parse.
+2. **Convention de nommage opposable** : toute colonne monétaire se nomme `*_amount` et **doit** être `BIGINT UNSIGNED`. ⛔ Un test scanne les **fichiers** de `database/migrations/` — pas le schéma instancié, vide à ce stade — et échoue si une colonne `*_amount` y est déclarée en `decimal`, `float`, `double` ou `unsignedDecimal`. Une fixture de migration invalide prouve que le garde-fou **détecte réellement** une violation ; sans elle, on ignorerait s'il fonctionne jusqu'à l'epic 8.
+3. `Support\PhoneNumber` normalise au format international avec `+227` par défaut. `90123456`, `+22790123456` et `00227 90 12 34 56` produisent la **même** valeur normalisée ; les trois cas sont testés. ⛔ La validation porte **uniquement** sur 8 chiffres, caractères numériques seuls, forme canonique `+227XXXXXXXX` — **aucune validation de préfixe opérateur ni de plage de numérotation**. Les fixes de Niamey commencent par `20` : restreindre aux préfixes mobiles rendrait impossible la création de tout compte rattaché à un fixe. Un test vérifie qu'un numéro commençant par `20` est accepté.
 4. Un numéro non normalisable est refusé avec le message « Ce numéro n'est pas valide. Saisissez 8 chiffres, ou le numéro complet avec son indicatif. »
 5. Horodatages stockés en **UTC**, affichés en `Africa/Niamey` (DEC-01) ; un test vérifie l'affichage d'une date connue à cheval sur minuit.
 6. Locale applicative `fr`, devise XOF, fuseau `Africa/Niamey` ; aucune chaîne d'interface en anglais.

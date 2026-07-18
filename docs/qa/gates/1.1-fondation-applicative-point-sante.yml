@@ -1,0 +1,62 @@
+# <!-- Powered by BMAD™ Core -->
+schema: 1
+story: "1.1"
+story_title: "Fondation applicative et point de santé"
+gate: CONCERNS
+status_reason: "Les 10 critères sont implémentés et couverts par 12 tests réels et tracés. Deux réserves : des artefacts Laravel liés à `users` survivent alors que leur table est supprimée, et le dossier de story n'a pas été renseigné, ce qui rompt la chaîne d'apprentissage vers la story 1.2."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-07-18T22:00:00+01:00"
+
+waiver: { active: false }
+
+top_issues:
+  - id: "ARCH-001"
+    severity: medium
+    finding: "app/Models/User.php, database/factories/UserFactory.php et config/auth.php référencent encore un schéma name/email/password dont la migration a été supprimée et qui n'existera jamais dans ce projet. La table users de la story 2.1 porte people_id, un téléphone normalisé, un état de cycle de vie et une colonne générée d'unicité conditionnelle."
+    suggested_action: "Supprimer le modèle User et UserFactory, et neutraliser la référence de config/auth.php, avant la story 2.1. Un développeur qui trouve ce modèle l'étendra au lieu de construire le modèle personne/compte."
+  - id: "ENV-001"
+    severity: medium
+    finding: "La base de développement locale contient encore users, password_reset_tokens, sessions, cache et cache_locks. Les migrations sont supprimées mais les tables persistent : un clone frais du dépôt n'aurait pas ces tables. Le test migrate:fresh passe car il reconstruit une base de test."
+    suggested_action: "Exécuter php artisan migrate:fresh en local pour réaligner la base de développement sur les migrations versionnées."
+  - id: "PROC-001"
+    severity: medium
+    finding: "La story n'a pas été mise à jour par l'agent dev : statut resté à Approved, 0 tâche sur 40 cochée, et les quatre sections du Dev Agent Record (Agent Model Used, Debug Log References, Completion Notes List, File List) sont vides. review-story exige explicitement une File List renseignée."
+    suggested_action: "Faire compléter le Dev Agent Record et cocher les tâches avant de passer la story à Done. create-next-story lit ce dossier pour informer la story 1.2 ; il n'y a actuellement rien à lire."
+  - id: "TEST-001"
+    severity: low
+    finding: "HealthEndpointTest::test_ac_4 utilise assertMatchesRegularExpression('/\\+01:00\"}$/') qui couple l'assertion à l'ordre des champs JSON. L'ajout d'un champ après timestamp casserait le test pour une mauvaise raison."
+    suggested_action: "Décoder la réponse et asserter l'offset du champ timestamp plutôt que la fin de la chaîne brute."
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 3, low: 1 }
+  recommendations:
+    must_fix:
+      - "Supprimer les artefacts User avant la story 2.1 (ARCH-001)"
+      - "Renseigner le Dev Agent Record avant de passer la story à Done (PROC-001)"
+    monitor:
+      - "Poids de app.js : 245 kB brut / 84 kB gzip pour Vue + Inertia et une page vide. NFR2 (300 Ko au premier chargement) est respecté avec marge, mais c'est le point de départ avant les composants de la story 1.7."
+
+evidence:
+  tests_reviewed: 12
+  assertions: 112
+  risks_identified: 4
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 8, 9, 10]
+    ac_gaps: [7]
+    note: "AC7 (dépôt git, premier commit) est constaté factuellement — main existe, 233 fichiers suivis dont .bmad-core/, AGENTS.md et docs/ — mais aucun test ne l'automatise. Acceptable : la story le formule comme une confirmation, pas une création."
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "/up n'expose ni secret, ni chemin de base, ni nom d'hôte. Vérifié par injection : une fuite volontaire du message d'exception fait échouer le test, l'assertion n'est donc pas décorative."
+  performance:
+    status: PASS
+    notes: "Bundle sous le budget NFR2. Aucune ressource tierce chargée à l'exécution."
+  reliability:
+    status: PASS
+    notes: "Dégradation différenciée correcte : base indisponible → 503 ; cache indisponible → 200 dégradé. Les deux chemins sont testés séparément."
+  maintainability:
+    status: CONCERNS
+    notes: "Larastan niveau 6 et Pint propres. Réserve portée par les artefacts User résiduels (ARCH-001)."
+
+recommended_status: "✗ Changes Required — voir ARCH-001 et PROC-001"
