@@ -20,8 +20,10 @@ Les paramètres attendus par la migration sont :
 - `AUDIT_DB_APP_USERNAME` et `AUDIT_DB_APP_HOST` : compte auquel limiter la table ;
 - les paramètres `DB_MIGRATION_*` de la connexion privilégiée.
 
-Les véritables comptes d'environnement restent à créer et à documenter dans la story 1.5. Les
-valeurs présentes dans GitHub Actions sont exclusivement éphémères.
+Les comptes réels et leur matrice opposable sont définis dans
+[`database-users.md`](database-users.md), et leur injection dans
+[`environments.md`](environments.md). Les valeurs présentes dans le workflow de CI restent
+exclusivement éphémères et conservent leur nommage `staffptr_*_ci`.
 
 ## Développement SQLite
 

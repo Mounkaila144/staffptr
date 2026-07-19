@@ -11,17 +11,40 @@ class RepositoryHygieneTest extends TestCase
     {
         $gitignore = $this->readFile('.gitignore');
 
-        foreach (['/vendor', '/node_modules', '.env', '/storage/app/private/', '/database/database.sqlite', '/.ai/'] as $entry) {
+        foreach (['/vendor', '/node_modules', '.env*', '!.env.example', '/storage/app/private/', '/database/database.sqlite', '/.ai/'] as $entry) {
             $this->assertStringContainsString($entry, $gitignore);
         }
     }
 
     public function test_ac_8_no_environment_file_is_tracked_by_git(): void
     {
-        $process = new Process(['git', 'ls-files', '--error-unmatch', '.env'], base_path());
+        $process = new Process(['git', 'ls-files', '--', '.env*'], base_path());
         $process->run();
 
-        $this->assertFalse($process->isSuccessful(), 'Le fichier .env ne doit jamais être suivi par Git.');
+        $this->assertTrue($process->isSuccessful(), $process->getErrorOutput());
+        $trackedFiles = array_values(array_filter(explode("\n", trim($process->getOutput()))));
+
+        $this->assertSame([], $this->forbiddenEnvironmentFiles($trackedFiles));
+    }
+
+    public function test_ac_5_staging_environment_is_ignored_and_would_be_rejected_if_tracked(): void
+    {
+        $path = base_path('.env.staging');
+
+        file_put_contents($path, "DB_PASSWORD=temporary-test-value\n");
+
+        try {
+            $process = new Process(['git', 'check-ignore', '--quiet', '--', '.env.staging'], base_path());
+            $process->run();
+
+            $this->assertTrue($process->isSuccessful(), '.env.staging doit être ignoré par Git.');
+            $this->assertSame(
+                ['.env.staging'],
+                $this->forbiddenEnvironmentFiles(['.env.example', '.env.staging']),
+            );
+        } finally {
+            @unlink($path);
+        }
     }
 
     public function test_ac_9_readme_documents_the_complete_clean_install(): void
@@ -79,5 +102,17 @@ class RepositoryHygieneTest extends TestCase
         preg_match('/^'.preg_quote($key, '/').'=(.*)$/m', $environment, $matches);
 
         return $matches[1] ?? null;
+    }
+
+    /**
+     * @param  list<string>  $trackedFiles
+     * @return list<string>
+     */
+    private function forbiddenEnvironmentFiles(array $trackedFiles): array
+    {
+        return array_values(array_filter(
+            $trackedFiles,
+            static fn (string $path): bool => $path !== '.env.example',
+        ));
     }
 }
