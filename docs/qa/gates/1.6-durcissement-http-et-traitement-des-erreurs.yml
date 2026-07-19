@@ -3,22 +3,22 @@ schema: 1
 story: "1.6"
 story_title: "Durcissement HTTP et traitement des erreurs"
 gate: CONCERNS
-status_reason: "Le dépôt livre un durcissement complet et prouvé : CSP sans unsafe-inline validée par Playwright sur les pages rendues, masquage de journal vérifié sur le fichier écrit trace comprise, limiteur et pages d'erreur conformes. La réserve n'est pas sur le code : TLS, redirection 301 et UFW sont des actes serveur que seul l'exploitant peut établir, et la décision preload appartient à la direction."
-reviewer: "Quinn (Test Architect)"
-updated: "2026-07-19T19:31:00+01:00"
+status_reason: "OPS-003 est levé : le runbook a été exécuté sur le VPS le 19/07/2026 — 301, certificats et TLS 1.2/1.3, sept en-têtes exacts vérifiés en production, aucun contenu mixte, preload non soumis. La réserve restante est un écart assumé : UFW volontairement inactif (DEC-14), huit ports tiers publics appartenant aux autres projets du serveur ayant conduit l'exploitant à ne pas activer le pare-feu. La story passe à Done avec cette réserve documentée."
+reviewer: "Quinn (Test Architect) — clôture d'exécution consignée par le pilote"
+updated: "2026-07-19T21:49:00+01:00"
 
 waiver: { active: false }
 
 top_issues:
-  - id: "OPS-003"
+  - id: "OPS-004"
     severity: medium
-    finding: "AC 1 et 3 décrivent un état serveur — certificats, redirection 301, TLS 1.2 minimum, UFW 22/80/443 — qu'aucun test du dépôt ne peut établir. Le runbook docs/ops/http-hardening.md est livré et exécutable, mais rien n'est encore exécuté sur le VPS."
-    suggested_action: "Exécuter le runbook sur staging.staff.ptrniger.com puis staff.ptrniger.com (la propagation DNS doit être acquise au préalable), consigner curl -I (301 et en-têtes), openssl s_client (dates de certificat) et ufw status au journal d'exploitation, puis passer la story à Done."
+    finding: "UFW est volontairement inactif : l'inventaire préalable a relevé huit ports tiers publics (3001, 3002, 3003, 3005, 3011, 3020, 3030, 3040) appartenant aux autres projets du serveur, et l'exploitant a choisi de ne pas activer le pare-feu plutôt que de statuer sur ces services. L'AC 3 (« UFW limité aux ports 22/80/443 ») n'est donc pas réalisé — décision consignée en DEC-14."
+    suggested_action: "MariaDB et Redis restent bornés à la boucle locale — la surface PTR Staff est contenue. À réévaluer si un service PTR Staff cessait d'écouter localement, si l'un des huit ports tiers se révélait derrière un reverse proxy Apache (auquel cas UFW pourrait le fermer sans casse), ou lors d'un passage à un VPS dédié (condition de révision DEC-05)."
     suggested_owner: "po"
   - id: "SEC-001"
     severity: low
     finding: "style-src 'self' sans unsafe-inline bloque tout attribut style inline et toute liaison :style. Les pages actuelles n'en utilisent pas — prouvé par Playwright — mais une future page qui en introduirait échouerait silencieusement (styles ignorés, aucune erreur serveur)."
-    suggested_action: "S'en tenir aux classes Tailwind. Si un besoin réel d'attribut style apparaît, documenter et motiver l'assouplissement CSP comme la story 1.6 l'exige, jamais l'ajouter en silence."
+    suggested_action: "S'en tenir aux classes Tailwind. Si un besoin réel d'attribut style apparaît, documenter et motiver l'assouplissement CSP comme la story 1.6 l'exige, jamais l'ajouter en silence. La 1.7 (socle d'interface) est la première concernée."
     suggested_owner: "dev"
   - id: "GOV-001"
     severity: low
@@ -26,37 +26,43 @@ top_issues:
     suggested_action: "Inscrire la décision à l'ordre du jour de la direction avec l'inventaire des sous-domaines exigé par le runbook. Sans urgence : l'en-tête protège déjà les visiteurs du domaine."
     suggested_owner: "po"
 
+resolved_issues:
+  - id: "OPS-003"
+    resolution: "Runbook http-hardening.md exécuté sur le VPS le 19/07/2026, sorties consignées dans /root/staffptr-operations-journal.md : redirection 301 sur les deux domaines, /up à 200 en HTTPS, sept en-têtes exacts en production (HSTS à la valeur précise, CSP sans unsafe-inline), aucun contenu mixte, 404 français sans code exposé, TLS 1.1 refusé / 1.2 et 1.3 acceptés, certificats valides jusqu'au 17/10/2026 avec certbot.timer actif et dry-run réussi."
+
 risk_summary:
   totals: { critical: 0, high: 0, medium: 1, low: 2 }
   recommendations:
     must_fix: []
     monitor:
-      - "OPS-003 : l'exécution serveur du runbook conditionne le passage à Done, comme pour la story 1.5."
-      - "SEC-001 : la CSP stricte est un contrat pour toutes les pages futures — la 1.7 (socle d'interface) est la première concernée."
+      - "OPS-004 / DEC-14 : pare-feu absent sur serveur partagé — écart assumé, à réévaluer aux conditions notées."
+      - "SEC-001 : la CSP stricte est un contrat pour toutes les pages futures — la 1.7 est la première concernée."
+      - "GOV-001 : décision preload en attente à la direction."
       - "L'écran de connexion de l'epic 2 doit brancher le limiteur nommé login, pas créer une seconde règle."
+      - "Surveillance d'expiration des certificats à 30 puis 7 jours (runbook) — l'outillage arrive en 11.3."
 
 evidence:
   tests_reviewed: 94
   assertions: 697
-  risks_identified: 3
-  local_run: "94 tests, 87 passés, 7 réservés à MySQL — Pint propre, Larastan niveau 6 sans erreur, npm run build OK, Playwright 5/5 (démonstration + quatre pages d'erreur à 320 px, zéro erreur de console, zéro requête externe)"
+  risks_identified: 4
+  local_run: "94 tests, 87 passés, 7 réservés à MySQL — Pint propre, Larastan niveau 6 sans erreur, npm run build OK, Playwright 5/5 ; PR #11 verte sur les six contrôles"
   trace:
-    ac_covered: [2, 4, 5, 6, 7, 8]
-    ac_partial: [1, 3]
-    note: "Les AC 1 et 3 sont couverts côté dépôt (middleware, limiteur, contrat cookies, runbook) ; leur part serveur — TLS, 301, UFW — n'est établie que par l'exécution consignée de l'exploitant."
+    ac_covered: [1, 2, 4, 5, 6, 7, 8]
+    ac_partial: [3]
+    note: "L'AC 3 est couvert pour CSRF, limiteur, cookies et écoute locale ; sa clause UFW reste non réalisée par décision d'exploitation (DEC-14). Les parts serveur des AC 1 et 3 exécutées sont consignées au journal d'exploitation du 19/07/2026."
 
 nfr_validation:
   security:
-    status: PASS
-    notes: "CSP de production sans unsafe-inline prouvée sur pages rendues ; HSTS conditionné au HTTPS ; masquage vérifié sur le fichier de journal écrit, message et arguments de trace compris ; limiteur clé par hash téléphone|IP ; fixtures de test absentes hors environnement testing ; barre de progression Inertia désactivée et verrouillée par test — elle injecterait un style inline incompatible avec la politique."
+    status: CONCERNS
+    notes: "Durcissement applicatif complet et prouvé (CSP sans unsafe-inline sur pages rendues, masquage de journal trace comprise, HSTS conditionné au HTTPS, limiteur par hash téléphone|IP). Réserve : pare-feu hôte absent (OPS-004/DEC-14) — la défense repose sur l'écoute locale de MariaDB/Redis et la discipline de configuration des services futurs."
   performance:
     status: PASS
-    notes: "Un UUID et un nonce par requête ; expurgation exécutée au moment du log uniquement ; rotation 30 jours bornant le disque du VPS partagé."
+    notes: "Un UUID et un nonce par requête ; expurgation au moment du log uniquement ; rotation 30 jours bornant le disque du VPS partagé."
   reliability:
     status: PASS
-    notes: "Les quatre pages d'erreur sont autonomes (aucune dépendance aux layouts de 1.7), rendues avec leurs en-têtes de sécurité réappliqués dans le chemin d'exception ; la référence courte du 500 relie l'écran au journal via X-Request-ID."
+    notes: "Pages d'erreur autonomes vérifiées en production réelle (404 français sans code) ; en-têtes réappliqués dans le chemin d'exception ; référence courte du 500 reliée au journal via X-Request-ID ; renouvellement de certificat automatisé et testé."
   maintainability:
     status: PASS
-    notes: "Tests nommés par AC, runbook exécutable commande par commande, politique locale Vite isolée de la production, aucune dépendance nouvelle."
+    notes: "Tests nommés par AC, runbook exécutable, politique locale Vite isolée de la production, aucune dépendance nouvelle."
 
-recommended_status: "✓ Ready for Done — après exécution du runbook http-hardening.md sur le VPS et consignation des vérifications ; la décision preload reste ouverte côté direction sans bloquer la story"
+recommended_status: "✓ Done — actes serveur consignés ; écart UFW assumé et tracé (DEC-14), preload en attente de la direction"
