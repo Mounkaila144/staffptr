@@ -105,6 +105,10 @@ le conteneur CI jetable, sa portée disparaît avec le conteneur. Sur le VPS par
 
 Cet acte séparé est assumé par DEC-05. Il ne confère aucun privilège global aux comptes PTR Staff.
 
+Sur MariaDB (DEC-12, instance du VPS partagé), `SET PERSIST` n'existe pas : appliquer
+`SET GLOBAL log_bin_trust_function_creators = 1;` puis persister le réglage dans un fichier de
+`/etc/mysql/mariadb.conf.d/` (section `[mysqld]`), sans redémarrage.
+
 ## Contrat des secrets GitHub Environments
 
 Les environnements GitHub `staging` et `production` portent chacun les mêmes noms de secrets, avec

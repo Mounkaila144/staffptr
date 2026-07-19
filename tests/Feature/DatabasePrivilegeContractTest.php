@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class DatabasePrivilegeContractTest extends TestCase
@@ -108,6 +110,31 @@ class DatabasePrivilegeContractTest extends TestCase
         }
     }
 
+    public function test_ac_3_every_table_named_by_phase_two_is_created_by_a_migration(): void
+    {
+        $tables = array_values(array_unique(array_map(
+            static fn (array $grant): string => $grant['table'],
+            array_filter(
+                $this->applicationGrants($this->sqlModel()),
+                static fn (array $grant): bool => $grant['table'] !== '*',
+            ),
+        )));
+
+        $this->assertNotEmpty($tables, 'La phase 2 du modèle SQL doit nommer des tables.');
+
+        $exitCode = Artisan::call('migrate', ['--force' => true]);
+        $this->assertSame(0, $exitCode, Artisan::output());
+
+        foreach ($tables as $table) {
+            $this->assertTrue(
+                Schema::hasTable($table),
+                "La table `{$table}` est contractualisée par la phase 2 du modèle SQL mais n'est ".
+                "créée par aucune migration : le GRANT échouerait à l'exécution (ERROR 1146), ".
+                'comme constaté sur le VPS le 19/07/2026.',
+            );
+        }
+    }
+
     public function test_ac_3_bis_ci_provisioning_mirrors_the_privilege_matrix(): void
     {
         $workflow = $this->readFile('.github/workflows/pull-request-quality.yml');
@@ -117,6 +144,15 @@ class DatabasePrivilegeContractTest extends TestCase
             $workflow,
             'Sans parité entre la CI et la matrice, le « refusé par défaut » ne serait vérifié nulle part.',
         );
+
+        foreach (['sessions', 'jobs', 'job_batches', 'failed_jobs', 'cache', 'cache_locks'] as $table) {
+            $this->assertStringContainsString(
+                "GRANT UPDATE, DELETE ON staffptr_test.{$table} TO 'staffptr_app_ci'@'%';",
+                $workflow,
+                'La phase 2 de la matrice doit être appliquée en CI après la migration : un GRANT sur '.
+                "la table absente `{$table}` rendrait la chaîne rouge au lieu d'attendre la préproduction.",
+            );
+        }
 
         preg_match_all(
             "/GRANT ([^;]+?) ON staffptr_test\.\* TO 'staffptr_app_ci'@'%'/i",

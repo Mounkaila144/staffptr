@@ -6,9 +6,10 @@
 ## Ordre de dépendance des migrations
 
 ```
-1. Platform        settings, audit_logs (+ déclencheurs), attachments, holidays
+1. Platform        settings, audit_logs (+ déclencheurs), sessions, cache,
+                   cache_locks, attachments, holidays
 2. Identity        people → users (+ colonne générée) → rôles/permissions →
-                   sessions, login_attempts
+                   login_attempts
 3. Finance         expense_categories → expenses → expense_approvals      [epic 4]
 4. Work            objectives, projects, tasks, deliverables              [epic 5]
 5. Accountability  daily_reports, blockers, weekly_reviews, internships   [epics 6-7]
@@ -18,6 +19,11 @@
 
 `audit_logs` est créé **en premier**, avant toute table métier : le journal doit être opérationnel
 *avant* la première écriture sensible.
+
+`sessions`, `cache` et `cache_locks` sont des tables d'infrastructure framework, créées en fondation
+(Sprint Change Proposal du 19/07/2026) : la matrice de privilèges de la story 1.5 et
+`SESSION_DRIVER=database` les exigent dès le premier déploiement. `sessions.user_id` reste **sans
+contrainte FK** — la table `users` appartient à l'epic 2.
 
 ## Règles non négociables
 
