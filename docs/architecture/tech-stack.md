@@ -17,7 +17,7 @@
 | **BDD des tests** | **MySQL** (service Docker en CI) | 8.0 | **DEC-02** — voir avertissement ci-dessous |
 | Cache et files | Redis | 7.x | DEC-04 |
 | **Sessions** | **MySQL** (driver `database`) | — | Nécessaire à FR8 / PERM-08 (invalidation immédiate) |
-| Serveur web | Nginx + PHP-FPM | — | A-03, VPS unique |
+| Serveur web | Apache 2.4 + PHP-FPM | — | A-03, VPS partagé (DEC-05), **DEC-13** |
 | Permissions | `spatie/laravel-permission` | 6.x | DEC-03 |
 | Sauvegarde | `spatie/laravel-backup` | 9.x | NFR24, NFR25 |
 | Images | `intervention/image` | 3.x | Vignettes serveur |

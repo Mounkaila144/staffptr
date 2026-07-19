@@ -12,7 +12,7 @@
 
 | Réf. | Décision | Retenu | § |
 |---|---|---|---|
-| A-04 | Stockage des pièces jointes | Disque privé `storage/app/private`, servi par contrôleur + `X-Accel-Redirect` | [§ 11](#11-pièces-jointes-privées) |
+| A-04 | Stockage des pièces jointes | Disque privé `storage/app/private`, servi par contrôleur + `X-Sendfile` (DEC-13) | [§ 11](#11-pièces-jointes-privées) |
 | A-05 | Immuabilité et versionnement | Triple barrière : privilèges SQL, déclencheurs base, trait applicatif | [§ 15](#15-immuabilité-historiques-et-annulations) |
 | A-06 | Séparation personne / compte | Tables `people` et `users` distinctes dès l'Étape 1 | [§ 6.2](#62-noyau-identité--a-06--contra-02) |
 | A-07 | Notifications | Système de notifications Laravel, canal `database` seul en MVP | [§ 9.4](#94-notifications-a-07) |

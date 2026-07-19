@@ -13,11 +13,11 @@ graph TB
     end
 
     subgraph VPS["VPS unique — staff.ptrniger.com"]
-        N["Nginx<br/>TLS Let's Encrypt · HSTS · Brotli<br/>X-Accel-Redirect"]
+        N["Apache 2.4<br/>TLS Let's Encrypt · HSTS · Brotli<br/>X-Sendfile"]
         P["PHP-FPM 8.3<br/>Laravel 13"]
         Q["Worker de file<br/>supervisor"]
         S["Ordonnanceur<br/>cron → schedule:run"]
-        M[("MySQL 8<br/>données + sessions")]
+        M[("MariaDB 10.11<br/>données + sessions")]
         R[("Redis<br/>cache + files")]
         F["storage/app/private<br/>pièces jointes"]
     end
