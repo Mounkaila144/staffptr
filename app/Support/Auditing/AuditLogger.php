@@ -45,8 +45,8 @@ class AuditLogger
             'auditable_type' => $this->requiredString($auditable->getMorphClass(), 120, 'auditable_type'),
             'auditable_id' => $this->auditableId($auditable),
             'action' => $this->requiredString($action, 60, 'action'),
-            'old_values' => $oldValues,
-            'new_values' => $newValues,
+            'old_values' => $this->withoutSecrets($oldValues),
+            'new_values' => $this->withoutSecrets($newValues),
             'reason' => $reason,
             'ip_address' => $this->packedIpAddress($ipAddress ?? $this->requestIpAddress()),
             'user_agent' => $this->userAgent($userAgent ?? $this->requestUserAgent()),
@@ -163,6 +163,33 @@ class AuditLogger
     private function userAgent(?string $userAgent): ?string
     {
         return $userAgent === null ? null : mb_substr($userAgent, 0, 255);
+    }
+
+    /**
+     * Password material never belongs in the permanent audit trail, even when a caller passes it.
+     *
+     * @param  array<string, mixed>|null  $values
+     * @return array<string, mixed>|null
+     */
+    private function withoutSecrets(?array $values): ?array
+    {
+        if ($values === null) {
+            return null;
+        }
+
+        $safe = [];
+
+        foreach ($values as $key => $value) {
+            if (str_contains(mb_strtolower((string) $key), 'password')) {
+                continue;
+            }
+
+            $safe[$key] = is_array($value)
+                ? $this->withoutSecrets($value)
+                : $value;
+        }
+
+        return $safe;
     }
 
     private function requestIpAddress(): ?string
