@@ -58,8 +58,6 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: root-ci-only
           MYSQL_DATABASE: staffptr_test
-          MYSQL_USER: staffptr_ci
-          MYSQL_PASSWORD: staffptr-ci-only
         ports:
           - 3306:3306
         options: >-
@@ -80,8 +78,16 @@ jobs:
       DB_HOST: 127.0.0.1
       DB_PORT: 3306
       DB_DATABASE: staffptr_test
-      DB_USERNAME: staffptr_ci
-      DB_PASSWORD: staffptr-ci-only
+      DB_USERNAME: staffptr_app_ci
+      DB_PASSWORD: staffptr-app-ci-only
+      DB_MIGRATION_HOST: 127.0.0.1
+      DB_MIGRATION_PORT: 3306
+      DB_MIGRATION_DATABASE: staffptr_test
+      DB_MIGRATION_USERNAME: staffptr_migrate_ci
+      DB_MIGRATION_PASSWORD: staffptr-migrate-ci-only
+      AUDIT_DB_MIGRATION_CONNECTION: mysql_migration
+      AUDIT_DB_APP_USERNAME: staffptr_app_ci
+      AUDIT_DB_APP_HOST: '%'
       QUEUE_CONNECTION: sync
       SESSION_DRIVER: array
     steps:
@@ -97,9 +103,24 @@ jobs:
           key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
       - run: composer install --prefer-dist --no-interaction --no-progress
       - run: cp .env.example .env
-      - name: Afficher le moteur de test
+      - name: Provisionner les comptes MySQL éphémères
+        env:
+          MYSQL_CONTAINER: ${{ job.services.mysql.id }}
+        run: >-
+          docker exec "${MYSQL_CONTAINER}" mysql
+          --user=root
+          --password=root-ci-only
+          --execute="SET GLOBAL log_bin_trust_function_creators = 1;
+          CREATE USER 'staffptr_migrate_ci'@'%' IDENTIFIED BY 'staffptr-migrate-ci-only';
+          GRANT ALL PRIVILEGES ON staffptr_test.* TO 'staffptr_migrate_ci'@'%' WITH GRANT OPTION;
+          CREATE USER 'staffptr_app_ci'@'%' IDENTIFIED BY 'staffptr-app-ci-only';
+          FLUSH PRIVILEGES;"
+      - name: Afficher le moteur de migration
+        run: php artisan db:show --database=mysql_migration
+      - name: Migrer avec le compte privilégié
+        run: php artisan migrate:fresh --database=mysql_migration --force
+      - name: Afficher le moteur applicatif restreint
         run: php artisan db:show --database=mysql
-      - run: php artisan migrate:fresh --force
       - run: php artisan test
 
   frontend:

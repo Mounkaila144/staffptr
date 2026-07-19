@@ -107,7 +107,7 @@ CREATE TABLE audit_logs (
   id            BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   actor_id      BIGINT UNSIGNED NULL,          -- NULL = système (amorçage, tâche planifiée)
   actor_label   VARCHAR(120) NOT NULL,          -- dénormalisé : survit à l'archivage du compte
-  occurred_at   TIMESTAMP(3) NOT NULL,
+  occurred_at   DATETIME(3) NOT NULL,          -- surtout pas TIMESTAMP : voir note ci-dessous
   auditable_type VARCHAR(120) NOT NULL,
   auditable_id  BIGINT UNSIGNED NULL,
   action        VARCHAR(60) NOT NULL,           -- created|updated|approved|cancelled|exported…
@@ -124,5 +124,20 @@ CREATE TABLE audit_logs (
 
 `actor_label` est dénormalisé volontairement : un journal d'audit dont les lignes deviennent
 illisibles parce que le compte auteur a été archivé ne remplit pas sa fonction.
+
+> **`occurred_at` est en `DATETIME(3)`, jamais `TIMESTAMP`.** Deux raisons, chacune suffisante sur une
+> table en rétention **permanente** (§ 22.1) :
+>
+> 1. **`TIMESTAMP` s'arrête au 19 janvier 2038.** Une table qu'on ne purge jamais ne peut pas reposer
+>    sur un type qui cesse de représenter le temps dans douze ans.
+> 2. **`TIMESTAMP` est converti selon le fuseau de session MySQL** à chaque lecture et écriture. Une
+>    restauration sur un serveur dont le `time_zone` diffère décalerait **tous** les horodatages du
+>    journal — sur la table dont le rôle est précisément d'être opposable, et en contradiction directe
+>    avec NFR23 (« dates stockées de façon non ambiguë »).
+>
+> `DATETIME` n'a ni plafond utile ni conversion de fuseau. La valeur reste ce qu'on a écrit.
+> Corrigé le 19/07/2026, avant la première mise en production — après, il aurait fallu un
+> `ALTER TABLE` sur une table protégée par déclencheurs et privilèges. Le test de schéma de la
+> story 1.4 épingle `datetime(3)` pour empêcher toute régression.
 
 ---

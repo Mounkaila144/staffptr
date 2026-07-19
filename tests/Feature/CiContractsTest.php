@@ -32,8 +32,13 @@ class CiContractsTest extends TestCase
 
         $this->assertStringContainsString('image: mysql:8.0', $workflow);
         $this->assertStringContainsString('DB_CONNECTION: mysql', $workflow);
+        $this->assertStringContainsString('DB_MIGRATION_USERNAME: staffptr_migrate_ci', $workflow);
+        $this->assertStringContainsString('DB_USERNAME: staffptr_app_ci', $workflow);
+        $this->assertStringContainsString('AUDIT_DB_APP_USERNAME: staffptr_app_ci', $workflow);
+        $this->assertStringContainsString('SET GLOBAL log_bin_trust_function_creators = 1', $workflow);
         $this->assertStringContainsString('mysqladmin ping', $workflow);
         $this->assertStringContainsString('php artisan db:show --database=mysql', $workflow);
+        $this->assertStringContainsString('php artisan migrate:fresh --database=mysql_migration --force', $workflow);
         $this->assertFileExists(base_path('tests/Feature/CiDatabaseEngineTest.php'));
     }
 
