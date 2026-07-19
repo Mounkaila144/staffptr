@@ -21,7 +21,11 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('actor_id')->nullable();
             $table->string('actor_label', 120);
-            $table->timestamp('occurred_at', precision: 3);
+            // DATETIME(3) et non TIMESTAMP(3) : TIMESTAMP s'arrête au 19/01/2038 alors que le
+            // journal d'audit est en rétention permanente, et il est converti selon le fuseau de
+            // session MySQL — une restauration sur un serveur configuré autrement décalerait tous
+            // les horodatages de la table dont le rôle est précisément d'être opposable (NFR23).
+            $table->dateTime('occurred_at', precision: 3);
             $table->string('auditable_type', 120);
             $table->unsignedBigInteger('auditable_id')->nullable();
             $table->string('action', 60);

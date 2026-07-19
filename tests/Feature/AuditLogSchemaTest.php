@@ -65,7 +65,9 @@ class AuditLogSchemaTest extends AuditTestCase
             ->select('SHOW COLUMNS FROM audit_logs'))
             ->keyBy('Field');
 
-        $this->assertSame('timestamp(3)', $columns->get('occurred_at')->Type ?? null);
+        // ⛔ DATETIME(3) obligatoire : TIMESTAMP plafonne en 2038 et se convertit selon le fuseau
+        // de session MySQL. Sur une table en rétention permanente, les deux sont disqualifiants.
+        $this->assertSame('datetime(3)', $columns->get('occurred_at')->Type ?? null);
         $this->assertSame('json', $columns->get('old_values')->Type ?? null);
         $this->assertSame('json', $columns->get('new_values')->Type ?? null);
         $this->assertSame('varbinary(16)', $columns->get('ip_address')->Type ?? null);

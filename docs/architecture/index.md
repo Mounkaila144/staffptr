@@ -12,7 +12,7 @@ Ils font foi ; les sections numérotées ci-dessous en sont le détail.
 | [`source-tree.md`](source-tree.md) | Arborescence, cinq modules, règle de couplage | à chaque story |
 | [`testing-strategy.md`](testing-strategy.md) | Pyramide, 14 règles bloquantes, campagne d'autorisation | toutes stories |
 | [`unified-project-structure.md`](unified-project-structure.md) | Renvoi vers `source-tree.md` | toutes stories |
-| [`data-models.md`](data-models.md) | Règles transverses de modèle | stories backend |
+| [`data-models.md`](data-models.md) | Règles transverses de modèle, convention monétaire | stories backend |
 | [`database-schema.md`](database-schema.md) | Ordre des migrations, règles non négociables | stories backend |
 | [`backend-architecture.md`](backend-architecture.md) | Contrôleurs, services, policies, transactions | stories backend |
 | [`rest-api-spec.md`](rest-api-spec.md) | *Aucune API publique* | stories backend |
