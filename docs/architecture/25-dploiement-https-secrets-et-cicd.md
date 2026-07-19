@@ -5,6 +5,12 @@
 VPS unique (A-03), 2 vCPU / 4 Go / 80 Go SSD suffisent largement à 100 utilisateurs.
 Debian 12 stable, système en **UTC**.
 
+> **Le VPS retenu est partagé avec d'autres projets** (DEC-05, § 24.2). Les composants ci-dessous
+> sont donc **mutualisés**, pas dédiés. Quatre mesures d'isolation deviennent obligatoires et non
+> négociables : utilisateur système dédié, pool PHP-FPM 8.3 propre, `REDIS_PREFIX` et index `REDIS_DB`
+> distincts, surveillance de l'espace disque. Sans elles, un autre projet peut lire le `.env` de PTR
+> Staff ou vider son cache.
+
 | Composant | Rôle |
 |---|---|
 | Nginx | TLS, en-têtes de sécurité, Brotli, `X-Accel-Redirect`, ressources statiques |

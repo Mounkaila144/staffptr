@@ -22,10 +22,30 @@ téléphones, pièces jointes remplacés) par la commande `ptr:anonymize`. C'est
 restauration du § 21.3 utile en continu plutôt que théorique : la préproduction *est* la
 vérification de la sauvegarde.
 
-> **DEC-05.** Préproduction sur le même VPS (isolation par utilisateur système, base et hôte virtuel
-> distincts) : ~0 € de coût supplémentaire, exploitation simple. L'inconvénient est réel et assumé :
-> une saturation de disque ou une erreur d'opération en préproduction peut affecter la production.
-> Un second petit VPS lève ce risque pour ~5 €/mois. Votre arbitrage.
+> **DEC-05 — tranché le 19/07/2026 : préproduction ET production sur le VPS existant, déjà partagé
+> avec d'autres projets.** Coût supplémentaire nul. La direction est seule responsable de l'ensemble
+> des projets hébergés et assume les conséquences ci-dessous.
+>
+> **Ce que cette décision coûte, écrit pour ne pas être redécouvert plus tard :**
+>
+> 1. **Le modèle de menace du § 14.1 est affaibli.** La séparation en deux comptes MySQL existe pour
+>    qu'un `.env` compromis ne suffise pas à effacer le journal d'audit. Sur une instance partagée,
+>    la faille d'un **autre** projet devient un chemin vers la même instance MySQL, et selon les
+>    droits système vers `shared/.env`. La contre-mesure obligatoire est l'isolation système :
+>    utilisateur dédié, pool PHP-FPM propre, `.env` en `chmod 600` illisible par les autres projets.
+> 2. **`log_bin_trust_function_creators = 1` est un réglage `GLOBAL`.** Exigé par les déclencheurs
+>    d'immuabilité (§ 14.1), il relâche un contrôle pour **toutes** les bases de l'instance, pas
+>    seulement `ptrstaff`. Décision prise en connaissance de cause.
+> 3. **Redis est partagé.** `REDIS_PREFIX` et un index `REDIS_DB` distincts sont **obligatoires** :
+>    sans eux, un `cache:clear` de PTR Staff efface les clés des autres projets, et réciproquement.
+> 4. **Le disque est partagé** avec la rétention 10 ans de NFR26 et les sauvegardes quotidiennes.
+>    La surveillance d'espace disque devient une exigence, pas un confort.
+> 5. **La contagion n'est plus limitée à préproduction → production** : n'importe quel projet du
+>    serveur peut affecter n'importe quel autre.
+>
+> **Condition de révision.** Le provisionnement reste paramétré par hôte : un déplacement vers un VPS
+> dédié ne doit modifier que des valeurs, jamais du code. Si l'entreprise croît ou si un litige rend
+> l'opposabilité du journal d'audit critique, cette décision doit être rouverte en premier.
 
 ## 24.3 Commande d'invariants
 

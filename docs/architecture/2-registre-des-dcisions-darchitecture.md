@@ -29,7 +29,7 @@
 | **DEC-02** | Base des tests automatisés | MySQL, et non SQLite, pour parité des déclencheurs |
 | **DEC-03** | Dépendance `spatie/laravel-permission` | Retenue |
 | **DEC-04** | Dépendance Redis | Retenue (cache et files), sessions en base |
-| **DEC-05** | Emplacement de la préproduction | Même VPS, hôte virtuel distinct |
+| **DEC-05** | Emplacement de la préproduction | ✅ **Tranché 19/07/2026** — préprod et production sur le VPS existant, partagé avec d'autres projets. Isolation système obligatoire, voir § 24.2 |
 | **DEC-06** | Hébergeur des sauvegardes hors site | À choisir — la donnée quitte le Niger |
 | **DEC-07** | Suivi des erreurs (Sentry ou fichiers seuls) | Sentry auto-hébergé, ou fichiers seuls |
 | **DEC-08** | Q11 — types et taille des pièces jointes | PDF/JPEG/PNG/WebP/HEIC, 8 Mo |

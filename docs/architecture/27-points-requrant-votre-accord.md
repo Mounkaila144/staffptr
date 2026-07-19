@@ -9,7 +9,7 @@ appliqué selon la recommandation tant que vous n'en décidez pas autrement.
 | **DEC-02** | Base des tests | MySQL en CI, pas SQLite | Étape 1 — mise en place CI |
 | **DEC-03** | `spatie/laravel-permission` | Retenue | Jalon 1 — Story 2.2 |
 | **DEC-04** | Redis (cache et files) | Retenue ; sessions en base | Étape 1 — provisionnement |
-| **DEC-05** | Préproduction | Même VPS (~0 €) ou VPS séparé (~5 €/mois) | Étape 1 — provisionnement |
+| **DEC-05** | Préproduction | ✅ **Tranché** — VPS existant partagé, risques consignés au § 24.2 | Jalon 1 — provisionnement |
 | **DEC-06** | Hébergeur des sauvegardes | **La donnée quitte le Niger — décision non technique** | Étape 1 — mise en service |
 | **DEC-07** | Suivi des erreurs | Sentry auto-hébergé, ou fichiers seuls | Étape 1 |
 | **DEC-08** | Q11 — pièces jointes | PDF, JPEG, PNG, WebP, HEIC — 8 Mo | Étape 1 — Story pièces jointes |
