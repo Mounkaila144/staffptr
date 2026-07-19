@@ -8,4 +8,5 @@ parameters:
         - bootstrap
         - config
         - routes
+        - tests/Fixtures/Models
     tmpDir: storage/framework/cache/phpstan

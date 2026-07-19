@@ -10,16 +10,23 @@ use DateTimeZone;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
+use Tests\Support\UsesSeparatedDatabaseConnections;
 use Tests\TestCase;
 
 class SharedContractsTest extends TestCase
 {
+    use UsesSeparatedDatabaseConnections;
+
     public function test_ac_1_rejects_a_float_before_monetary_persistence(): void
     {
-        Schema::create('money_contract_probes', function (Blueprint $table): void {
+        $this->migrationSchema()->create('money_contract_probes', function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('total_amount');
         });
+        $this->grantApplicationTablePrivileges(
+            'money_contract_probes',
+            ['SELECT', 'INSERT'],
+        );
 
         try {
             $rejected = false;
@@ -36,7 +43,7 @@ class SharedContractsTest extends TestCase
             $this->assertTrue($rejected);
             $this->assertDatabaseCount('money_contract_probes', 0);
         } finally {
-            Schema::dropIfExists('money_contract_probes');
+            $this->migrationSchema()->dropIfExists('money_contract_probes');
         }
     }
 
