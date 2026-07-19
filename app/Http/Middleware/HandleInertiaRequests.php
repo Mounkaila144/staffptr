@@ -37,7 +37,10 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
-            //
+            'auth' => [
+                // Epic 2 remplacera ce contrat vide par les permissions du compte connecté.
+                'permissions' => [],
+            ],
         ];
     }
 }

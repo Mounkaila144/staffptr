@@ -72,7 +72,7 @@ class CiContractsTest extends TestCase
 
         $this->assertFileExists(base_path('playwright.config.js'));
         $this->assertStringContainsString("await page.goto('/')", $test);
-        $this->assertStringContainsString('Fondation applicative opérationnelle', $test);
+        $this->assertStringContainsString('États transverses', $test);
         $this->assertStringContainsString('trace:', $this->readFile('playwright.config.js'));
         $this->assertStringContainsString('if: failure()', $workflow);
     }
