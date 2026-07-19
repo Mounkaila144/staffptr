@@ -107,10 +107,7 @@ class AuditImmutabilityTest extends AuditTestCase
     {
         $this->requireMysqlProof();
 
-        $username = (string) config('audit.database.app_username');
-        $host = (string) config('audit.database.app_host');
-        $grants = DB::connection($this->migrationConnectionName())
-            ->select("SHOW GRANTS FOR '{$username}'@'{$host}'");
+        $grants = DB::connection()->select('SHOW GRANTS');
         $grantSql = implode("\n", array_map(
             fn (object $grant): string => implode(' ', (array) $grant),
             $grants,

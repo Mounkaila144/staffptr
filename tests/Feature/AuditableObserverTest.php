@@ -40,6 +40,11 @@ class AuditableObserverTest extends AuditTestCase
     {
         $record = AuditedRecord::query()->create(['name' => 'Avant']);
         $record->name = 'Après';
+        $automaticUpdatedBefore = AuditLog::query()
+            ->where('auditable_type', $record->getMorphClass())
+            ->where('auditable_id', $record->getKey())
+            ->where('action', 'updated')
+            ->count();
 
         DB::connection()->transaction(function () use ($record): void {
             app(AuditLogger::class)->runExplicitly(
@@ -58,7 +63,7 @@ class AuditableObserverTest extends AuditTestCase
         $this->assertSame(1, AuditLog::query()
             ->where('request_id', 'observer-deduplication-test')
             ->count());
-        $this->assertSame(0, AuditLog::query()
+        $this->assertSame($automaticUpdatedBefore, AuditLog::query()
             ->where('auditable_type', $record->getMorphClass())
             ->where('auditable_id', $record->getKey())
             ->where('action', 'updated')
