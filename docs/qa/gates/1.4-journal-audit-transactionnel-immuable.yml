@@ -1,0 +1,45 @@
+# <!-- Powered by BMAD™ Core -->
+schema: 1
+story: "1.4"
+story_title: "Journal d'audit — écriture transactionnelle et immuabilité"
+gate: PASS
+status_reason: "La règle bloquante 11 est prouvée par un échec réel au niveau base, et le garde-fou empêche structurellement que cette preuve soit perdue : elle s'ignore en local mais fait échouer la CI si le moteur n'est pas MySQL. Les trois barrières d'immuabilité sont vérifiées séparément."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-07-19T07:15:00+01:00"
+
+waiver: { active: false }
+
+top_issues: []
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 0 }
+  recommendations:
+    must_fix: []
+    monitor:
+      - "Le job Playwright monte l'application sur SQLite. La migration est conditionnelle au pilote, ce qui le préserve — mais toute future migration MySQL-only devra respecter la même condition sous peine de rendre `main` infusionnable via un contrôle requis."
+
+evidence:
+  tests_reviewed: 54
+  assertions: 399
+  risks_identified: 0
+  ci_run: "29675851702 — six contrôles verts, 54 tests / 399 assertions sous MySQL 8"
+  local_run: "54 tests, 47 passés, 7 ignorés sous SQLite — l'écart correspond exactement aux preuves réservées à MySQL"
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "Triple barrière vérifiée séparément : garde Eloquent, déclencheurs MySQL sous connexion privilégiée, refus de privilèges sous connexion applicative restreinte. Aucune route PUT/PATCH/DELETE sur le journal."
+  reliability:
+    status: PASS
+    notes: "⛔ Règle 11 prouvée par injection : un déclencheur temporaire force l'échec de l'insertion d'audit ; l'exception remonte (SQLSTATE 45000, code 1644) et l'opération métier ET l'audit sont tous deux absents. Aucune simulation."
+  maintainability:
+    status: PASS
+    notes: "Le GRANT lit le nom du compte applicatif depuis la configuration au lieu de le coder en dur, ce qui rend la migration portable entre CI, préproduction et production."
+  data_integrity:
+    status: PASS
+    notes: "`occurred_at` corrigé de TIMESTAMP(3) vers DATETIME(3) avant la première mise en production. TIMESTAMP plafonne au 19/01/2038 et se convertit selon le fuseau de session MySQL — disqualifiant sur une table en rétention permanente (NFR23). Le test de schéma épingle datetime(3)."
+
+recommended_status: "✓ Ready for Done"
