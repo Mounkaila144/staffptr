@@ -5,7 +5,20 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', fn () => Inertia::render('Platform/Demo'))
+Route::get('/', fn () => Inertia::render('Platform/Demo', [
+    'auth' => [
+        'permissions' => [
+            'role:direction',
+            'role:finance',
+            'navigation.home',
+            'approvals.view',
+            'team.view',
+            'finance.view',
+            'expenses.view',
+            'contracts.view',
+        ],
+    ],
+]))
     ->name('platform.demo');
 
 Route::get('/up', HealthController::class)
