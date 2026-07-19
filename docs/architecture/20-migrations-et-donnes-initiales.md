@@ -15,8 +15,9 @@
 ## 20.2 Ordre de dépendance
 
 ```
-1. Platform   settings, audit_logs (+ déclencheurs), attachments, holidays
-2. Identity   people → users (+ colonne générée) → rôles/permissions → sessions, login_attempts
+1. Platform   settings, audit_logs (+ déclencheurs), sessions, cache, cache_locks,
+              attachments, holidays
+2. Identity   people → users (+ colonne générée) → rôles/permissions → login_attempts
 3. Finance    expense_categories → expenses → expense_approvals        [Étape 1]
 4. Work       objectives, projects, tasks, deliverables                [Étape 2]
 5. Accountability  daily_reports, blockers, weekly_reviews, internships [Étape 3]

@@ -120,6 +120,20 @@ jobs:
         run: php artisan db:show --database=mysql_migration
       - name: Migrer avec le compte privilégié
         run: php artisan migrate:fresh --database=mysql_migration --force
+      - name: Appliquer la phase 2 de la matrice de privilèges
+        env:
+          MYSQL_CONTAINER: ${{ job.services.mysql.id }}
+        run: >-
+          docker exec "${MYSQL_CONTAINER}" mysql
+          --user=root
+          --password=root-ci-only
+          --execute="GRANT UPDATE, DELETE ON staffptr_test.sessions TO 'staffptr_app_ci'@'%';
+          GRANT UPDATE, DELETE ON staffptr_test.jobs TO 'staffptr_app_ci'@'%';
+          GRANT UPDATE, DELETE ON staffptr_test.job_batches TO 'staffptr_app_ci'@'%';
+          GRANT UPDATE, DELETE ON staffptr_test.failed_jobs TO 'staffptr_app_ci'@'%';
+          GRANT UPDATE, DELETE ON staffptr_test.cache TO 'staffptr_app_ci'@'%';
+          GRANT UPDATE, DELETE ON staffptr_test.cache_locks TO 'staffptr_app_ci'@'%';
+          FLUSH PRIVILEGES;"
       - name: Afficher le moteur applicatif restreint
         run: php artisan db:show --database=mysql
       - run: php artisan test
