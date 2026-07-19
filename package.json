@@ -5,12 +5,17 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
+    "check:bundle": "node tests/ci/check-bundle-budget.mjs --manifest=public/build/manifest.json --entry=resources/js/app.js --entry=resources/js/Pages/Platform/Demo.vue --limit-kb=300",
+    "check:workflow-duration": "node tests/ci/check-workflow-duration.mjs",
+    "test:ci-scripts": "node --test tests/ci/*.test.mjs",
+    "test:e2e": "playwright test",
     "bmad:refresh": "bmad-method install -f -i codex",
     "bmad:list": "bmad-method list:agents",
     "bmad:validate": "bmad-method validate"
   },
   "devDependencies": {
     "@inertiajs/vue3": "^2.3.27",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/vite": "^4.0.0",
     "@vitejs/plugin-vue": "^6.0.8",
     "concurrently": "^9.0.1",

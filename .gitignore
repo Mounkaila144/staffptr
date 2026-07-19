@@ -15,6 +15,8 @@
 /.zed
 /auth.json
 /node_modules
+/playwright-report/
+/test-results/
 /database/database.sqlite
 /public/build
 /public/fonts-manifest.dev.json
