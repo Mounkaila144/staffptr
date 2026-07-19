@@ -59,11 +59,108 @@ class DatabasePrivilegeContractTest extends TestCase
         foreach (['ptrstaff_prod', 'ptrstaff_staging'] as $schema) {
             foreach (['sessions', 'jobs', 'job_batches', 'failed_jobs', 'cache', 'cache_locks'] as $table) {
                 $this->assertMatchesRegularExpression(
-                    "/GRANT SELECT, INSERT, UPDATE, DELETE ON `{$schema}`\.`{$table}`/",
+                    "/GRANT UPDATE, DELETE ON `{$schema}`\.`{$table}`/",
                     $sql,
                 );
             }
         }
+    }
+
+    public function test_ac_3_bis_schema_level_grants_to_application_accounts_carry_only_select_and_insert(): void
+    {
+        $grants = $this->schemaLevelApplicationGrants($this->sqlModel());
+
+        $this->assertCount(2, $grants, 'Chaque compte applicatif doit porter un grant de schéma.');
+
+        foreach ($grants as $account => $privileges) {
+            $this->assertSame(
+                'SELECT, INSERT',
+                $privileges,
+                "Le grant de schéma de {$account} ne peut porter que SELECT et INSERT : ".
+                'un UPDATE ou un DELETE accordé au schéma ne se reprend plus table par table.',
+            );
+        }
+    }
+
+    public function test_ac_3_bis_audit_logs_never_receives_update_or_delete(): void
+    {
+        $reaching = array_filter(
+            $this->applicationGrants($this->sqlModel()),
+            static fn (array $grant): bool => $grant['table'] === '*' || $grant['table'] === 'audit_logs',
+        );
+
+        $this->assertNotEmpty($reaching, 'Aucun grant applicatif atteignant audit_logs n’a été analysé.');
+
+        foreach ($reaching as $grant) {
+            $path = $grant['table'] === '*'
+                ? "le schéma `{$grant['schema']}`, qui couvre audit_logs sans la nommer"
+                : 'la table `audit_logs` directement';
+
+            foreach (['UPDATE', 'DELETE'] as $privilege) {
+                $this->assertStringNotContainsStringIgnoringCase(
+                    $privilege,
+                    $grant['privileges'],
+                    "Le compte {$grant['account']} atteint audit_logs par {$path} et y obtiendrait ".
+                    "{$privilege}. Le journal d'audit est en ajout seul : aucun niveau de grant ne ".
+                    'peut porter UPDATE ni DELETE.',
+                );
+            }
+        }
+    }
+
+    public function test_ac_3_bis_ci_provisioning_mirrors_the_privilege_matrix(): void
+    {
+        $workflow = $this->readFile('.github/workflows/pull-request-quality.yml');
+
+        $this->assertStringContainsString(
+            "GRANT SELECT, INSERT ON staffptr_test.* TO 'staffptr_app_ci'@'%';",
+            $workflow,
+            'Sans parité entre la CI et la matrice, le « refusé par défaut » ne serait vérifié nulle part.',
+        );
+
+        preg_match_all(
+            "/GRANT ([^;]+?) ON staffptr_test\.\* TO 'staffptr_app_ci'@'%'/i",
+            $workflow,
+            $matches,
+        );
+
+        foreach ($matches[1] as $privileges) {
+            $this->assertStringNotContainsStringIgnoringCase('UPDATE', $privileges);
+            $this->assertStringNotContainsStringIgnoringCase('DELETE', $privileges);
+            $this->assertStringNotContainsStringIgnoringCase('ALL', $privileges);
+        }
+    }
+
+    public function test_ac_3_bis_runbook_carries_the_standing_grant_update_instruction(): void
+    {
+        $documentation = $this->readFile('docs/ops/database-users.md');
+        $header = substr($documentation, 0, (int) strpos($documentation, '## Comptes et frontières'));
+
+        $this->assertStringContainsString('Consigne permanente', $header);
+        $this->assertStringContainsString('story 2.1', $header);
+        $this->assertStringContainsString('GRANT UPDATE', $header);
+        $this->assertStringContainsString('cumulatifs', $documentation);
+    }
+
+    /**
+     * @return array<string, string> compte applicatif => liste de privilèges accordés au schéma
+     */
+    private function schemaLevelApplicationGrants(string $sql): array
+    {
+        preg_match_all(
+            "/^GRANT ([^;]+?) ON `[^`]+`\.\* TO '([^']+_app)'@'localhost';/im",
+            $sql,
+            $matches,
+            PREG_SET_ORDER,
+        );
+
+        $grants = [];
+
+        foreach ($matches as $match) {
+            $grants[$match[2]] = trim($match[1]);
+        }
+
+        return $grants;
     }
 
     public function test_ac_3_future_tables_default_to_delete_refused(): void
@@ -117,14 +214,44 @@ class DatabasePrivilegeContractTest extends TestCase
         ];
     }
 
+    /**
+     * Concatène **tous** les blocs SQL du runbook. Ne lire que le premier laisserait un futur
+     * bloc porteur de `GRANT` échapper à l'intégralité des vérifications de ce fichier.
+     */
     private function sqlModel(): string
     {
         $documentation = $this->readFile('docs/ops/database-users.md');
-        preg_match('/```sql\n(.*?)\n```/s', $documentation, $matches);
+        preg_match_all('/```sql\n(.*?)\n```/s', $documentation, $matches);
 
         $this->assertArrayHasKey(1, $matches);
+        $this->assertNotEmpty($matches[1]);
 
-        return $matches[1];
+        return implode("\n", $matches[1]);
+    }
+
+    /**
+     * Analyse les `GRANT` réellement exécutables destinés aux comptes applicatifs. Les lignes
+     * commentées sont écartées : elles ne s'exécutent pas.
+     *
+     * @return list<array{account: string, schema: string, table: string, privileges: string}>
+     */
+    private function applicationGrants(string $sql): array
+    {
+        $executable = preg_replace('/^\s*--.*$/m', '', $sql) ?? '';
+
+        preg_match_all(
+            "/GRANT\s+([^;]+?)\s+ON\s+`([^`]+)`\.(?:`([^`]+)`|\*)\s+TO\s+'([^']+_app)'@'[^']+'/i",
+            $executable,
+            $matches,
+            PREG_SET_ORDER,
+        );
+
+        return array_map(static fn (array $match): array => [
+            'account' => $match[4],
+            'schema' => $match[2],
+            'table' => ($match[3] ?? '') !== '' ? $match[3] : '*',
+            'privileges' => trim($match[1]),
+        ], $matches);
     }
 
     private function readFile(string $path): string
