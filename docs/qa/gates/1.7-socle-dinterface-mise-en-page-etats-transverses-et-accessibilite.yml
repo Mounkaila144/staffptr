@@ -1,0 +1,62 @@
+# <!-- Powered by BMAD™ Core -->
+schema: 1
+story: "1.7"
+story_title: "Socle d'interface — mise en page, états transverses et accessibilité"
+gate: PASS
+status_reason: "Les huit AC sont couverts côté dépôt par des preuves à trois niveaux (PHP, node, Playwright réel). Les deux risques majeurs annoncés sont écrasés : budget de poids à 92,50 Ko Brotli sur 300 autorisés, et zéro style en ligne dans tout resources/js — la leçon SEC-001 du gate 1.6 appliquée avant d'être subie. Aucun acte serveur requis pour cette story."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-07-19T22:48:00+01:00"
+
+waiver: { active: false }
+
+top_issues:
+  - id: "UX-001"
+    severity: low
+    finding: "Les glyphes des pastilles et de la navigation sont des caractères Unicode (⏳, ⌂, ¤…) et non les SVG inline prévus au § 7.4 de la spec — sur Chrome Android, certains se rendent en emoji couleur d'apparence variable selon la plateforme."
+    suggested_action: "Passe d'iconographie ultérieure : substituer des SVG inline dessinés à la demande. L'API des composants (glyphe comme donnée) permet la substitution sans réécriture. Le triple encodage glyphe+libellé+couleur reste garanti dans l'intervalle."
+    suggested_owner: "dev"
+  - id: "UX-002"
+    severity: low
+    finding: "StatusBadge replie silencieusement tout statut inconnu sur « brouillon » — une faute de frappe d'appelant produirait un état faux sans aucun signal."
+    suggested_action: "Ajouter un avertissement de développement (validator de prop ou console.warn hors production) lors d'un statut hors des six états."
+    suggested_owner: "dev"
+  - id: "PROC-002"
+    severity: low
+    finding: "La recette manuelle sur téléphone réel en 3G dégradée, exigée par la stratégie de vérification (§ 18.4), reste due — la simulation Playwright ne la remplace pas."
+    suggested_action: "À exécuter avant la mise en service de l'application (fin d'epic 2 au plus tard), pas avant la clôture de cette story. Consigner l'appareil, le réseau et les constats."
+    suggested_owner: "po"
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 3 }
+  recommendations:
+    must_fix: []
+    monitor:
+      - "La CSP stricte reste le contrat de toutes les pages futures : le test node « aucun style en ligne » doit englober tout nouveau composant."
+      - "Toute addition aux props Inertia partagées se paie sur les 80 Ko de navigation — revue exigée avant ajout (epic 2 : permissions réelles)."
+      - "Epic 2 : brancher auth.permissions réel, remplacer le repli anonymous de useDraft, brancher le limiteur login de 1.6."
+
+evidence:
+  tests_reviewed: 115
+  assertions: 716
+  risks_identified: 3
+  local_run: "PHP : 96 tests, 89 passés, 7 réservés MySQL, 716 assertions — Pint propre, Larastan niveau 6 sans erreur. Node : 11/11 (charte exacte, zéro style inline, cinq contrats de composables). Playwright : 8/8 (états transverses, vocabulaire interdit sur texte rendu, seuils 300 ms/3 s, hors connexion 3 s, 320 px + clavier + cibles + niveaux de gris + axe-core, quatre pages d'erreur rhabillées). Budget : 92,50 Ko Brotli / 300."
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8]
+    ac_partial: []
+    note: "Les tests 1.6 passent sans modification : pages d'erreur rhabillées sans changement de message, 419 branchée sur useDraft. La mise à jour du pin CiContractsTest suit l'extension légitime de la page de démonstration."
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "Zéro style en ligne (SEC-001 respecté, verrouillé par test) ; usePermissions documenté comme masquage d'interface jamais autorisant ; useDraft filtre fichiers, blobs et clés financières en profondeur ; axe-core en dépendance de test uniquement, absent du bundle."
+  performance:
+    status: PASS
+    notes: "92,50 Ko Brotli au premier chargement sur 300 autorisés ; polices système 0 octet ; aucune bibliothèque de composants ; useDraft en fragment séparé de 0,86 Ko ; props partagées limitées au tableau permissions."
+  reliability:
+    status: PASS
+    notes: "États transverses uniques et testés (SOC-06 à SOC-10 exécutables) ; hors connexion sans promesse de synchronisation ; erreur de décision laissant l'élément dans la file ; brouillons purgés à 7 jours et à l'envoi."
+  maintainability:
+    status: PASS
+    notes: "Charte en variables @theme (mode sombre possible sans reprise), composables injectables donc prouvables, commentaires porteurs des raisons mesurées (ΔE 1,6), tests qui échouent utilement."
+
+recommended_status: "✓ Ready for Done — story entièrement portée par le dépôt ; la recette manuelle 3G sur téléphone réel conditionne la mise en service, pas cette story"
