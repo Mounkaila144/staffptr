@@ -54,10 +54,26 @@ Conséquence directe des barrières d'immuabilité du § 14.1, à ne pas contour
 
 | Utilisateur | Privilèges | Usage |
 |---|---|---|
-| `ptrstaff_app` | `SELECT, INSERT, UPDATE` — **pas de `DELETE`** sur les tables protégées ; **`INSERT` seul** sur `audit_logs` | Application (`.env`) |
-| `ptrstaff_migrate` | `ALL` sur le schéma | Migrations, déploiement |
+| `…_app` | `SELECT, INSERT, UPDATE` — **pas de `DELETE`** sur les tables métier ; **`INSERT` seul** sur `audit_logs` ; `DELETE` accordé sur les tables d'infrastructure | Application (`.env`) |
+| `…_migrate` | `ALL` **borné au schéma**, avec `GRANT OPTION` | Migrations, déploiement |
 
-Les identifiants de `ptrstaff_migrate` **ne figurent pas dans le `.env` applicatif** : ils sont
+**Une paire de comptes par environnement — conséquence directe de DEC-05.** Préproduction et
+production partagent la même instance MySQL. Or `'utilisateur'@'hôte'` y désigne **un compte unique** :
+un `ptrstaff_app` accordé sur les deux schémas verrait la production depuis la préproduction, ce qui
+annule l'isolation recherchée. Les noms portent donc l'environnement :
+
+| Environnement | Schéma | Compte applicatif | Compte de migration |
+|---|---|---|---|
+| Production | `ptrstaff_prod` | `ptrstaff_prod_app` | `ptrstaff_prod_migrate` |
+| Préproduction | `ptrstaff_staging` | `ptrstaff_staging_app` | `ptrstaff_staging_migrate` |
+| CI (éphémère) | `staffptr_test` | `staffptr_app_ci` | `staffptr_migrate_ci` |
+
+⛔ Aucun compte n'est accordé sur un schéma qui n'est pas le sien, et aucun `GRANT` ne porte sur
+`*.*`. Le nommage est **symétrique à dessein** : un compte nommé `ptrstaff_app`, sans marqueur
+d'environnement, serait lu comme générique et finirait par être réutilisé pour la préproduction —
+c'est exactement l'erreur que cette séparation cherche à rendre impossible.
+
+Les identifiants du compte de migration **ne figurent pas dans le `.env` applicatif** : ils sont
 injectés par le script de déploiement depuis le magasin de secrets de la CI, le temps de la
 migration. Un `.env` compromis ne suffit alors pas à effacer le journal d'audit.
 
@@ -66,7 +82,7 @@ migration. Un `.env` compromis ne suffit alors pas à effacer le journal d'audit
 - `.env` dans `shared/`, `chmod 600`, propriétaire l'utilisateur applicatif. **Jamais versionné.**
 - `APP_KEY` généré à l'installation, sauvegardé **hors ligne** — sans lui, les sessions chiffrées et
   les données chiffrées au repos sont définitivement illisibles.
-- Secrets de CI dans GitHub Actions Secrets : clé SSH de déploiement, identifiants `ptrstaff_migrate`,
+- Secrets de CI dans GitHub Actions Secrets : clé SSH de déploiement, identifiants du compte de migration de chaque environnement,
   clés du stockage de sauvegarde.
 - Clé de déploiement SSH **dédiée, restreinte à l'utilisateur de déploiement**, sans accès `root`.
 - Rotation documentée dans `docs/ops/`.

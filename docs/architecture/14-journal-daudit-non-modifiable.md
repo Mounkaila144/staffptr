@@ -13,7 +13,9 @@ l'absence de bouton n'en est pas une :
 | 3 | **Trait applicatif** `Immutable` — `update()` et `delete()` lèvent une exception | Bloque l'erreur de programmation, tôt et lisiblement |
 
 ```sql
-GRANT SELECT, INSERT ON ptrstaff.audit_logs TO 'ptrstaff_app'@'localhost';
+-- Le nom du compte dépend de l'environnement (voir § 25.4). La migration le lit depuis
+-- la configuration (AUDIT_DB_APP_USERNAME), il n'est jamais codé en dur.
+GRANT SELECT, INSERT ON ptrstaff_prod.audit_logs TO 'ptrstaff_prod_app'@'localhost';
 -- ni UPDATE ni DELETE : volontaire
 
 CREATE TRIGGER audit_logs_no_update BEFORE UPDATE ON audit_logs
