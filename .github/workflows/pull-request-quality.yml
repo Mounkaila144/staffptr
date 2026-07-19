@@ -96,6 +96,7 @@ jobs:
           path: ~/.cache/composer/files
           key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
       - run: composer install --prefer-dist --no-interaction --no-progress
+      - run: cp .env.example .env
       - name: Afficher le moteur de test
         run: php artisan db:show --database=mysql
       - run: php artisan migrate:fresh --force
@@ -115,6 +116,8 @@ jobs:
       - run: npm run test:ci-scripts
       - run: npm run build
       - run: npm run check:bundle
+      - name: Sonde temporaire de protection de branche
+        run: exit 1
 
   playwright:
     name: Playwright
