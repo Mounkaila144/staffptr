@@ -830,7 +830,9 @@ l'absence de bouton n'en est pas une :
 | 3 | **Trait applicatif** `Immutable` — `update()` et `delete()` lèvent une exception | Bloque l'erreur de programmation, tôt et lisiblement |
 
 ```sql
-GRANT SELECT, INSERT ON ptrstaff.audit_logs TO 'ptrstaff_app'@'localhost';
+-- Le nom du compte dépend de l'environnement (voir § 25.4). La migration le lit depuis
+-- la configuration (AUDIT_DB_APP_USERNAME), il n'est jamais codé en dur.
+GRANT SELECT, INSERT ON ptrstaff_prod.audit_logs TO 'ptrstaff_prod_app'@'localhost';
 -- ni UPDATE ni DELETE : volontaire
 
 CREATE TRIGGER audit_logs_no_update BEFORE UPDATE ON audit_logs
@@ -1503,10 +1505,26 @@ Conséquence directe des barrières d'immuabilité du § 14.1, à ne pas contour
 
 | Utilisateur | Privilèges | Usage |
 |---|---|---|
-| `ptrstaff_app` | `SELECT, INSERT, UPDATE` — **pas de `DELETE`** sur les tables protégées ; **`INSERT` seul** sur `audit_logs` | Application (`.env`) |
-| `ptrstaff_migrate` | `ALL` sur le schéma | Migrations, déploiement |
+| `…_app` | `SELECT, INSERT, UPDATE` — **pas de `DELETE`** sur les tables métier ; **`INSERT` seul** sur `audit_logs` ; `DELETE` accordé sur les tables d'infrastructure | Application (`.env`) |
+| `…_migrate` | `ALL` **borné au schéma**, avec `GRANT OPTION` | Migrations, déploiement |
 
-Les identifiants de `ptrstaff_migrate` **ne figurent pas dans le `.env` applicatif** : ils sont
+**Une paire de comptes par environnement — conséquence directe de DEC-05.** Préproduction et
+production partagent la même instance MySQL. Or `'utilisateur'@'hôte'` y désigne **un compte unique** :
+un `ptrstaff_app` accordé sur les deux schémas verrait la production depuis la préproduction, ce qui
+annule l'isolation recherchée. Les noms portent donc l'environnement :
+
+| Environnement | Schéma | Compte applicatif | Compte de migration |
+|---|---|---|---|
+| Production | `ptrstaff_prod` | `ptrstaff_prod_app` | `ptrstaff_prod_migrate` |
+| Préproduction | `ptrstaff_staging` | `ptrstaff_staging_app` | `ptrstaff_staging_migrate` |
+| CI (éphémère) | `staffptr_test` | `staffptr_app_ci` | `staffptr_migrate_ci` |
+
+⛔ Aucun compte n'est accordé sur un schéma qui n'est pas le sien, et aucun `GRANT` ne porte sur
+`*.*`. Le nommage est **symétrique à dessein** : un compte nommé `ptrstaff_app`, sans marqueur
+d'environnement, serait lu comme générique et finirait par être réutilisé pour la préproduction —
+c'est exactement l'erreur que cette séparation cherche à rendre impossible.
+
+Les identifiants du compte de migration **ne figurent pas dans le `.env` applicatif** : ils sont
 injectés par le script de déploiement depuis le magasin de secrets de la CI, le temps de la
 migration. Un `.env` compromis ne suffit alors pas à effacer le journal d'audit.
 
@@ -1515,7 +1533,7 @@ migration. Un `.env` compromis ne suffit alors pas à effacer le journal d'audit
 - `.env` dans `shared/`, `chmod 600`, propriétaire l'utilisateur applicatif. **Jamais versionné.**
 - `APP_KEY` généré à l'installation, sauvegardé **hors ligne** — sans lui, les sessions chiffrées et
   les données chiffrées au repos sont définitivement illisibles.
-- Secrets de CI dans GitHub Actions Secrets : clé SSH de déploiement, identifiants `ptrstaff_migrate`,
+- Secrets de CI dans GitHub Actions Secrets : clé SSH de déploiement, identifiants du compte de migration de chaque environnement,
   clés du stockage de sauvegarde.
 - Clé de déploiement SSH **dédiée, restreinte à l'utilisateur de déploiement**, sans accès `root`.
 - Rotation documentée dans `docs/ops/`.
@@ -1665,3 +1683,4 @@ opérations de l'application seront les seules à ne pas être traçables.
 | 18/07/2026 | 1.1 | Réalignement sur le plan d'exécution en 11 epics (`docs/epics-stories.md`) : ordre d'implémentation du § 28 et échéances DEC-03, DEC-09, DEC-10 renumérotés, avec correspondance PRD conservée. Aucune décision d'architecture modifiée. | John (PM) |
 | 19/07/2026 | 1.2 | `audit_logs.occurred_at` passe de `TIMESTAMP(3)` à `DATETIME(3)` : plafond 2038 et conversion par fuseau de session, tous deux disqualifiants sur une table en rétention permanente (NFR23). Corrigé avant la première mise en production. | Quinn (QA) |
 | 19/07/2026 | 1.3 | DEC-05 tranché : préproduction et production sur le VPS existant, partagé avec d'autres projets. Coût nul, mais modèle de menace du § 14.1 affaibli et `log_bin_trust_function_creators` global assumé. Quatre mesures d'isolation rendues obligatoires. | John (PM) |
+| 19/07/2026 | 1.4 | Une paire de comptes MySQL **par environnement** (§ 25.4) : sur l'instance partagée retenue par DEC-05, `'utilisateur'@'hôte'` désigne un compte unique — deux comptes seuls ne pouvaient pas isoler préproduction et production. Nommage symétrique `ptrstaff_prod_*` / `ptrstaff_staging_*`. | Quinn (QA) |
