@@ -29,7 +29,7 @@ uniforme.
 |---|---|---|---|
 | **DEC-06** | Hébergeur des sauvegardes hors site — **la donnée quitte le Niger** | **Bloque la mise en production du Jalon 1** (11.1) | Direction — décision non technique |
 | **CONTRA-03** | Aucune soupape d'exception à la double approbation | **Avant 4.5** — le renversement après mise en production coûterait cher | Direction |
-| **DEC-05** | Préproduction sur le même VPS ou VPS séparé | Avant 1.5 (provisionnement) | Direction |
+| ~~DEC-05~~ | ✅ **Tranché 19/07/2026** — préprod et production sur le VPS **existant, partagé** avec d'autres projets | — | Direction |
 | **DEC-10** | Q9 — vérification d'identité à la réinitialisation | Avant 2.8 | Direction — procédure humaine |
 | **DEC-08** | Q11 — types et taille des pièces jointes | Avant 3.5 — défaut appliqué : PDF/JPEG/PNG/WebP/HEIC, 8 Mo | Direction |
 | **DEC-07** | Suivi des erreurs — Sentry auto-hébergé ou fichiers seuls | Avant 11.3 | Direction |

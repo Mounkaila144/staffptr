@@ -64,7 +64,7 @@ en maintenance qu'ils n'apportent à cette échelle.
 | **DEC-02** | Base des tests automatisés | MySQL, et non SQLite, pour parité des déclencheurs |
 | **DEC-03** | Dépendance `spatie/laravel-permission` | Retenue |
 | **DEC-04** | Dépendance Redis | Retenue (cache et files), sessions en base |
-| **DEC-05** | Emplacement de la préproduction | Même VPS, hôte virtuel distinct |
+| **DEC-05** | Emplacement de la préproduction | ✅ **Tranché 19/07/2026** — préprod et production sur le VPS existant, partagé avec d'autres projets. Isolation système obligatoire, voir § 24.2 |
 | **DEC-06** | Hébergeur des sauvegardes hors site | À choisir — la donnée quitte le Niger |
 | **DEC-07** | Suivi des erreurs (Sentry ou fichiers seuls) | Sentry auto-hébergé, ou fichiers seuls |
 | **DEC-08** | Q11 — types et taille des pièces jointes | PDF/JPEG/PNG/WebP/HEIC, 8 Mo |
@@ -1405,10 +1405,30 @@ téléphones, pièces jointes remplacés) par la commande `ptr:anonymize`. C'est
 restauration du § 21.3 utile en continu plutôt que théorique : la préproduction *est* la
 vérification de la sauvegarde.
 
-> **DEC-05.** Préproduction sur le même VPS (isolation par utilisateur système, base et hôte virtuel
-> distincts) : ~0 € de coût supplémentaire, exploitation simple. L'inconvénient est réel et assumé :
-> une saturation de disque ou une erreur d'opération en préproduction peut affecter la production.
-> Un second petit VPS lève ce risque pour ~5 €/mois. Votre arbitrage.
+> **DEC-05 — tranché le 19/07/2026 : préproduction ET production sur le VPS existant, déjà partagé
+> avec d'autres projets.** Coût supplémentaire nul. La direction est seule responsable de l'ensemble
+> des projets hébergés et assume les conséquences ci-dessous.
+>
+> **Ce que cette décision coûte, écrit pour ne pas être redécouvert plus tard :**
+>
+> 1. **Le modèle de menace du § 14.1 est affaibli.** La séparation en deux comptes MySQL existe pour
+>    qu'un `.env` compromis ne suffise pas à effacer le journal d'audit. Sur une instance partagée,
+>    la faille d'un **autre** projet devient un chemin vers la même instance MySQL, et selon les
+>    droits système vers `shared/.env`. La contre-mesure obligatoire est l'isolation système :
+>    utilisateur dédié, pool PHP-FPM propre, `.env` en `chmod 600` illisible par les autres projets.
+> 2. **`log_bin_trust_function_creators = 1` est un réglage `GLOBAL`.** Exigé par les déclencheurs
+>    d'immuabilité (§ 14.1), il relâche un contrôle pour **toutes** les bases de l'instance, pas
+>    seulement `ptrstaff`. Décision prise en connaissance de cause.
+> 3. **Redis est partagé.** `REDIS_PREFIX` et un index `REDIS_DB` distincts sont **obligatoires** :
+>    sans eux, un `cache:clear` de PTR Staff efface les clés des autres projets, et réciproquement.
+> 4. **Le disque est partagé** avec la rétention 10 ans de NFR26 et les sauvegardes quotidiennes.
+>    La surveillance d'espace disque devient une exigence, pas un confort.
+> 5. **La contagion n'est plus limitée à préproduction → production** : n'importe quel projet du
+>    serveur peut affecter n'importe quel autre.
+>
+> **Condition de révision.** Le provisionnement reste paramétré par hôte : un déplacement vers un VPS
+> dédié ne doit modifier que des valeurs, jamais du code. Si l'entreprise croît ou si un litige rend
+> l'opposabilité du journal d'audit critique, cette décision doit être rouverte en premier.
 
 ### 24.3 Commande d'invariants
 
@@ -1433,6 +1453,12 @@ dans le code. C'est ce qui détecte une manipulation en base ou une régression 
 
 VPS unique (A-03), 2 vCPU / 4 Go / 80 Go SSD suffisent largement à 100 utilisateurs.
 Debian 12 stable, système en **UTC**.
+
+> **Le VPS retenu est partagé avec d'autres projets** (DEC-05, § 24.2). Les composants ci-dessous
+> sont donc **mutualisés**, pas dédiés. Quatre mesures d'isolation deviennent obligatoires et non
+> négociables : utilisateur système dédié, pool PHP-FPM 8.3 propre, `REDIS_PREFIX` et index `REDIS_DB`
+> distincts, surveillance de l'espace disque. Sans elles, un autre projet peut lire le `.env` de PTR
+> Staff ou vider son cache.
 
 | Composant | Rôle |
 |---|---|
@@ -1569,7 +1595,7 @@ appliqué selon la recommandation tant que vous n'en décidez pas autrement.
 | **DEC-02** | Base des tests | MySQL en CI, pas SQLite | Étape 1 — mise en place CI |
 | **DEC-03** | `spatie/laravel-permission` | Retenue | Jalon 1 — Story 2.2 |
 | **DEC-04** | Redis (cache et files) | Retenue ; sessions en base | Étape 1 — provisionnement |
-| **DEC-05** | Préproduction | Même VPS (~0 €) ou VPS séparé (~5 €/mois) | Étape 1 — provisionnement |
+| **DEC-05** | Préproduction | ✅ **Tranché** — VPS existant partagé, risques consignés au § 24.2 | Jalon 1 — provisionnement |
 | **DEC-06** | Hébergeur des sauvegardes | **La donnée quitte le Niger — décision non technique** | Étape 1 — mise en service |
 | **DEC-07** | Suivi des erreurs | Sentry auto-hébergé, ou fichiers seuls | Étape 1 |
 | **DEC-08** | Q11 — pièces jointes | PDF, JPEG, PNG, WebP, HEIC — 8 Mo | Étape 1 — Story pièces jointes |
@@ -1638,3 +1664,4 @@ opérations de l'application seront les seules à ne pas être traçables.
 | 18/07/2026 | 1.0 | Architecture initiale. A-01 à A-07 tranchés ; DEC-01 à DEC-11 soumis à la direction | Winston (Architect) |
 | 18/07/2026 | 1.1 | Réalignement sur le plan d'exécution en 11 epics (`docs/epics-stories.md`) : ordre d'implémentation du § 28 et échéances DEC-03, DEC-09, DEC-10 renumérotés, avec correspondance PRD conservée. Aucune décision d'architecture modifiée. | John (PM) |
 | 19/07/2026 | 1.2 | `audit_logs.occurred_at` passe de `TIMESTAMP(3)` à `DATETIME(3)` : plafond 2038 et conversion par fuseau de session, tous deux disqualifiants sur une table en rétention permanente (NFR23). Corrigé avant la première mise en production. | Quinn (QA) |
+| 19/07/2026 | 1.3 | DEC-05 tranché : préproduction et production sur le VPS existant, partagé avec d'autres projets. Coût nul, mais modèle de menace du § 14.1 affaibli et `log_bin_trust_function_creators` global assumé. Quatre mesures d'isolation rendues obligatoires. | John (PM) |

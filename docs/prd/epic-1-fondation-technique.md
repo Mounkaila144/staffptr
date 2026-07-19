@@ -116,9 +116,15 @@ privilèges base, afin qu'un `.env` compromis ne suffise pas à effacer le journ
 6. Les secrets de CI sont en place : clé SSH de déploiement dédiée sans accès `root`, identifiants de migration. Les **emplacements de secrets du stockage de sauvegarde sont préparés et documentés, sans valeur** : celles-ci ne peuvent être fournies qu'en 11.1, une fois DEC-06 arbitré.
 7. La procédure de rotation des secrets est écrite dans `docs/ops/`.
 
-> **DEC-05 en attente.** Préproduction sur le même VPS (~0 €) ou VPS séparé (~5 €/mois). La première
-> option est appliquée par défaut ; son risque — une saturation disque en préproduction peut affecter
-> la production — est assumé jusqu'à arbitrage.
+> **DEC-05 — tranché le 19/07/2026 : VPS existant, partagé avec d'autres projets.** Coût nul, et la
+> direction est seule responsable de tous les projets hébergés. Quatre mesures d'isolation deviennent
+> **obligatoires** et font partie du périmètre de cette story : utilisateur système dédié, pool
+> PHP-FPM 8.3 propre, `REDIS_PREFIX` et index `REDIS_DB` distincts, surveillance de l'espace disque.
+> Sans elles, un autre projet peut lire le `.env` de PTR Staff ou vider son cache d'un `cache:clear`.
+> Deux conséquences assumées et consignées : le modèle de menace du § 14.1 de l'architecture est
+> affaibli — la faille d'un autre projet devient un chemin vers la même instance MySQL — et
+> `log_bin_trust_function_creators = 1`, exigé par les déclencheurs d'audit, est un réglage **global**
+> qui relâche un contrôle pour toutes les bases du serveur. Détail au § 24.2 de l'architecture.
 
 ---
 
