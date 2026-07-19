@@ -80,4 +80,14 @@ class AuditLogSchemaTest extends AuditTestCase
         $this->assertFileDoesNotExist(app_path('Models/User.php'));
         $this->assertFalse($this->migrationSchema()->hasTable('users'));
     }
+
+    public function test_ac_3_sqlite_limitations_and_mysql_barriers_are_documented(): void
+    {
+        $documentation = file_get_contents(base_path('docs/ops/audit-log.md'));
+
+        $this->assertIsString($documentation);
+        $this->assertStringContainsString('SQLite ne constitue jamais une preuve', $documentation);
+        $this->assertStringContainsString('log_bin_trust_function_creators=1', $documentation);
+        $this->assertStringContainsString('AUDIT_DB_APP_USERNAME', $documentation);
+    }
 }
