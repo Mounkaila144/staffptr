@@ -1,6 +1,9 @@
 <?php
 
+use App\Logging\RedactSensitiveDataProcessor;
+use Illuminate\Log\Formatters\JsonFormatter;
 use Monolog\Handler\NullHandler;
+use Monolog\Handler\RotatingFileHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
 use Monolog\Processor\PsrLogMessageProcessor;
@@ -18,7 +21,7 @@ return [
     |
     */
 
-    'default' => env('LOG_CHANNEL', 'stack'),
+    'default' => env('LOG_CHANNEL', 'daily'),
 
     /*
     |--------------------------------------------------------------------------
@@ -66,11 +69,21 @@ return [
         ],
 
         'daily' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/laravel.log'),
+            'driver' => 'monolog',
+            'handler' => RotatingFileHandler::class,
             'level' => env('LOG_LEVEL', 'debug'),
-            'days' => env('LOG_DAILY_DAYS', 14),
-            'replace_placeholders' => true,
+            'handler_with' => [
+                'filename' => storage_path('logs/laravel.log'),
+                'maxFiles' => 30,
+            ],
+            'formatter' => JsonFormatter::class,
+            'formatter_with' => [
+                'includeStacktraces' => true,
+            ],
+            'processors' => [
+                PsrLogMessageProcessor::class,
+                RedactSensitiveDataProcessor::class,
+            ],
         ],
 
         'slack' => [

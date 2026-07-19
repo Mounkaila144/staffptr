@@ -5,6 +5,7 @@ import { createApp, h } from 'vue';
 
 createInertiaApp({
     title: (title) => (title ? `${title} — PTR Staff` : 'PTR Staff'),
+    progress: false,
     resolve: (name) =>
         resolvePageComponent(
             `./Pages/${name}.vue`,

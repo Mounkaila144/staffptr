@@ -30,6 +30,12 @@ DB_USERNAME=ptrstaff_staging_app
 QUEUE_CONNECTION=redis
 CACHE_STORE=redis
 SESSION_DRIVER=database
+SESSION_LIFETIME=480
+SESSION_ENCRYPT=true
+SESSION_SECURE_COOKIE=true
+SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE=lax
+LOG_CHANNEL=daily
 MAIL_MAILER=log
 REDIS_PREFIX=ptrstaff_staging_
 REDIS_DB=10
@@ -48,6 +54,12 @@ DB_USERNAME=ptrstaff_prod_app
 QUEUE_CONNECTION=redis
 CACHE_STORE=redis
 SESSION_DRIVER=database
+SESSION_LIFETIME=480
+SESSION_ENCRYPT=true
+SESSION_SECURE_COOKIE=true
+SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE=lax
+LOG_CHANNEL=daily
 MAIL_MAILER=log
 REDIS_PREFIX=ptrstaff_prod_
 REDIS_DB=12
@@ -162,4 +174,3 @@ DEC-06 doit d'abord être arbitré par la direction, car le choix du stockage ob
 les données du Niger. Seule la story 11.1 est habilitée à renseigner ces valeurs et à installer
 `spatie/laravel-backup`. La phrase secrète de chiffrement d'archive restera hors du serveur. Aucun
 compte, paquet ou planification de sauvegarde n'est créé par la story 1.5.
-

@@ -24,6 +24,13 @@ export default defineConfig({
     ],
     webServer: {
         command: `${phpBinary} artisan serve --host=127.0.0.1 --port=8000 --no-reload`,
+        env: {
+            ...process.env,
+            APP_ENV: 'testing',
+            APP_DEBUG: 'false',
+            CACHE_STORE: 'array',
+            SESSION_DRIVER: 'array',
+        },
         url: 'http://127.0.0.1:8000/up',
         reuseExistingServer: !isCi,
         timeout: 120_000,
