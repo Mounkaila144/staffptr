@@ -148,6 +148,13 @@ class IdentityAuditTest extends IdentityTestCase
             $this->assertDatabaseMissing('people', ['full_name' => 'Fiche à annuler']);
             $this->assertDatabaseMissing('audit_logs', ['action' => 'person_created']);
         } finally {
+            // Le test englobant utilise une transaction applicative. La tentative d'INSERT garde
+            // un verrou de métadonnées MySQL jusqu'au rollback ; le libérer avant DROP TRIGGER
+            // évite que la connexion de migration attende indéfiniment ce verrou.
+            while (DB::connection()->transactionLevel() > 0) {
+                DB::connection()->rollBack();
+            }
+
             $migration->unprepared('DROP TRIGGER IF EXISTS audit_logs_reject_identity_for_test');
         }
     }
