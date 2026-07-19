@@ -114,6 +114,7 @@ jobs:
           CREATE USER 'staffptr_migrate_ci'@'%' IDENTIFIED BY 'staffptr-migrate-ci-only';
           GRANT ALL PRIVILEGES ON staffptr_test.* TO 'staffptr_migrate_ci'@'%' WITH GRANT OPTION;
           CREATE USER 'staffptr_app_ci'@'%' IDENTIFIED BY 'staffptr-app-ci-only';
+          GRANT SELECT, INSERT ON staffptr_test.* TO 'staffptr_app_ci'@'%';
           FLUSH PRIVILEGES;"
       - name: Afficher le moteur de migration
         run: php artisan db:show --database=mysql_migration
