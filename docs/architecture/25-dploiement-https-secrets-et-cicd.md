@@ -3,7 +3,7 @@
 ## 25.1 Serveur
 
 VPS unique (A-03), 2 vCPU / 4 Go / 80 Go SSD suffisent largement à 100 utilisateurs.
-Debian 12 stable, système en **UTC**.
+Ubuntu 24.04 LTS (réalité du serveur, constatée en story 1.5), système en **UTC**.
 
 > **Le VPS retenu est partagé avec d'autres projets** (DEC-05, § 24.2). Les composants ci-dessous
 > sont donc **mutualisés**, pas dédiés. Quatre mesures d'isolation deviennent obligatoires et non
@@ -13,9 +13,9 @@ Debian 12 stable, système en **UTC**.
 
 | Composant | Rôle |
 |---|---|
-| Nginx | TLS, en-têtes de sécurité, Brotli, `X-Accel-Redirect`, ressources statiques |
+| Apache 2.4 (DEC-13) | TLS, en-têtes de sécurité, Brotli, `X-Sendfile`, ressources statiques |
 | PHP-FPM 8.3 | Application, OPcache activé, JIT désactivé (sans intérêt ici) |
-| MySQL 8 | Données, sessions |
+| MariaDB 10.11 (DEC-12) | Données, sessions |
 | Redis 7 | Cache, files |
 | Supervisor | `queue:work` — redémarrage automatique |
 | Cron | `schedule:run` à la minute |

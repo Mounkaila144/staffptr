@@ -12,7 +12,7 @@
 | BDD développement | SQLite | 3.x | § 8.3 — voir réserve DEC-02 |
 | Cache et files | Redis | 7.x | DEC-04 |
 | Sessions | MySQL (`database`) | — | Nécessaire à FR8 / PERM-08, voir § 9.3 |
-| Serveur web | Nginx + PHP-FPM | — | A-03 |
+| Serveur web | Apache 2.4 + PHP-FPM | — | A-03, DEC-13 |
 | Permissions | `spatie/laravel-permission` | 6.x | DEC-03 |
 | Sauvegarde | `spatie/laravel-backup` | 9.x | NFR24, NFR25 |
 | Images | `intervention/image` | 3.x | Vignettes serveur (UX § 11.2) |

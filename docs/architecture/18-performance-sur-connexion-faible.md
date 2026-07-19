@@ -18,7 +18,7 @@ avec ses en-têtes. À 400 ms de latence, c'est aussi un aller-retour économis�
 | Levier | Mise en œuvre |
 |---|---|
 | Découpage de code | Un fragment par page Inertia, chargement dynamique. Le rapport quotidien ne charge pas le module financier |
-| Compression | Brotli dans Nginx, repli gzip |
+| Compression | Brotli via `mod_brotli` d'Apache, repli gzip (`mod_deflate`) |
 | HTTP/2 | Multiplexage, un seul TLS |
 | Cache des ressources | Noms hachés par Vite, `Cache-Control: immutable, max-age=31536000` |
 | Polices | **Pile système exclusivement**, 0 octet transféré (UX § 11.2) |

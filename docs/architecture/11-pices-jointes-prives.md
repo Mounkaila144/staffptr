@@ -2,9 +2,10 @@
 
 ## 11.1 Stockage — A-04 / NFR15
 
-Disque `private` pointant sur `storage/app/private/`, **hors de la racine web**. Nginx ne sert jamais
-ce répertoire, et sa configuration porte un `deny all` explicite sur `/storage` — la protection ne
-repose pas seulement sur le fait que le chemin est en dehors de `public/`.
+Disque `private` pointant sur `storage/app/private/`, **hors de la racine web**. Le serveur web
+(Apache 2.4, DEC-13) ne sert jamais ce répertoire, et sa configuration porte un `Require all denied`
+explicite sur `/storage` — la protection ne repose pas seulement sur le fait que le chemin est en
+dehors de `public/`.
 
 Chemin de stockage : `private/{module}/{annee}/{mois}/{ulid}.{ext}`. Le nom d'origine est conservé
 **en base**, jamais sur le disque : un nom de fichier fourni par l'utilisateur ne doit jamais devenir
@@ -16,12 +17,14 @@ Aucun fichier n'est accessible par URL devinable. Deux modes :
 
 | Mode | Usage | Mécanisme |
 |---|---|---|
-| **Contrôlé** | Justificatifs financiers, documents du dossier personnel (FR17) | Route → Policy → `X-Accel-Redirect` vers un emplacement Nginx `internal` |
+| **Contrôlé** | Justificatifs financiers, documents du dossier personnel (FR17) | Route → Policy → `X-Sendfile` (`mod_xsendfile`, DEC-13) vers un chemin borné par `XSendFilePath` |
 | **Signé** | Vignettes de preuves en liste | URL signée Laravel, validité 10 minutes |
 
-`X-Accel-Redirect` fait porter la transmission par Nginx après que PHP a validé l'autorisation :
+`X-Sendfile` fait porter la transmission par Apache après que PHP a validé l'autorisation :
 on garde le contrôle applicatif **et** l'efficacité du serveur web. Sur 3G, faire transiter un
 justificatif de 3 Mo par PHP-FPM immobiliserait un ouvrier pour toute la durée du téléchargement.
+Côté Laravel, `BinaryFileResponse::trustXSendfileTypeHeader()` active ce mécanisme sans changer le
+contrôleur.
 
 ## 11.3 Validation au téléversement — NFR16 / Q11
 

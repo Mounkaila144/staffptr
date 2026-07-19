@@ -31,6 +31,7 @@ uniforme.
 | **CONTRA-03** | Aucune soupape d'exception à la double approbation | **Avant 4.5** — le renversement après mise en production coûterait cher | Direction |
 | ~~DEC-05~~ | ✅ **Tranché 19/07/2026** — préprod et production sur le VPS **existant, partagé** avec d'autres projets | — | Direction |
 | ~~DEC-12~~ | ✅ **Tranché 19/07/2026** — préprod et production sur **MariaDB 10.11** (instance existante du VPS de DEC-05) au lieu de MySQL 8 ; la divergence CI (MySQL 8) / production est assumée ; adaptation d'exploitation : `SET GLOBAL` + fichier de conf au lieu de `SET PERSIST` | — | Direction |
+| ~~DEC-13~~ | ✅ **Tranché 19/07/2026** — serveur web **Apache 2.4** (déjà en place sur le VPS partagé de DEC-05) au lieu de Nginx ; les pièces jointes contrôlées passent par **`X-Sendfile`** (`mod_xsendfile`) au lieu de `X-Accel-Redirect`, même propriété « PHP valide, le serveur transmet » ; certbot Apache, `mod_headers`, `mod_brotli`/`mod_deflate`, `mod_http2`. Réversible : un retour à Nginx ne change que la configuration serveur | — | Direction |
 | **DEC-10** | Q9 — vérification d'identité à la réinitialisation | Avant 2.8 | Direction — procédure humaine |
 | **DEC-08** | Q11 — types et taille des pièces jointes | Avant 3.5 — défaut appliqué : PDF/JPEG/PNG/WebP/HEIC, 8 Mo | Direction |
 | **DEC-07** | Suivi des erreurs — Sentry auto-hébergé ou fichiers seuls | Avant 11.3 | Direction |

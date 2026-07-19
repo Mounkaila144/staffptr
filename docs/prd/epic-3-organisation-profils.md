@@ -85,7 +85,7 @@ les consomme — sinon on livrerait un écran qui configure quelque chose d'inex
 son adresse, afin qu'un justificatif ne circule pas hors de l'application.* — [NFR15, NFR16, A-04]
 
 1. Les fichiers sont stockés dans `storage/app/private`, **hors de la racine web** ; ⛔ un test vérifie qu'aucune URL publique ne les atteint.
-2. La lecture passe par un contrôleur qui **contrôle l'autorisation avant de servir**, avec `X-Accel-Redirect` pour ne pas faire transiter le fichier par PHP.
+2. La lecture passe par un contrôleur qui **contrôle l'autorisation avant de servir**, avec `X-Sendfile` (DEC-13) pour ne pas faire transiter le fichier par PHP.
 3. Types et taille maximale sont **paramétrables** (3.4) ; un téléversement non conforme est refusé **côté serveur**, même si le contrôle client est contourné ; testé en forgeant la requête.
 4. Le message de refus est explicite : « Ce fichier fait 8 Mo, la limite est de 5 Mo. Choisissez un fichier plus léger. » — la limite affichée est celle réellement paramétrée.
 5. Le type réel du fichier est vérifié, pas seulement son extension ; un exécutable renommé en `.pdf` est refusé.
