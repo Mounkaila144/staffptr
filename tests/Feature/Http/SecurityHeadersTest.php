@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Http;
 
+use Illuminate\Foundation\Vite;
 use Tests\TestCase;
 
 class SecurityHeadersTest extends TestCase
@@ -55,15 +56,40 @@ class SecurityHeadersTest extends TestCase
 
     public function test_ac_2_vite_script_tags_receive_the_policy_nonce(): void
     {
+        $buildDirectory = 'build-security-test-'.bin2hex(random_bytes(4));
+        $manifestDirectory = public_path($buildDirectory);
+        $manifestPath = $manifestDirectory.'/manifest.json';
+
+        $this->assertTrue(mkdir($manifestDirectory, 0755, true));
+        $this->assertNotFalse(file_put_contents($manifestPath, json_encode([
+            'resources/css/app.css' => [
+                'file' => 'assets/app.css',
+                'src' => 'resources/css/app.css',
+                'isEntry' => true,
+            ],
+            'resources/js/app.js' => [
+                'file' => 'assets/app.js',
+                'src' => 'resources/js/app.js',
+                'isEntry' => true,
+            ],
+        ], JSON_THROW_ON_ERROR)));
         $this->withVite();
+        $vite = app(Vite::class);
+        $vite->useBuildDirectory($buildDirectory);
 
-        $response = $this->get(route('platform.demo'));
-        $policy = (string) $response->headers->get('Content-Security-Policy');
+        try {
+            $response = $this->get(route('platform.demo'));
+            $policy = (string) $response->headers->get('Content-Security-Policy');
 
-        preg_match("/'nonce-([^']+)'/", $policy, $matches);
+            preg_match("/'nonce-([^']+)'/", $policy, $matches);
 
-        $this->assertNotEmpty($matches[1] ?? null);
-        $response->assertSee('nonce="'.$matches[1].'"', false);
+            $this->assertNotEmpty($matches[1] ?? null);
+            $response->assertSee('nonce="'.$matches[1].'"', false);
+        } finally {
+            $vite->useBuildDirectory('build');
+            @unlink($manifestPath);
+            @rmdir($manifestDirectory);
+        }
     }
 
     public function test_ac_2_inertia_does_not_inject_its_inline_progress_style(): void
