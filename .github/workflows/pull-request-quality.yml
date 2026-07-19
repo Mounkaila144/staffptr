@@ -110,7 +110,8 @@ jobs:
           docker exec "${MYSQL_CONTAINER}" mysql
           --user=root
           --password=root-ci-only
-          --execute="CREATE USER 'staffptr_migrate_ci'@'%' IDENTIFIED BY 'staffptr-migrate-ci-only';
+          --execute="SET GLOBAL log_bin_trust_function_creators = 1;
+          CREATE USER 'staffptr_migrate_ci'@'%' IDENTIFIED BY 'staffptr-migrate-ci-only';
           GRANT ALL PRIVILEGES ON staffptr_test.* TO 'staffptr_migrate_ci'@'%' WITH GRANT OPTION;
           CREATE USER 'staffptr_app_ci'@'%' IDENTIFIED BY 'staffptr-app-ci-only';
           FLUSH PRIVILEGES;"
