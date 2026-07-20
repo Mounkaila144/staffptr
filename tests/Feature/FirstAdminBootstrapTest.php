@@ -29,6 +29,7 @@ class FirstAdminBootstrapTest extends IdentityTestCase
     public function test_ac_2_4_5_6_7_and_8_command_creates_the_first_admin_securely(): void
     {
         $auditCountBefore = AuditLog::query()->count();
+        $lastAuditId = (int) (AuditLog::query()->max('id') ?? 0);
         [$exitCode, $output] = $this->runCommand('Aïcha Amadou', '90 00 11 22');
 
         $this->assertSame(Command::SUCCESS, $exitCode, $output);
@@ -55,7 +56,7 @@ class FirstAdminBootstrapTest extends IdentityTestCase
         $this->assertStringContainsString('créer les deux comptes direction', $output);
 
         $audits = AuditLog::query()
-            ->where('actor_label', 'Amorçage système')
+            ->where('id', '>', $lastAuditId)
             ->orderBy('id')
             ->get();
         $this->assertCount(3, $audits);

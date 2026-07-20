@@ -29,10 +29,10 @@ class AuditTriggersInvariant implements InvariantCheck
         }
 
         try {
-            $triggers = $connection->table('information_schema.TRIGGERS')
-                ->where('TRIGGER_SCHEMA', $connection->getDatabaseName())
-                ->where('EVENT_OBJECT_TABLE', 'audit_logs')
-                ->pluck('TRIGGER_NAME')
+            // La vue SQL SECURITY DEFINER lit information_schema.TRIGGERS sans accorder au compte
+            // applicatif le privilège TRIGGER, qui lui permettrait aussi de supprimer les barrières.
+            $triggers = $connection->table('audit_trigger_metadata')
+                ->pluck('trigger_name')
                 ->map(static fn (mixed $name): string => mb_strtolower((string) $name))
                 ->sort()
                 ->values()

@@ -45,6 +45,32 @@ class CheckInvariantsDatabaseTest extends TestCase
             ->assertExitCode(Command::SUCCESS);
     }
 
+    public function test_ac_11_metadata_view_reads_real_information_schema_without_trigger_privilege(): void
+    {
+        $appConnection = DB::connection();
+        $migrationConnection = DB::connection($this->migrationConnectionName());
+        $appTriggers = $appConnection->table('audit_trigger_metadata')
+            ->pluck('trigger_name')
+            ->sort()
+            ->values()
+            ->all();
+        $serverTriggers = $migrationConnection->table('information_schema.TRIGGERS')
+            ->where('TRIGGER_SCHEMA', $migrationConnection->getDatabaseName())
+            ->where('EVENT_OBJECT_TABLE', 'audit_logs')
+            ->pluck('TRIGGER_NAME')
+            ->map(static fn (mixed $name): string => mb_strtolower((string) $name))
+            ->sort()
+            ->values()
+            ->all();
+
+        $this->assertSame($serverTriggers, $appTriggers);
+
+        $grants = collect($appConnection->select('SHOW GRANTS FOR CURRENT_USER()'))
+            ->flatMap(static fn (object $row): array => array_values((array) $row))
+            ->implode('\n');
+        $this->assertDoesNotMatchRegularExpression('/\bTRIGGER\b/i', $grants);
+    }
+
     public function test_ac_11_and_12_missing_audit_trigger_is_detected_then_restored(): void
     {
         $migration = DB::connection($this->migrationConnectionName());
