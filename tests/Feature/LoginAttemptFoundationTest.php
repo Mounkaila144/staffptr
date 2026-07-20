@@ -5,15 +5,12 @@ namespace Tests\Feature;
 use App\Models\Identity\LoginAttempt;
 use App\Models\Identity\User;
 use App\Services\Identity\AttemptedPhoneFingerprint;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use LogicException;
-use Tests\TestCase;
+use Tests\Support\IdentityTestCase;
 
-class LoginAttemptFoundationTest extends TestCase
+class LoginAttemptFoundationTest extends IdentityTestCase
 {
-    use RefreshDatabase;
-
     public function test_login_attempts_schema_supports_history_filters_without_password_storage(): void
     {
         $columns = Schema::getColumnListing('login_attempts');
