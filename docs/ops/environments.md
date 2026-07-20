@@ -110,10 +110,10 @@ attendu. La commande contrôle le serveur réel — métadonnées des déclenche
 courant compris — et doit aussi être exécutée quotidiennement. Sa planification automatique arrive
 avec les tâches d'exploitation de l'epic 11 ; jusque-là, l'exploitant consigne son exécution
 manuelle. L'analyse de `SHOW GRANTS` accepte les formats MySQL 8 et MariaDB 10.11 ; un format inconnu
-est signalé comme un écart au lieu d'être ignoré. La migration crée la vue serveur minimale
-`audit_trigger_metadata` : elle lit `information_schema.TRIGGERS` avec les droits du compte de
-migration, sans accorder au compte applicatif le privilège `TRIGGER` qui lui permettrait de modifier
-les protections surveillées.
+est signalé comme un écart au lieu d'être ignoré. La migration crée la fonction serveur minimale
+`ptr_audit_trigger_exists` : elle lit `information_schema.TRIGGERS` avec les droits du compte de
+migration et n'expose qu'une réponse booléenne, sans accorder au compte applicatif le privilège
+`TRIGGER` qui lui permettrait de modifier les protections surveillées.
 
 ## DEC-05 — VPS existant partagé
 

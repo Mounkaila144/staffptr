@@ -45,15 +45,10 @@ class CheckInvariantsDatabaseTest extends TestCase
             ->assertExitCode(Command::SUCCESS);
     }
 
-    public function test_ac_11_metadata_view_reads_real_information_schema_without_trigger_privilege(): void
+    public function test_ac_11_metadata_function_reads_real_information_schema_without_trigger_privilege(): void
     {
         $appConnection = DB::connection();
         $migrationConnection = DB::connection($this->migrationConnectionName());
-        $appTriggers = $appConnection->table('audit_trigger_metadata')
-            ->pluck('trigger_name')
-            ->sort()
-            ->values()
-            ->all();
         $serverTriggers = $migrationConnection->table('information_schema.TRIGGERS')
             ->where('TRIGGER_SCHEMA', $migrationConnection->getDatabaseName())
             ->where('EVENT_OBJECT_TABLE', 'audit_logs')
@@ -62,6 +57,17 @@ class CheckInvariantsDatabaseTest extends TestCase
             ->sort()
             ->values()
             ->all();
+        $appTriggers = collect([
+            'audit_logs_prevent_delete',
+            'audit_logs_prevent_update',
+        ])->filter(function (string $trigger) use ($appConnection): bool {
+            $row = $appConnection->selectOne(
+                'SELECT ptr_audit_trigger_exists(?) AS trigger_exists',
+                [$trigger],
+            );
+
+            return is_object($row) && (int) ($row->trigger_exists ?? 0) === 1;
+        })->values()->all();
 
         $this->assertSame($serverTriggers, $appTriggers);
 
@@ -69,6 +75,8 @@ class CheckInvariantsDatabaseTest extends TestCase
             ->flatMap(static fn (object $row): array => array_values((array) $row))
             ->implode('\n');
         $this->assertDoesNotMatchRegularExpression('/\bTRIGGER\b/i', $grants);
+        $this->assertStringContainsString('EXECUTE', $grants);
+        $this->assertStringContainsString('ptr_audit_trigger_exists', $grants);
     }
 
     public function test_ac_11_and_12_missing_audit_trigger_is_detected_then_restored(): void

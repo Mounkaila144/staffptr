@@ -29,14 +29,20 @@ class AuditTriggersInvariant implements InvariantCheck
         }
 
         try {
-            // La vue SQL SECURITY DEFINER lit information_schema.TRIGGERS sans accorder au compte
-            // applicatif le privilège TRIGGER, qui lui permettrait aussi de supprimer les barrières.
-            $triggers = $connection->table('audit_trigger_metadata')
-                ->pluck('trigger_name')
-                ->map(static fn (mixed $name): string => mb_strtolower((string) $name))
-                ->sort()
-                ->values()
-                ->all();
+            // La fonction SQL SECURITY DEFINER lit information_schema.TRIGGERS sans accorder au
+            // compte applicatif le privilège TRIGGER qui permettrait de supprimer les barrières.
+            $triggers = [];
+
+            foreach (self::EXPECTED_TRIGGERS as $trigger) {
+                $row = $connection->selectOne(
+                    'SELECT ptr_audit_trigger_exists(?) AS trigger_exists',
+                    [$trigger],
+                );
+
+                if (is_object($row) && (int) ($row->trigger_exists ?? 0) === 1) {
+                    $triggers[] = $trigger;
+                }
+            }
         } catch (Throwable) {
             return InvariantResult::fail(
                 self::NAME,
