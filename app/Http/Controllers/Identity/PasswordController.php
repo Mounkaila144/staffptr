@@ -23,7 +23,11 @@ class PasswordController extends Controller
     ): RedirectResponse {
         /** @var User $user */
         $user = $request->user();
-        $passwordChangeService->change($user, $request->validated('password'));
+        $passwordChangeService->change(
+            $user,
+            $request->validated('password'),
+            $request->session(),
+        );
 
         return redirect()->route('home');
     }

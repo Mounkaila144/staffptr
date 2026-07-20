@@ -7,13 +7,17 @@ use App\Enums\UserState;
 use App\Models\Identity\Person;
 use App\Models\Identity\User;
 use App\Support\Auditing\AuditLogger;
+use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 class IdentityService
 {
-    public function __construct(private readonly AuditLogger $auditLogger) {}
+    public function __construct(
+        private readonly AuditLogger $auditLogger,
+        private readonly SessionRevocationService $sessionRevocationService,
+    ) {}
 
     /** @param array{full_name: string, operational_status?: PersonOperationalStatus|string, first_seen_at: string} $attributes */
     public function createPerson(
@@ -87,7 +91,6 @@ class IdentityService
     /**
      * @param array{
      *   phone?: string,
-     *   password?: string,
      *   must_change_password?: bool,
      *   locked_until?: string|null,
      *   failed_attempts?: int
@@ -104,7 +107,6 @@ class IdentityService
             $user,
             Arr::only($attributes, [
                 'phone',
-                'password',
                 'must_change_password',
                 'locked_until',
                 'failed_attempts',
@@ -130,6 +132,11 @@ class IdentityService
             $actorLabel,
             'user_state_changed',
             $reason,
+            $state === UserState::Suspendu
+                ? fn (): array => [
+                    'sessions_revoked' => $this->sessionRevocationService->revokeFor($user),
+                ]
+                : null,
         );
     }
 
@@ -150,6 +157,9 @@ class IdentityService
             $actorLabel,
             'password_changed',
             $reason,
+            fn (): array => [
+                'sessions_revoked' => $this->sessionRevocationService->revokeFor($user),
+            ],
         );
     }
 
@@ -192,6 +202,7 @@ class IdentityService
      *
      * @param  TModel  $model
      * @param  array<string, mixed>  $attributes
+     * @param  (Closure(): array<string, mixed>)|null  $afterUpdate
      * @return TModel
      */
     private function updateAudited(
@@ -201,6 +212,7 @@ class IdentityService
         string $actorLabel,
         string $action,
         ?string $reason,
+        ?Closure $afterUpdate = null,
     ): Model {
         return DB::connection($model->getConnectionName())->transaction(function () use (
             $model,
@@ -209,6 +221,7 @@ class IdentityService
             $actorLabel,
             $action,
             $reason,
+            $afterUpdate,
         ): Model {
             $model->fill($attributes);
             $changes = $model->getDirty();
@@ -220,6 +233,8 @@ class IdentityService
             $oldValues = Arr::only($model->getRawOriginal(), array_keys($changes));
             $newValues = Arr::only($model->getAttributes(), array_keys($changes));
 
+            $operationMetadata = $afterUpdate !== null ? $afterUpdate() : [];
+
             $this->auditLogger->runExplicitly(
                 auditable: $model,
                 operation: fn (): bool => $model->saveOrFail(),
@@ -227,7 +242,7 @@ class IdentityService
                 actorLabel: $actorLabel,
                 action: $action,
                 oldValues: $oldValues,
-                newValues: $newValues,
+                newValues: [...$newValues, ...$operationMetadata],
                 reason: $reason,
             );
 
