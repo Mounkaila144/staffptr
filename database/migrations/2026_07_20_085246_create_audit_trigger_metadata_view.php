@@ -22,11 +22,17 @@ return new class extends Migration
         // information_schema.TRIGGERS exige le privilège TRIGGER, lequel autoriserait aussi le
         // compte applicatif à supprimer les barrières. Cette vue à droits du définisseur expose
         // uniquement les noms nécessaires au contrôle, sans élargir les droits d'écriture.
-        $connection->unprepared(<<<'SQL'
+        $quotedDatabase = $connection->getPdo()->quote($connection->getDatabaseName());
+
+        if (! is_string($quotedDatabase)) {
+            throw new RuntimeException("Le schéma courant n'a pas pu être cité pour la vue d'invariants.");
+        }
+
+        $connection->unprepared(<<<SQL
             CREATE OR REPLACE SQL SECURITY DEFINER VIEW audit_trigger_metadata AS
             SELECT LOWER(TRIGGER_NAME) AS trigger_name
             FROM information_schema.TRIGGERS
-            WHERE TRIGGER_SCHEMA = DATABASE()
+            WHERE TRIGGER_SCHEMA = {$quotedDatabase}
               AND EVENT_OBJECT_TABLE = 'audit_logs'
             SQL);
     }
