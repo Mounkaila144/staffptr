@@ -1,0 +1,62 @@
+# <!-- Powered by BMAD™ Core -->
+schema: 1
+story: "2.1"
+story_title: "Fiche personne et compte applicatif"
+gate: PASS
+status_reason: "Les sept AC sont prouvés côté dépôt, CI verte incluant les preuves réservées au moteur MySQL : règle bloquante 12 vérifiée jusque dans information_schema, suppression physique bloquée aux trois niveaux (routage, modèle, privilège 1142), audit transactionnel avec annulation prouvée par déclencheur injecté. Le mécanisme GRANT UPDATE de 1.5 fonctionne — vérifié par injection — et la livraison l'étend au patron SOC-04 : les migrations posent elles-mêmes le privilège depuis la configuration."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-07-20T07:26:00+01:00"
+
+waiver: { active: false }
+
+top_issues:
+  - id: "OPS-005"
+    severity: low
+    finding: "Les grants réels de people/users n'existent pas encore sur ptrstaff_staging ni ptrstaff_prod : ils seront posés par les migrations au prochain déploiement VPS, et le runbook § « Actions dues à l'exploitant » demande un SHOW GRANTS consigné. Aucun écran ne consomme ces tables en production — rien n'est cassé dans l'intervalle."
+    suggested_action: "Au prochain déploiement : migrer, puis consigner les SHOW GRANTS en lecture négative (UPDATE présent, DELETE absent sur people/users) au journal d'exploitation."
+    suggested_owner: "po"
+  - id: "SEC-002"
+    severity: low
+    finding: "Le filtre withoutSecrets d'AuditLogger n'écarte que les clés contenant password — conforme à la story, mais token et secret ne sont pas couverts alors qu'ils le sont dans le masquage Monolog de 1.6."
+    suggested_action: "Étendre le filtre aux clés token/secret lorsque des jetons apparaîtront dans le périmètre audité (epic 2, réinitialisations)."
+    suggested_owner: "dev"
+  - id: "ARCH-001"
+    severity: low
+    finding: "La garantie centrale de la story (colonne générée + index unique) est prouvée sur MySQL 8 en CI mais s'exécutera sur MariaDB 10.11 en production (DEC-12) — précisément le type de mécanisme dont la sémantique peut différer entre moteurs."
+    suggested_action: "La story a fait le maximum à son niveau : vérification par métadonnées du moteur, signalement explicite. Arbitrage d'architecture à prévoir — job CI MariaDB d'appoint, ou acceptation durable consignée. À porter au registre si l'écart se matérialise."
+    suggested_owner: "po"
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 3 }
+  recommendations:
+    must_fix: []
+    monitor:
+      - "OPS-005 : SHOW GRANTS de people/users à consigner au prochain déploiement VPS."
+      - "ARCH-001 : divergence de moteur sur colonnes générées — la vérification par métadonnées rendra visible toute différence."
+      - "La consigne GRANT UPDATE vaut pour chaque table métier des epics 2 à 8 — le mécanisme triple (migration, runbook, parité CI) établi ici est le patron à reproduire."
+
+evidence:
+  tests_reviewed: 113
+  assertions: 811
+  risks_identified: 3
+  local_run: "113 tests, 100 passés, 13 réservés au moteur MySQL de la CI, 811 assertions — Pint propre, Larastan niveau 6 sans erreur, npm run build OK. PR #17 verte sur les six contrôles, preuves MySQL incluses. Injection vérifiée : la suppression de la ligne de parité people du workflow fait échouer le test de contrat."
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7]
+    ac_partial: []
+    note: "La règle bloquante 12 est prouvée par quatre tests MySQL nommés, dont la vérification dans information_schema (STORED GENERATED, index unique NON_UNIQUE=0). La preuve d'absence de suppression suit le motif de 1.4 : trois niveaux testés séparément."
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "Mot de passe haché par cast, filtré de l'audit sur les deux chemins d'écriture (explicite et filet) ; suppression bloquée aux trois niveaux dont le privilège base (1142) sous connexion restreinte ; comptes et hôtes des grants de migration validés par regex avant interpolation ; aucune colonne email, unicité téléphone portée par le moteur."
+  performance:
+    status: PASS
+    notes: "Unicité conditionnelle résolue par colonne générée STORED indexée — aucune vérification applicative dupliquée ; transactions courtes incluant l'audit."
+  reliability:
+    status: PASS
+    notes: "Échec d'audit = annulation de l'opération, prouvé par déclencheur de rejet injecté puis retiré proprement ; états modélisés sans suppression ; down() symétriques avec REVOKE."
+  maintainability:
+    status: PASS
+    notes: "Garde-fou de 1.1 transformé en assertion d'ordre avec intention commentée ; triple canal de grants chacun verrouillé par test ; enums PHP typés adossés aux ENUM ; factories et states pour tous les modèles."
+
+recommended_status: "✓ Ready for Done — grants réels posés par les migrations au prochain déploiement VPS, SHOW GRANTS à consigner alors (OPS-005, non bloquant)"
