@@ -42,9 +42,18 @@ class DatabasePrivilegeContractTest extends TestCase
         }
     }
 
-    public function test_ac_3_delete_is_never_granted_to_a_business_or_audit_table(): void
+    public function test_task_0_delete_is_limited_to_infrastructure_and_two_audited_rbac_pivots(): void
     {
-        $allowed = ['cache', 'cache_locks', 'failed_jobs', 'job_batches', 'jobs', 'sessions'];
+        $allowed = [
+            'cache',
+            'cache_locks',
+            'failed_jobs',
+            'job_batches',
+            'jobs',
+            'model_has_permissions',
+            'model_has_roles',
+            'sessions',
+        ];
 
         preg_match_all('/GRANT [^;]*DELETE ON `[^`]+`\.`([^`]+)`/i', $this->sqlModel(), $matches);
         $tables = array_values(array_unique($matches[1]));
@@ -154,13 +163,27 @@ class DatabasePrivilegeContractTest extends TestCase
             );
         }
 
-        foreach (['people', 'users'] as $table) {
+        foreach (['people', 'users', 'roles', 'permissions', 'model_has_roles', 'model_has_permissions', 'role_has_permissions'] as $table) {
             $this->assertStringContainsString(
                 "GRANT UPDATE ON staffptr_test.{$table} TO 'staffptr_app_ci'@'%';",
                 $workflow,
             );
+        }
+
+        foreach (['people', 'users', 'roles', 'permissions', 'role_has_permissions'] as $table) {
             $this->assertStringNotContainsString(
                 "GRANT UPDATE, DELETE ON staffptr_test.{$table}",
+                $workflow,
+            );
+            $this->assertStringNotContainsString(
+                "GRANT DELETE ON staffptr_test.{$table}",
+                $workflow,
+            );
+        }
+
+        foreach (['model_has_roles', 'model_has_permissions'] as $table) {
+            $this->assertStringContainsString(
+                "GRANT DELETE ON staffptr_test.{$table} TO 'staffptr_app_ci'@'%';",
                 $workflow,
             );
         }
@@ -189,9 +212,16 @@ class DatabasePrivilegeContractTest extends TestCase
         $this->assertStringContainsString('cumulatifs', $documentation);
 
         foreach (['ptrstaff_prod', 'ptrstaff_staging'] as $schema) {
-            foreach (['people', 'users'] as $table) {
+            foreach (['people', 'users', 'roles', 'permissions', 'model_has_roles', 'model_has_permissions', 'role_has_permissions'] as $table) {
                 $this->assertStringContainsString(
                     "GRANT UPDATE ON `{$schema}`.`{$table}` TO",
+                    $documentation,
+                );
+            }
+
+            foreach (['model_has_roles', 'model_has_permissions'] as $table) {
+                $this->assertStringContainsString(
+                    "GRANT DELETE ON `{$schema}`.`{$table}` TO",
                     $documentation,
                 );
             }
@@ -272,6 +302,22 @@ class DatabasePrivilegeContractTest extends TestCase
             $this->assertStringContainsString("config('audit.database.app_username')", $migration);
             $this->assertStringContainsString("config('audit.database.app_host')", $migration);
         }
+    }
+
+    public function test_ac_1_rbac_migration_grants_only_the_reviewed_privileges(): void
+    {
+        $migration = $this->readFile('database/migrations/2026_07_20_070505_create_permission_tables.php');
+
+        foreach (['permissions', 'roles', 'model_has_permissions', 'model_has_roles', 'role_has_permissions'] as $table) {
+            $this->assertStringContainsString("'{$table}'", $migration);
+        }
+
+        $this->assertStringContainsString('GRANT UPDATE ON', $migration);
+        $this->assertStringContainsString('GRANT DELETE ON', $migration);
+        $this->assertStringContainsString("'model_has_permissions'", $migration);
+        $this->assertStringContainsString("'model_has_roles'", $migration);
+        $this->assertStringContainsString("config('audit.database.app_username')", $migration);
+        $this->assertStringContainsString("config('audit.database.app_host')", $migration);
     }
 
     /** @return array<string, string> */

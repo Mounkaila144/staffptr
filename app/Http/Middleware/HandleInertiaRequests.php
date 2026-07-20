@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Identity\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,11 +36,20 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $permissions = $user instanceof User
+            ? $user->getAllPermissions()->pluck('name')
+                ->merge($user->getRoleNames()->map(static fn (string $role): string => "role:{$role}"))
+                ->sort()
+                ->values()
+                ->all()
+            : [];
+
         return [
             ...parent::share($request),
             'auth' => [
-                // Epic 2 remplacera ce contrat vide par les permissions du compte connecté.
-                'permissions' => [],
+                // Masquage d'interface uniquement : chaque requête reste autorisée côté serveur.
+                'permissions' => $permissions,
             ],
         ];
     }

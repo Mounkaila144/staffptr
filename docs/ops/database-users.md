@@ -54,6 +54,8 @@ nommée.** Le niveau schéma ne porte que `SELECT, INSERT`.
 | `failed_jobs` | hérité du schéma | hérité du schéma | oui | **accordé** |
 | `cache` | hérité du schéma | hérité du schéma | oui | **accordé** |
 | `cache_locks` | hérité du schéma | hérité du schéma | oui | **accordé** |
+| `roles`, `permissions`, `role_has_permissions` | hérité du schéma | hérité du schéma | **explicite** | **refusé** |
+| `model_has_roles`, `model_has_permissions` | hérité du schéma | hérité du schéma | **explicite** | **accordé par exception RBAC** |
 | toute table créée ultérieurement | **hérité d'office** | **hérité d'office** | **absent tant qu'il n'est pas accordé** | **refusé par défaut** |
 
 Une migration qui crée une table métier n'a donc rien à faire pour la lecture et l'insertion, mais
@@ -61,6 +63,15 @@ doit accorder explicitement `UPDATE` au compte applicatif lu depuis la configura
 jamais `DELETE` sans exception motivée, revue et tracée dans ce document. `DELETE` sur `sessions` est
 obligatoire pour la révocation immédiate des sessions suspendues ; Laravel supprime également les
 files, verrous et caches expirés.
+
+L'exception RBAC a été revue et accordée le 20/07/2026 pour `model_has_roles` et
+`model_has_permissions` uniquement. `spatie/laravel-permission` ajoute une affectation par
+`INSERT`, mais ses opérations `removeRole()`, `revokePermissionTo()`, `syncRoles()` et
+`syncPermissions()` retirent les lignes courantes par `DELETE`. Ces pivots décrivent l'état courant
+d'une affectation, pas son historique : `RoleAssignmentService` conserve obligatoirement chaque
+attribution, modification et retrait avec ses anciennes et nouvelles valeurs dans `audit_logs`, au
+sein de la même transaction. `DELETE` reste interdit sur `roles`, `permissions` et
+`role_has_permissions`, qui forment le catalogue de référence.
 
 La migration d'audit 1.4 pose un `GRANT SELECT, INSERT` sur `audit_logs`. Elle lit
 `AUDIT_DB_APP_USERNAME` et `AUDIT_DB_APP_HOST` depuis la configuration et ne code aucun compte en
@@ -134,8 +145,24 @@ GRANT UPDATE, DELETE ON `ptrstaff_staging`.`cache_locks` TO 'ptrstaff_staging_ap
 -- Une ligne GRANT UPDATE par table métier créée. Jamais de DELETE.
 GRANT UPDATE ON `ptrstaff_prod`.`people` TO 'ptrstaff_prod_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_prod`.`users` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`roles` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`permissions` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`model_has_roles` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`model_has_permissions` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`role_has_permissions` TO 'ptrstaff_prod_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`people` TO 'ptrstaff_staging_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`users` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`roles` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`permissions` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`model_has_roles` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`model_has_permissions` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`role_has_permissions` TO 'ptrstaff_staging_app'@'localhost';
+
+-- Phase 4 : exception RBAC revue le 20/07/2026 — état courant audité, pivots uniquement.
+GRANT DELETE ON `ptrstaff_prod`.`model_has_roles` TO 'ptrstaff_prod_app'@'localhost';
+GRANT DELETE ON `ptrstaff_prod`.`model_has_permissions` TO 'ptrstaff_prod_app'@'localhost';
+GRANT DELETE ON `ptrstaff_staging`.`model_has_roles` TO 'ptrstaff_staging_app'@'localhost';
+GRANT DELETE ON `ptrstaff_staging`.`model_has_permissions` TO 'ptrstaff_staging_app'@'localhost';
 ```
 
 Le réglage global `log_bin_trust_function_creators` ne figure volontairement pas dans ce modèle :
@@ -159,12 +186,21 @@ Joindre la sortie horodatée au journal d'exploitation. La revue est négative a
 3. **la ligne de schéma d'un compte applicatif ne porte que `SELECT, INSERT`** — y voir `UPDATE` ou
    `DELETE` signifie que la matrice est perdue et que le compte doit être recréé, la reprise par
    table étant impossible ;
-4. les comptes applicatifs n'ont aucun `DELETE` sur une table métier ;
+4. les comptes applicatifs n'ont aucun `DELETE` sur une table métier, hormis l'exception motivée
+   limitée aux pivots `model_has_roles` et `model_has_permissions` ;
 5. `audit_logs` ne reçoit ni `UPDATE` ni `DELETE`, à aucun niveau ;
 6. les six tables d'infrastructure accordent bien `UPDATE, DELETE` ;
 7. `people` et `users`, puis chaque future table métier, portent leur ligne `GRANT UPDATE`, conformément à la consigne
    permanente en tête de ce document ;
 8. seuls les comptes de migration disposent de `GRANT OPTION`.
+
+## Actions dues à l'exploitant pour la story 2.2
+
+Après la migration RBAC, exécuter les dix lignes `GRANT UPDATE` et les quatre lignes d'exception
+`GRANT DELETE` des phases 3 et 4 sur la préproduction puis sur la production, avec le compte de
+migration de chaque environnement. Joindre les sorties `SHOW GRANTS` horodatées au journal
+d'exploitation. Vérifier explicitement que `DELETE` n'apparaît jamais sur `roles`, `permissions` ou
+`role_has_permissions`.
 
 ## Actions dues à l'exploitant pour la story 2.1
 
