@@ -97,7 +97,7 @@ function archiveAccount(account) {
 <template>
     <Head title="Comptes et rôles" />
     <AppLayout title="Comptes et rôles" active-navigation="accounts">
-        <div class="grid min-w-0 gap-8">
+        <div class="grid w-full min-w-0 max-w-full gap-8 overflow-x-clip">
             <header class="grid gap-2">
                 <h1 class="text-screen-title">Administration des comptes</h1>
                 <p class="text-ink-secondary">Créez les accès, attribuez les responsabilités et archivez un compte sans supprimer sa fiche personne.</p>
@@ -131,13 +131,13 @@ function archiveAccount(account) {
                 <AppButton variant="secondaire" @click="focusCreation">Créer le compte direction manquant</AppButton>
             </ActionCard>
 
-            <section ref="creationSection" class="grid gap-5 rounded-xl border border-separator bg-surface p-4 sm:p-5" aria-labelledby="create-account-title">
+            <section ref="creationSection" class="grid min-w-0 max-w-full gap-5 rounded-xl border border-separator bg-surface p-4 sm:p-5" aria-labelledby="create-account-title">
                 <div class="grid gap-1">
                     <h2 id="create-account-title" class="text-section-title">Créer un compte</h2>
                     <p class="text-sm text-ink-secondary">Le compte sera actif et demandera un nouveau mot de passe à sa première connexion.</p>
                 </div>
-                <form class="grid gap-5" @submit.prevent="submitCreation">
-                    <fieldset class="grid gap-3">
+                <form class="grid min-w-0 max-w-full gap-5" @submit.prevent="submitCreation">
+                    <fieldset class="grid min-w-0 max-w-full gap-3">
                         <legend class="font-semibold">Fiche personne</legend>
                         <label class="touch-target flex items-center gap-3 rounded-lg border border-separator px-3">
                             <input v-model="creation.person_mode" type="radio" value="new"> Nouvelle personne
@@ -155,7 +155,7 @@ function archiveAccount(account) {
                         </label>
                     </div>
                     <label v-else class="grid gap-2 font-semibold" for="person_id">Personne existante
-                        <select id="person_id" v-model="creation.person_id" required class="touch-target min-w-0 rounded-lg border border-separator bg-surface px-3 font-normal">
+                        <select id="person_id" v-model="creation.person_id" required class="touch-target w-full min-w-0 max-w-full rounded-lg border border-separator bg-surface px-3 font-normal">
                             <option value="" disabled>Choisir une fiche</option>
                             <option v-for="person in people" :key="person.id" :value="person.id">{{ person.name }} — {{ person.accounts_count }} compte(s)</option>
                         </select>
@@ -164,7 +164,7 @@ function archiveAccount(account) {
 
                     <FormField id="phone" v-model="creation.phone" label="Numéro de téléphone" variant="phone" autocomplete="tel" :error="creation.errors.phone" required />
 
-                    <fieldset class="grid gap-2">
+                    <fieldset class="grid min-w-0 max-w-full gap-2">
                         <legend class="font-semibold">Rôles initiaux</legend>
                         <div class="grid gap-2 sm:grid-cols-2">
                             <label v-for="role in roles" :key="role.value" class="touch-target flex items-center gap-3 rounded-lg border border-separator px-3">
@@ -178,19 +178,19 @@ function archiveAccount(account) {
                 </form>
             </section>
 
-            <section class="grid gap-4" aria-labelledby="accounts-title">
+            <section class="grid min-w-0 max-w-full gap-4" aria-labelledby="accounts-title">
                 <div class="grid gap-3">
                     <h2 id="accounts-title" class="text-section-title">Comptes</h2>
-                    <form class="grid gap-4 rounded-xl border border-separator bg-surface p-4" aria-label="Filtrer les comptes" @submit.prevent="applyFilters">
+                    <form class="grid min-w-0 max-w-full gap-4 rounded-xl border border-separator bg-surface p-4" aria-label="Filtrer les comptes" @submit.prevent="applyFilters">
                         <div class="grid gap-4 sm:grid-cols-2">
                             <label class="grid gap-1 font-semibold">État
-                                <select v-model="filterState" class="touch-target rounded-lg border border-separator bg-surface px-3 font-normal">
+                                <select v-model="filterState" class="touch-target w-full min-w-0 max-w-full rounded-lg border border-separator bg-surface px-3 font-normal">
                                     <option value="">Tous les états</option>
                                     <option v-for="state in states" :key="state.value" :value="state.value">{{ state.label }}</option>
                                 </select>
                             </label>
                             <label class="grid gap-1 font-semibold">Rôle
-                                <select v-model="filterRole" class="touch-target rounded-lg border border-separator bg-surface px-3 font-normal">
+                                <select v-model="filterRole" class="touch-target w-full min-w-0 max-w-full rounded-lg border border-separator bg-surface px-3 font-normal">
                                     <option value="">Tous les rôles</option>
                                     <option v-for="role in roles" :key="role.value" :value="role.value">{{ role.label }}</option>
                                 </select>
@@ -222,8 +222,8 @@ function archiveAccount(account) {
                             <StatusBadge :status="account.state" />
                         </div>
 
-                        <form class="grid gap-3 border-t border-separator pt-4" @submit.prevent="syncRoles(account)">
-                            <fieldset class="grid gap-2">
+                        <form class="grid min-w-0 max-w-full gap-3 border-t border-separator pt-4" @submit.prevent="syncRoles(account)">
+                            <fieldset class="grid min-w-0 max-w-full gap-2">
                                 <legend class="font-semibold">Rôles</legend>
                                 <div class="grid gap-2 sm:grid-cols-2">
                                     <label v-for="role in roles" :key="role.value" class="touch-target flex items-center gap-3 rounded-lg border border-separator px-3">
@@ -236,7 +236,7 @@ function archiveAccount(account) {
                             <AppButton type="submit" variant="secondaire" :busy="busyAction === `roles-${account.id}`" busy-label="Mise à jour">Enregistrer les rôles</AppButton>
                         </form>
 
-                        <form v-if="account.state !== 'archive'" class="grid gap-3 border-t border-separator pt-4" @submit.prevent="archiveAccount(account)">
+                        <form v-if="account.state !== 'archive'" class="grid min-w-0 max-w-full gap-3 border-t border-separator pt-4" @submit.prevent="archiveAccount(account)">
                             <div class="grid gap-1">
                                 <h4 class="font-semibold">Archiver le compte</h4>
                                 <p class="text-sm text-ink-secondary">La fiche personne reste intacte et consultable. Le numéro pourra être réutilisé. Le statut opérationnel de la personne ne change pas.</p>

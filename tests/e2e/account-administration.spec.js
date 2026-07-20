@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 test('AC 2, 6 et 7 — création et cartes de comptes restent utilisables à 320 px', async ({ page }) => {
+    const suffix = String(Date.now()).slice(-6);
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto('/connexion');
     await page.getByLabel('Numéro de téléphone').fill('90 23 45 67');
@@ -15,9 +16,9 @@ test('AC 2, 6 et 7 — création et cartes de comptes restent utilisables à 320
     await expect(page.getByText('Les dépenses ne sont pas encore approuvables', { exact: false })).toBeVisible();
 
     const creation = page.getByRole('heading', { name: 'Créer un compte' }).locator('xpath=ancestor::section');
-    await creation.getByLabel('Nom complet').fill('Seconde Direction E2E');
-    await creation.getByLabel('Numéro de téléphone').fill('90 34 56 78');
-    await creation.getByLabel('Direction').check();
+    await creation.getByLabel('Nom complet').fill(`Compte E2E ${suffix}`);
+    await creation.getByLabel('Numéro de téléphone').fill(`91${suffix}`);
+    await creation.getByLabel('Employé').check();
     await creation.getByRole('button', { name: 'Créer et afficher le mot de passe' }).click();
 
     await expect(page.getByRole('heading', { name: 'Mot de passe temporaire — affiché une seule fois' })).toBeVisible();
