@@ -16,6 +16,11 @@ const states = {
     retourné: ['↩', 'À corriger', 'border-2 border-solid border-warning text-warning'],
     bloqué: ['⏸', 'Bloqué', 'border-solid border-neutral bg-neutral-soft text-neutral'],
     'en retard': ['⚠', 'En retard', 'border-solid border-danger bg-danger-soft text-danger'],
+    invite: ['✉', 'Invité', 'border-solid border-warning bg-warning-soft text-warning'],
+    actif: ['✓', 'Actif', 'border-solid border-success bg-success-soft text-success'],
+    suspendu: ['⏸', 'Suspendu', 'border-solid border-warning bg-warning-soft text-warning'],
+    termine: ['■', 'Terminé', 'border-solid border-neutral bg-neutral-soft text-neutral'],
+    archive: ['▣', 'Archivé', 'border-dashed border-neutral bg-neutral-soft text-neutral'],
 };
 
 const state = computed(() => states[props.status] ?? states.brouillon);
