@@ -2,6 +2,7 @@
 
 namespace Tests\Support;
 
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
@@ -15,7 +16,7 @@ abstract class IdentityTestCase extends TestCase
     {
         parent::setUp();
 
-        if (! $this->migrationSchema()->hasTable('users')) {
+        if (! $this->migrationSchema()->hasTable('users') || ! $this->migrationSchema()->hasTable('roles')) {
             $exitCode = Artisan::call('migrate', [
                 '--database' => $this->migrationConnectionName(),
                 '--force' => true,
@@ -23,5 +24,10 @@ abstract class IdentityTestCase extends TestCase
 
             $this->assertSame(0, $exitCode, Artisan::output());
         }
+    }
+
+    protected function seedRbac(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
     }
 }
