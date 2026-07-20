@@ -41,7 +41,7 @@ function update(event) {
         </label>
         <div class="flex min-h-12 items-center rounded-lg border bg-surface" :class="error ? 'border-2 border-danger' : 'border-separator'">
             <span v-if="variant === 'phone'" class="pl-3 text-ink-secondary">+227</span>
-            <input ref="input" :id="id" :name="id" :value="displayedValue" :required="required" :autocomplete="autocomplete || undefined" :placeholder="placeholder || undefined" :inputmode="variant === 'money' ? 'numeric' : (variant === 'phone' ? 'tel' : undefined)" :type="inputType" :aria-invalid="error ? 'true' : 'false'" :aria-describedby="describedBy" class="min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-3 text-base" @input="update" @blur="emit('blur')" />
+            <input ref="input" :id="id" :name="id" :value="displayedValue" :required="required" :autocomplete="autocomplete || undefined" :placeholder="placeholder || undefined" :inputmode="variant === 'money' || variant === 'code' ? 'numeric' : (variant === 'phone' ? 'tel' : undefined)" :type="inputType" :aria-invalid="error ? 'true' : 'false'" :aria-describedby="describedBy" class="min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-3 text-base" @input="update" @blur="emit('blur')" />
             <span v-if="variant === 'money'" class="pr-3 text-ink-secondary">F CFA</span>
         </div>
         <p v-if="error" :id="`${id}-error`" class="text-sm font-semibold text-danger">⚠ {{ error }}</p>

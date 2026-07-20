@@ -44,6 +44,18 @@ return [
             'permission' => 'compte.gerer|compte.technique.gerer',
             'statuses' => $statuses(['super_admin', 'direction']),
         ],
+        'accounts.password-reinitialization.initiate' => [
+            'method' => 'POST',
+            'path' => '/comptes/{user}/reinitialisation/initier',
+            'permission' => 'compte.gerer|compte.technique.gerer',
+            'statuses' => $statuses(['super_admin', 'direction']),
+        ],
+        'accounts.password-reinitialization.confirm' => [
+            'method' => 'POST',
+            'path' => '/comptes/{user}/reinitialisation/confirmer',
+            'permission' => 'compte.gerer|compte.technique.gerer',
+            'statuses' => $statuses(['super_admin', 'direction']),
+        ],
         'login-attempts.index' => [
             'path' => '/connexions',
             'permission' => 'connexion.consulter',

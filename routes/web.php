@@ -4,6 +4,7 @@ use App\Http\Controllers\Identity\AccountController;
 use App\Http\Controllers\Identity\AuthenticationController;
 use App\Http\Controllers\Identity\LoginAttemptController;
 use App\Http\Controllers\Identity\PasswordController;
+use App\Http\Controllers\Identity\PasswordResetController;
 use App\Http\Controllers\Platform\HealthController;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
@@ -40,6 +41,10 @@ Route::middleware(['auth', 'account.active', 'password.changed'])->group(functio
             ->name('accounts.roles.sync');
         Route::patch('/comptes/{user}/archiver', [AccountController::class, 'archive'])
             ->name('accounts.archive');
+        Route::post('/comptes/{user}/reinitialisation/initier', [PasswordResetController::class, 'initiate'])
+            ->name('accounts.password-reinitialization.initiate');
+        Route::post('/comptes/{user}/reinitialisation/confirmer', [PasswordResetController::class, 'confirm'])
+            ->name('accounts.password-reinitialization.confirm');
     });
 });
 

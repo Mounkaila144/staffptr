@@ -5,6 +5,7 @@ import ActionCard from '../../../Components/ActionCard.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import EmptyState from '../../../Components/EmptyState.vue';
 import FormField from '../../../Components/FormField.vue';
+import SensitiveConfirmation from '../../../Components/SensitiveConfirmation.vue';
 import StatusBadge from '../../../Components/StatusBadge.vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 
@@ -17,15 +18,20 @@ const props = defineProps({
     people: { type: Array, required: true },
     readiness: { type: Object, required: true },
     createdAccount: { type: Object, default: null },
+    passwordResetChallenge: { type: Object, default: null },
+    resetAccount: { type: Object, default: null },
 });
 
 const page = usePage();
 const creationSection = ref(null);
 const credentialVisible = ref(Boolean(props.createdAccount));
+const resetCredentialVisible = ref(Boolean(props.resetAccount));
+const resetConfirmation = ref(null);
 const filterState = ref(props.filters.state ?? '');
 const filterRole = ref(props.filters.role ?? '');
 const roleDrafts = reactive({});
 const archiveReasons = reactive({});
+const confirmationCodes = reactive({});
 const busyAction = ref('');
 const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Niamey' });
 const creation = useForm({
@@ -43,11 +49,16 @@ watch(() => props.accounts.data, (accounts) => {
     for (const account of accounts) {
         roleDrafts[account.id] ??= { roles: [...account.roles], reason: '' };
         archiveReasons[account.id] ??= '';
+        confirmationCodes[account.id] ??= '';
     }
 }, { immediate: true });
 
 watch(() => props.createdAccount, (createdAccount) => {
     credentialVisible.value = Boolean(createdAccount);
+});
+
+watch(() => props.resetAccount, (resetAccount) => {
+    resetCredentialVisible.value = Boolean(resetAccount);
 });
 
 function focusCreation() {
@@ -92,6 +103,31 @@ function archiveAccount(account) {
         onFinish: () => { busyAction.value = ''; },
     });
 }
+
+function askForReset(account) {
+    resetConfirmation.value = account;
+}
+
+function initiateReset(account) {
+    const key = `reset-initiate-${account.id}`;
+    busyAction.value = key;
+    resetConfirmation.value = null;
+    router.post(`/comptes/${account.id}/reinitialisation/initier`, {}, {
+        preserveScroll: true,
+        onFinish: () => { busyAction.value = ''; },
+    });
+}
+
+function confirmReset(account) {
+    const key = `reset-confirm-${account.id}`;
+    busyAction.value = key;
+    router.post(`/comptes/${account.id}/reinitialisation/confirmer`, {
+        confirmation_code: confirmationCodes[account.id],
+    }, {
+        preserveScroll: true,
+        onFinish: () => { busyAction.value = ''; },
+    });
+}
 </script>
 
 <template>
@@ -113,6 +149,19 @@ function archiveAccount(account) {
                     <div><dt class="font-semibold">Mot de passe temporaire</dt><dd class="break-all font-mono text-lg">{{ createdAccount.temporary_password }}</dd></div>
                 </dl>
                 <AppButton variant="secondaire" class="w-fit" @click="credentialVisible = false">J’ai conservé ces informations</AppButton>
+            </section>
+
+            <section v-if="resetAccount && resetCredentialVisible" class="grid gap-4 rounded-xl border-2 border-warning bg-warning-soft p-5" aria-live="polite">
+                <div class="grid gap-2">
+                    <h2 class="text-section-title">Nouveau mot de passe temporaire — affiché une seule fois</h2>
+                    <p>Transmettez-le hors application à <strong>{{ resetAccount.person_name }}</strong>. Il n’est envoyé ni par WhatsApp ni par un autre canal applicatif.</p>
+                </div>
+                <dl class="grid min-w-0 gap-2 rounded-lg bg-surface p-4">
+                    <div><dt class="font-semibold">Téléphone</dt><dd class="break-all">{{ resetAccount.phone }}</dd></div>
+                    <div><dt class="font-semibold">Mot de passe temporaire</dt><dd class="break-all font-mono text-lg">{{ resetAccount.temporary_password }}</dd></div>
+                </dl>
+                <p class="text-sm text-ink-secondary">Il ne pourra pas être récupéré après cette réponse. S’il est perdu, effectuez une nouvelle réinitialisation.</p>
+                <AppButton variant="secondaire" class="w-fit" @click="resetCredentialVisible = false">J’ai conservé le mot de passe</AppButton>
             </section>
 
             <EmptyState
@@ -235,6 +284,37 @@ function archiveAccount(account) {
                             <p v-if="errors.roles" class="text-sm font-semibold text-danger">⚠ {{ errors.roles }}</p>
                             <AppButton type="submit" variant="secondaire" :busy="busyAction === `roles-${account.id}`" busy-label="Mise à jour">Enregistrer les rôles</AppButton>
                         </form>
+
+                        <section v-if="account.state !== 'archive'" class="grid min-w-0 max-w-full gap-3 border-t border-separator pt-4" :aria-labelledby="`reset-title-${account.id}`">
+                            <div class="grid gap-1">
+                                <h4 :id="`reset-title-${account.id}`" class="font-semibold">Réinitialiser le mot de passe <span class="sr-only">de {{ account.person.name }}</span></h4>
+                                <p class="text-sm text-ink-secondary">Un code à 6 chiffres sera envoyé sur le WhatsApp enregistré de la cible. La cible doit vous lire ce code avant toute génération du mot de passe temporaire.</p>
+                                <p class="text-sm font-semibold text-warning">Si WhatsApp est indisponible, l’opération reste bloquée sans contournement. Le mot de passe temporaire ne sera jamais envoyé par WhatsApp.</p>
+                            </div>
+
+                            <form v-if="passwordResetChallenge?.user_id === account.id" class="grid gap-3 rounded-xl border border-primary bg-primary-soft p-4" @submit.prevent="confirmReset(account)">
+                                <p>Code envoyé à <strong>{{ passwordResetChallenge.person_name }}</strong>. Il expire dans {{ passwordResetChallenge.expires_in_minutes }} minutes.</p>
+                                <FormField :id="`confirmation-code-${account.id}`" v-model="confirmationCodes[account.id]" label="Code de confirmation WhatsApp" variant="code" autocomplete="one-time-code" :error="errors.confirmation_code" required />
+                                <AppButton type="submit" variant="principal" :busy="busyAction === `reset-confirm-${account.id}`" busy-label="Vérification">Confirmer le code et générer le mot de passe</AppButton>
+                            </form>
+
+                            <SensitiveConfirmation
+                                v-else-if="resetConfirmation?.id === account.id"
+                                amount="1 compte"
+                                amount-words="Réinitialisation du mot de passe"
+                                :counterparty="account.person.name"
+                                reason="Demande vérifiée par possession du WhatsApp enregistré"
+                                consequence="Toutes les sessions de la cible seront révoquées après validation du code. Son prochain accès imposera un changement de mot de passe."
+                                action-label="Envoyer le code WhatsApp"
+                                @confirm="initiateReset(account)"
+                                @cancel="resetConfirmation = null"
+                            />
+
+                            <template v-else>
+                                <p v-if="errors.password_reset" class="text-sm font-semibold text-danger">⚠ {{ errors.password_reset }}</p>
+                                <AppButton variant="secondaire" :busy="busyAction === `reset-initiate-${account.id}`" busy-label="Envoi du code" @click="askForReset(account)">Commencer la vérification WhatsApp</AppButton>
+                            </template>
+                        </section>
 
                         <form v-if="account.state !== 'archive'" class="grid min-w-0 max-w-full gap-3 border-t border-separator pt-4" @submit.prevent="archiveAccount(account)">
                             <div class="grid gap-1">

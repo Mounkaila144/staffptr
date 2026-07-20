@@ -84,6 +84,35 @@ final class LoginAttemptService
         return new LoginAuthenticationResult(LoginAuthenticationStatus::Authenticated, $user);
     }
 
+    public function clearPersistentLockForPasswordReset(
+        User $user,
+        int $actorId,
+        string $actorLabel,
+        string $targetLabel,
+    ): User {
+        $lockedUser = User::query()->lockForUpdate()->findOrFail($user->getKey());
+        $oldValues = [
+            'failed_attempts' => $lockedUser->failed_attempts,
+            'locked_until' => $lockedUser->locked_until?->toISOString(),
+            'target_label' => $targetLabel,
+        ];
+
+        $this->auditLogger->runExplicitly(
+            auditable: $lockedUser,
+            operation: function () use ($lockedUser): void {
+                $lockedUser->forceFill(['failed_attempts' => 0, 'locked_until' => null])->saveOrFail();
+            },
+            actorId: $actorId,
+            actorLabel: $actorLabel,
+            action: 'login_lock_cleared_by_password_reset',
+            oldValues: $oldValues,
+            newValues: ['failed_attempts' => 0, 'locked_until' => null, 'target_label' => $targetLabel],
+            reason: "Verrou de {$targetLabel} levé par {$actorLabel} lors d’une réinitialisation vérifiée.",
+        );
+
+        return $lockedUser;
+    }
+
     private function findUser(string $phoneAttempted): ?User
     {
         try {
