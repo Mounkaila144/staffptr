@@ -28,6 +28,7 @@ class FirstAdminBootstrapTest extends IdentityTestCase
 
     public function test_ac_2_4_5_6_7_and_8_command_creates_the_first_admin_securely(): void
     {
+        $auditCountBefore = AuditLog::query()->count();
         [$exitCode, $output] = $this->runCommand('Aïcha Amadou', '90 00 11 22');
 
         $this->assertSame(Command::SUCCESS, $exitCode, $output);
@@ -53,8 +54,12 @@ class FirstAdminBootstrapTest extends IdentityTestCase
         $this->assertStringContainsString('ne détient aucune permission métier', $output);
         $this->assertStringContainsString('créer les deux comptes direction', $output);
 
-        $audits = AuditLog::query()->orderBy('id')->get();
+        $audits = AuditLog::query()
+            ->where('actor_label', 'Amorçage système')
+            ->orderBy('id')
+            ->get();
         $this->assertCount(3, $audits);
+        $this->assertSame($auditCountBefore + 3, AuditLog::query()->count());
         $this->assertSame(
             ['person_created', 'user_created', 'user_roles_changed'],
             $audits->pluck('action')->all(),
@@ -117,6 +122,7 @@ class FirstAdminBootstrapTest extends IdentityTestCase
 
     public function test_ac_7_audit_failure_rolls_back_the_whole_bootstrap(): void
     {
+        $auditCountBefore = AuditLog::query()->count();
         $delegate = app(AuditLogger::class);
         $this->app->instance(AuditLogger::class, new FailingThirdAuditLogger($delegate));
 
@@ -126,7 +132,7 @@ class FirstAdminBootstrapTest extends IdentityTestCase
         $this->assertStringContainsString("Aucune donnée partielle n'a été conservée", $output);
         $this->assertSame(0, Person::query()->count());
         $this->assertSame(0, User::query()->count());
-        $this->assertSame(0, AuditLog::query()->count());
+        $this->assertSame($auditCountBefore, AuditLog::query()->count());
     }
 
     /** @return array{int, string} */

@@ -2,6 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Services\Platform\Invariants\AuditDeletePrivilegeInvariant;
+use App\Services\Platform\Invariants\AuditTriggersInvariant;
+use App\Services\Platform\Invariants\EnvironmentInvariant;
+use App\Services\Platform\Invariants\SuperAdminPermissionInvariant;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +27,19 @@ class CheckInvariantsDatabaseTest extends TestCase
 
     public function test_ac_11_and_12_healthy_mysql_server_returns_zero(): void
     {
+        foreach ([
+            app(EnvironmentInvariant::class),
+            app(SuperAdminPermissionInvariant::class),
+            app(AuditTriggersInvariant::class),
+            app(AuditDeletePrivilegeInvariant::class),
+        ] as $invariant) {
+            $result = $invariant->check();
+            $this->assertTrue(
+                $result->passed,
+                "{$result->name} — constaté : {$result->observed} — attendu : {$result->expected}",
+            );
+        }
+
         $this->artisan('ptr:check-invariants')
             ->expectsOutputToContain('Les quatre invariants sont conformes.')
             ->assertExitCode(Command::SUCCESS);
@@ -55,7 +72,6 @@ class CheckInvariantsDatabaseTest extends TestCase
         try {
             $this->artisan('ptr:check-invariants')
                 ->expectsOutputToContain("Privilège DELETE du journal d'audit")
-                ->expectsOutputToContain('DELETE')
                 ->assertExitCode(Command::FAILURE);
         } finally {
             $this->revokeApplicationAuditDelete();

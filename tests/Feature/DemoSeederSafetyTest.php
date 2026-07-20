@@ -13,6 +13,11 @@ class DemoSeederSafetyTest extends IdentityTestCase
 {
     public function test_ac_10_demo_seeder_refuses_production_before_writing_any_data(): void
     {
+        $before = [
+            Person::query()->count(),
+            User::query()->count(),
+            AuditLog::query()->count(),
+        ];
         $previousEnvironment = app()->environment();
         app()->instance('env', 'production');
 
@@ -21,9 +26,11 @@ class DemoSeederSafetyTest extends IdentityTestCase
             $this->seed(DemoSeeder::class);
         } finally {
             app()->instance('env', $previousEnvironment);
-            $this->assertSame(0, Person::query()->count());
-            $this->assertSame(0, User::query()->count());
-            $this->assertSame(0, AuditLog::query()->count());
+            $this->assertSame($before, [
+                Person::query()->count(),
+                User::query()->count(),
+                AuditLog::query()->count(),
+            ]);
         }
     }
 
