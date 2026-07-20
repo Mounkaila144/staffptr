@@ -204,6 +204,13 @@ préproduction puis sur la production avec le compte de migration de chaque envi
 les sorties `SHOW GRANTS` horodatées au journal d'exploitation et vérifier explicitement que
 `DELETE` reste absent sur `login_attempts`.
 
+## Actions dues à l'exploitant pour la story 2.10
+
+Aucun nouveau privilège n'est requis. La migration ajoute uniquement des index à `audit_logs` ;
+le compte applicatif conserve strictement `SELECT, INSERT` sur cette table, sans `UPDATE` ni
+`DELETE`. Après déploiement, joindre la sortie `SHOW GRANTS` horodatée au journal d'exploitation
+et vérifier que cette interdiction reste inchangée.
+
 ## Actions dues à l'exploitant pour la story 2.2
 
 Après la migration RBAC, exécuter les dix lignes `GRANT UPDATE` et les quatre lignes d'exception

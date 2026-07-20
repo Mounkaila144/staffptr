@@ -21,6 +21,7 @@ const states = {
     suspendu: ['⏸', 'Suspendu', 'border-solid border-warning bg-warning-soft text-warning'],
     termine: ['■', 'Terminé', 'border-solid border-neutral bg-neutral-soft text-neutral'],
     archive: ['▣', 'Archivé', 'border-dashed border-neutral bg-neutral-soft text-neutral'],
+    audit: ['✓', 'Consignée', 'border-solid border-primary bg-surface text-primary'],
 };
 
 const state = computed(() => states[props.status] ?? states.brouillon);

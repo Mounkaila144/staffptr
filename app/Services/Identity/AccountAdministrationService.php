@@ -184,13 +184,7 @@ final class AccountAdministrationService
 
     private function stateLabel(UserState $state): string
     {
-        return match ($state) {
-            UserState::Invite => 'Invité',
-            UserState::Actif => 'Actif',
-            UserState::Suspendu => 'Suspendu',
-            UserState::Termine => 'Terminé',
-            UserState::Archive => 'Archivé',
-        };
+        return $state->label();
     }
 
     private function actorLabel(User $actor): string

@@ -21,6 +21,7 @@ function closeMore(event) {
 function moreHref(item) {
     if (item === 'Connexions') return '/connexions';
     if (item === 'Comptes et rôles') return '/comptes';
+    if (item === "Journal d'audit") return '/journal-audit';
     return '#plus';
 }
 </script>

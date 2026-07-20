@@ -22,6 +22,7 @@ const displayedValue = computed(() => props.variant === 'money' && props.modelVa
 const inputType = computed(() => ({
     password: 'password',
     phone: 'tel',
+    date: 'date',
 }[props.variant] ?? 'text'));
 
 defineExpose({ focus: () => input.value?.focus() });

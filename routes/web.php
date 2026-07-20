@@ -5,6 +5,7 @@ use App\Http\Controllers\Identity\AuthenticationController;
 use App\Http\Controllers\Identity\LoginAttemptController;
 use App\Http\Controllers\Identity\PasswordController;
 use App\Http\Controllers\Identity\PasswordResetController;
+use App\Http\Controllers\Platform\AuditLogController;
 use App\Http\Controllers\Platform\HealthController;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
@@ -32,6 +33,12 @@ Route::middleware(['auth', 'account.active', 'password.changed'])->group(functio
     Route::get('/connexions', [LoginAttemptController::class, 'index'])
         ->middleware('permission:connexion.consulter')
         ->name('login-attempts.index');
+    Route::middleware('permission:audit.consulter')->group(function (): void {
+        Route::get('/journal-audit', [AuditLogController::class, 'index'])
+            ->name('audit.index');
+        Route::get('/journal-audit/export', [AuditLogController::class, 'export'])
+            ->name('audit.export');
+    });
     Route::middleware('permission:compte.gerer|compte.technique.gerer')->group(function (): void {
         Route::get('/comptes', [AccountController::class, 'index'])
             ->name('accounts.index');

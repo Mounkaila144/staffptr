@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { collectAssets, isWithinBudget } from './check-bundle-budget.mjs';
+import { collectAssets, collectIncrementalAssets, isWithinBudget } from './check-bundle-budget.mjs';
 
 test('le budget accepte une taille inférieure ou égale à la limite', () => {
     assert.equal(isWithinBudget(299 * 1024, 300 * 1024), true);
@@ -30,5 +30,27 @@ test('les ressources communes et celles de la page sont dédupliquées', () => {
             'resources/js/Pages/Platform/Demo.vue',
         ]),
         ['assets/app.css', 'assets/app.js', 'assets/demo.js'],
+    );
+});
+
+test('une navigation suivante mesure seulement les ressources absentes de l’entrée partagée', () => {
+    const manifest = {
+        'resources/js/app.js': {
+            file: 'assets/app.js',
+            css: ['assets/app.css'],
+        },
+        'resources/js/Pages/Platform/AuditLogs/Index.vue': {
+            file: 'assets/audit-index.js',
+            imports: ['resources/js/app.js'],
+        },
+    };
+
+    assert.deepEqual(
+        collectIncrementalAssets(
+            manifest,
+            ['resources/js/Pages/Platform/AuditLogs/Index.vue'],
+            ['resources/js/app.js'],
+        ),
+        ['assets/audit-index.js'],
     );
 });

@@ -76,6 +76,16 @@ return [
             'permission' => 'connexion.consulter',
             'statuses' => $statuses(['direction']),
         ],
+        'audit.index' => [
+            'path' => '/journal-audit',
+            'permission' => 'audit.consulter',
+            'statuses' => $statuses(['direction']),
+        ],
+        'audit.export' => [
+            'path' => '/journal-audit/export',
+            'permission' => 'audit.consulter',
+            'statuses' => $statuses(['direction']),
+        ],
     ],
     // Contrats provisoires : chaque fixture disparaît dès que sa route réelle de remplacement existe.
     'fixtures' => [
@@ -198,12 +208,6 @@ return [
             'permission' => 'rapport_financier.consulter',
             'statuses' => $statuses(['direction', 'finance']),
             'replacement' => ['route' => 'financial-reports.index', 'story' => '8.13'],
-        ],
-        'testing.authorization.audit.view' => [
-            'path' => '/__test/authorization/audit',
-            'permission' => 'audit.consulter',
-            'statuses' => $statuses(['direction']),
-            'replacement' => ['route' => 'audit.index', 'story' => '2.10'],
         ],
         'testing.authorization.search' => [
             'path' => '/__test/authorization/search',

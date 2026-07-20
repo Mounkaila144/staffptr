@@ -48,7 +48,8 @@ class AuthorizationMatrixTest extends IdentityTestCase
         );
 
         $this->assertOnlyRolesAllowed('accounts.index', ['super_admin', 'direction']);
-        $this->assertOnlyRolesAllowed('testing.authorization.audit.view', ['direction']);
+        $this->assertOnlyRolesAllowed('audit.index', ['direction']);
+        $this->assertOnlyRolesAllowed('audit.export', ['direction']);
         $this->assertOnlyRolesAllowed('testing.authorization.expense.approve', ['direction']);
         $this->assertOnlyRolesAllowed('testing.authorization.objective.validate', ['direction']);
         $this->assertOnlyRolesAllowed('testing.authorization.financial-report.validate', ['direction']);
@@ -96,6 +97,8 @@ class AuthorizationMatrixTest extends IdentityTestCase
         }
 
         foreach ([
+            'audit.index',
+            'audit.export',
             'login-attempts.index',
             'accounts.index',
             'accounts.store',
@@ -112,10 +115,10 @@ class AuthorizationMatrixTest extends IdentityTestCase
     {
         $employee = $this->userWithRole('employe');
         $forbidden = $this->actingAs($employee)
-            ->get($this->matrixRoutes()['testing.authorization.audit.view']['path']);
+            ->get($this->matrixRoutes()['audit.index']['path']);
         $unknown = $this->actingAs($employee)->get('/__test/authorization/route-inconnue');
 
-        $this->assertCleanForbiddenResponse($forbidden, 'testing.authorization.audit.view');
+        $this->assertCleanForbiddenResponse($forbidden, 'audit.index');
         $unknown->assertNotFound();
         $this->assertFalse($unknown->isRedirection(), 'Une route inconnue doit rester un 404, jamais une redirection.');
     }
@@ -218,7 +221,7 @@ class AuthorizationMatrixTest extends IdentityTestCase
     public function test_ac_2_injection_of_a_falsified_expected_status_is_detected(): void
     {
         $finance = $this->userWithRole('finance');
-        $entry = $this->matrixRoutes()['testing.authorization.audit.view'];
+        $entry = $this->matrixRoutes()['audit.index'];
         $response = $this->actingAs($finance)->get($entry['path']);
 
         $this->assertCampaignFailure(
@@ -226,7 +229,7 @@ class AuthorizationMatrixTest extends IdentityTestCase
                 $response,
                 204,
                 'finance',
-                'testing.authorization.audit.view',
+                'audit.index',
             ),
             'Statut inattendu',
         );

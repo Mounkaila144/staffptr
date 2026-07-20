@@ -5,9 +5,11 @@ namespace App\Providers;
 use App\Models\Identity\LoginAttempt;
 use App\Models\Identity\Person;
 use App\Models\Identity\User;
+use App\Models\Platform\AuditLog;
 use App\Policies\Identity\LoginAttemptPolicy;
 use App\Policies\Identity\PersonPolicy;
 use App\Policies\Identity\UserPolicy;
+use App\Policies\Platform\AuditLogPolicy;
 use App\Services\Identity\AttemptedPhoneFingerprint;
 use App\Services\Identity\LoginSecuritySettings;
 use App\Support\Auditing\AuditContext;
@@ -32,6 +34,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(AuditLog::class, AuditLogPolicy::class);
         Gate::policy(LoginAttempt::class, LoginAttemptPolicy::class);
         Gate::policy(Person::class, PersonPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
