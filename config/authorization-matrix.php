@@ -13,6 +13,13 @@ $statuses = static function (array $allowedRoles) use ($roles): array {
 
 return [
     'roles' => $roles,
+    // Routes de socle accessibles à tout compte authentifié actif, sans permission métier.
+    'authentication_routes' => [
+        'home' => ['method' => 'GET', 'path' => '/'],
+        'password.change.edit' => ['method' => 'GET', 'path' => '/mot-de-passe/modifier'],
+        'password.change.update' => ['method' => 'PATCH', 'path' => '/mot-de-passe'],
+        'logout' => ['method' => 'POST', 'path' => '/deconnexion'],
+    ],
     'routes' => [
         'testing.authorization.dashboard.view' => [
             'path' => '/__test/authorization/dashboard',

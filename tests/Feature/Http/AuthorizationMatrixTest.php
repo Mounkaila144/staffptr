@@ -29,6 +29,7 @@ class AuthorizationMatrixTest extends IdentityTestCase
         $service = app(RoleAssignmentService::class);
 
         foreach ($this->matrixRoles() as $roleName) {
+            session()->flush();
             $user = User::factory()->active()->create();
             $service->assignRole($user, $roleName, null, 'Campagne autorisation');
 
@@ -55,7 +56,12 @@ class AuthorizationMatrixTest extends IdentityTestCase
             ->values()
             ->all();
 
-        $this->assertEqualsCanonicalizing(array_keys($this->matrixRoutes()), $protectedRouteNames);
+        $declaredRouteNames = [
+            ...array_keys($this->matrixRoutes()),
+            ...array_keys($this->authenticationRoutes()),
+        ];
+
+        $this->assertEqualsCanonicalizing($declaredRouteNames, $protectedRouteNames);
     }
 
     public function test_ac_5_matrix_is_consistent_with_catalog_permissions(): void
@@ -68,6 +74,18 @@ class AuthorizationMatrixTest extends IdentityTestCase
 
                 $this->assertSame($expectedStatus, $entry['statuses'][$roleName]);
             }
+        }
+    }
+
+    public function test_story_2_4_authentication_route_declarations_match_the_router(): void
+    {
+        foreach ($this->authenticationRoutes() as $routeName => $declaration) {
+            $route = Route::getRoutes()->getByName($routeName);
+
+            $this->assertNotNull($route, "La route {$routeName} doit exister.");
+            $this->assertContains($declaration['method'], $route->methods());
+            $expectedUri = $declaration['path'] === '/' ? '/' : ltrim($declaration['path'], '/');
+            $this->assertSame($expectedUri, $route->uri());
         }
     }
 
@@ -104,6 +122,16 @@ class AuthorizationMatrixTest extends IdentityTestCase
     private function matrixRoutes(): array
     {
         $routes = config('authorization-matrix.routes');
+
+        $this->assertIsArray($routes);
+
+        return $routes;
+    }
+
+    /** @return array<string, array{method: string, path: string}> */
+    private function authenticationRoutes(): array
+    {
+        $routes = config('authorization-matrix.authentication_routes');
 
         $this->assertIsArray($routes);
 
