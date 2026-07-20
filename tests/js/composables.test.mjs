@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { ref } from 'vue';
 import {
@@ -39,19 +40,19 @@ test('AC 8 — useMoney formate des entiers XOF sans décimale', () => {
 });
 
 test('AC 8 — usePermissions masque l’interface sans prétendre autoriser le serveur', () => {
-    const checker = createPermissionChecker(['reports.write']);
+    const checker = createPermissionChecker(['rapport_quotidien.gerer']);
 
-    assert.equal(checker.can('reports.write'), true);
-    assert.equal(checker.can('finance.view'), false);
-    assert.equal(checker.canAny(['finance.view', 'reports.write']), true);
+    assert.equal(checker.can('rapport_quotidien.gerer'), true);
+    assert.equal(checker.can('finance.ecriture.consulter'), false);
+    assert.equal(checker.canAny(['finance.ecriture.consulter', 'rapport_quotidien.gerer']), true);
 
     const permissions = ref([
         'role:direction',
         'role:finance',
-        'navigation.home',
-        'approvals.view',
-        'team.view',
-        'finance.view',
+        'tableau_bord.consulter',
+        'depense.approuver',
+        'compte.consulter',
+        'finance.ecriture.consulter',
     ]);
     const navigation = usePermissions(permissions);
 
@@ -62,6 +63,23 @@ test('AC 8 — usePermissions masque l’interface sans prétendre autoriser le 
     );
     assert.ok(navigation.moreNavigation.value.includes('Mon rapport du jour'));
     assert.ok(navigation.moreNavigation.value.includes('Rapprochement'));
+});
+
+test('Story 2.4 Task 7 — chaque rôle réel conserve Accueil sans élargir ses permissions', () => {
+    const catalog = readFileSync(new URL('../../config/permission-catalog.php', import.meta.url), 'utf8');
+
+    for (const role of ['super_admin', 'direction', 'finance', 'tuteur', 'employe', 'stagiaire']) {
+        const roleBlock = catalog.match(new RegExp(`'${role}'\\s*=>\\s*\\[([\\s\\S]*?)\\],`));
+        assert.ok(roleBlock, `Le rôle ${role} doit exister au catalogue.`);
+        const permissions = [...roleBlock[1].matchAll(/'([^']+)'/g)].map((match) => match[1]);
+        const navigation = usePermissions(ref([`role:${role}`, ...permissions]));
+
+        assert.ok(navigation.primaryNavigation.value.length > 0, `${role} doit avoir une navigation primaire.`);
+        assert.ok(navigation.primaryNavigation.value.some((item) => item.key === 'home'), `${role} doit voir Accueil.`);
+    }
+
+    const superAdmin = usePermissions(ref(['role:super_admin', 'compte.technique.gerer', 'role.gerer', 'parametre.gerer', 'journal_technique.consulter']));
+    assert.equal(superAdmin.can('tableau_bord.consulter'), false);
 });
 
 test('AC 8 — useDraft cloisonne les utilisateurs et enregistre après deux secondes', () => {
