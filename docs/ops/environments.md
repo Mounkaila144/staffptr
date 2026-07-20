@@ -8,7 +8,7 @@ VPS : l'exploitant doit exécuter puis consigner les contrôles indiqués ci-des
 | Environnement | Emplacement et URL | Base | `APP_DEBUG` | Files | Courriel | Données | Sauvegarde |
 |---|---|---|---|---|---|---|---|
 | Local | poste développeur, `http://localhost` | SQLite locale | `true` | synchrones | `log` | fictives | aucune |
-| CI | conteneurs GitHub Actions, sans URL publique | MySQL 8 `staffptr_test` éphémère | `false` | synchrones | `array` | tests | aucune |
+| CI | conteneurs GitHub Actions, sans URL publique | MySQL 8 `staffptr_test` éphémère | `true` | synchrones | `array` | tests | aucune |
 | Préproduction | VPS partagé, `https://staging.staff.ptrniger.com` | MySQL dédiée `ptrstaff_staging` | `false` | Redis | `log`, aucun envoi | restauration de production anonymisée | aucune |
 | Production | VPS partagé, `https://staff.ptrniger.com` | MySQL dédiée `ptrstaff_prod` | `false` | Redis | `log`, aucun envoi en MVP | réelles | quotidienne, story 11.1 |
 
@@ -72,6 +72,48 @@ Les index Redis 10/11 sont réservés à la préproduction et 12/13 à la produc
 du VPS. L'exploitant vérifie cette réservation avant provisionnement. Le préfixe est explicite et
 figé : il ne dépend jamais de `APP_NAME`. Sans le préfixe et les index dédiés, un
 `php artisan cache:clear` peut vider le cache des autres projets du serveur.
+
+## Amorçage du premier compte
+
+L'amorçage s'effectue depuis une session SSH ouverte avec l'utilisateur système PTR Staff, jamais
+depuis une route web. Sur une installation vide, respecter cet ordre exact :
+
+```text
+php artisan migrate --force --database=mysql_migration
+php artisan db:seed --class=RolePermissionSeeder --force
+php artisan ptr:create-first-admin
+```
+
+La dernière commande demande le nom complet et le téléphone. Elle affiche un mot de passe
+temporaire de 32 caractères une seule fois : le placer immédiatement dans le coffre prévu, car il
+n'est récupérable ni dans la base, ni dans l'audit, ni dans les journaux. En cas de perte, attendre
+la procédure de réinitialisation livrée par la story 2.8 ; ne jamais relancer l'amorçage ni modifier
+la base manuellement.
+
+Le compte reçoit uniquement le rôle technique `super_admin`, sans permission métier. Sa première
+tâche dans l'interface de la story 2.7 sera de créer les deux comptes `direction`. Jusqu'à ce que
+ces deux comptes détiennent effectivement `depense.approuver`, aucune dépense n'est approuvable ;
+l'écran de gestion des comptes 2.7 affichera l'état vide, puis l'epic 4 affichera cette condition sur
+l'écran de dépense.
+
+## Porte de déploiement des invariants
+
+Après l'amorçage et après chaque déploiement, exécuter sous le compte applicatif :
+
+```text
+php artisan ptr:check-invariants
+```
+
+Un code de sortie `0` signifie que les quatre contrôles de cette première version sont conformes.
+Tout autre code bloque le déploiement : la sortie nomme chaque écart, l'état constaté et l'état
+attendu. La commande contrôle le serveur réel — métadonnées des déclencheurs et privilèges du compte
+courant compris — et doit aussi être exécutée quotidiennement. Sa planification automatique arrive
+avec les tâches d'exploitation de l'epic 11 ; jusque-là, l'exploitant consigne son exécution
+manuelle. L'analyse de `SHOW GRANTS` accepte les formats MySQL 8 et MariaDB 10.11 ; un format inconnu
+est signalé comme un écart au lieu d'être ignoré. La migration crée la fonction serveur minimale
+`ptr_audit_trigger_exists` : elle lit `information_schema.TRIGGERS` avec les droits du compte de
+migration et n'expose qu'une réponse booléenne, sans accorder au compte applicatif le privilège
+`TRIGGER` qui lui permettrait de modifier les protections surveillées.
 
 ## DEC-05 — VPS existant partagé
 
