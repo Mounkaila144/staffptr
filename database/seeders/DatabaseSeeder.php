@@ -14,6 +14,6 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Les données initiales seront ajoutées par les stories métier.
+        $this->call(RolePermissionSeeder::class);
     }
 }
