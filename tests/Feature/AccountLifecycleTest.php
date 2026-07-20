@@ -105,14 +105,6 @@ class AccountLifecycleTest extends IdentityTestCase
     {
         $this->requireMysqlProof();
 
-        $user = User::factory()->active()->create();
-        DB::table('sessions')->insert([
-            'id' => 'session-preservee-si-audit-echoue',
-            'user_id' => $user->getKey(),
-            'payload' => base64_encode(serialize([])),
-            'last_activity' => now()->timestamp,
-        ]);
-
         $migration = DB::connection($this->migrationConnectionName());
         $migration->unprepared('DROP TRIGGER IF EXISTS audit_logs_reject_suspension_for_test');
         $migration->unprepared(<<<'SQL'
@@ -128,6 +120,14 @@ class AccountLifecycleTest extends IdentityTestCase
             SQL);
 
         try {
+            $user = User::factory()->active()->create();
+            DB::table('sessions')->insert([
+                'id' => 'session-preservee-si-audit-echoue',
+                'user_id' => $user->getKey(),
+                'payload' => base64_encode(serialize([])),
+                'last_activity' => now()->timestamp,
+            ]);
+
             try {
                 app(IdentityService::class)->changeUserState(
                     $user,
