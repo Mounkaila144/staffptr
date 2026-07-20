@@ -66,7 +66,7 @@ function normalizeNavigationItem([label, key, glyph, permission]) {
         key,
         glyph,
         permission,
-        href: key === 'home' ? '/' : `/#${key}`,
+        href: key === 'home' ? '/' : (key === 'accounts' ? '/comptes' : `/#${key}`),
     };
 }
 

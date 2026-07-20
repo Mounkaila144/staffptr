@@ -21,6 +21,29 @@ return [
         'logout' => ['method' => 'POST', 'path' => '/deconnexion'],
     ],
     'routes' => [
+        'accounts.index' => [
+            'path' => '/comptes',
+            'permission' => 'compte.gerer|compte.technique.gerer',
+            'statuses' => $statuses(['super_admin', 'direction']),
+        ],
+        'accounts.store' => [
+            'method' => 'POST',
+            'path' => '/comptes',
+            'permission' => 'compte.gerer|compte.technique.gerer',
+            'statuses' => $statuses(['super_admin', 'direction']),
+        ],
+        'accounts.roles.sync' => [
+            'method' => 'PATCH',
+            'path' => '/comptes/{user}/roles',
+            'permission' => 'compte.gerer|compte.technique.gerer',
+            'statuses' => $statuses(['super_admin', 'direction']),
+        ],
+        'accounts.archive' => [
+            'method' => 'PATCH',
+            'path' => '/comptes/{user}/archiver',
+            'permission' => 'compte.gerer|compte.technique.gerer',
+            'statuses' => $statuses(['super_admin', 'direction']),
+        ],
         'login-attempts.index' => [
             'path' => '/connexions',
             'permission' => 'connexion.consulter',

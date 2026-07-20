@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Identity\User;
-use App\Services\Identity\RoleAssignmentService;
 use App\Services\Platform\Invariants\EnvironmentInvariant;
 use App\Services\Platform\Invariants\MySqlGrantInspector;
 use App\Services\Platform\Invariants\SuperAdminPermissionInvariant;
@@ -47,9 +46,9 @@ class CheckInvariantsTest extends IdentityTestCase
     public function test_ac_11_and_12_effective_business_permission_on_super_admin_is_detected(): void
     {
         $user = User::factory()->active()->create();
-        $assignments = app(RoleAssignmentService::class);
-        $assignments->assignRole($user, 'super_admin', null, 'Test invariant');
-        $assignments->grantPermission($user, 'depense.approuver', null, 'Test invariant');
+        $user->assignRole('super_admin');
+        // Simule une donnée historique corrompue en contournant volontairement le service gardien.
+        $user->givePermissionTo('depense.approuver');
         $result = app(SuperAdminPermissionInvariant::class)->check();
 
         $this->assertFalse($result->passed);

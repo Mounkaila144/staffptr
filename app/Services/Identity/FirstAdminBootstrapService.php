@@ -16,6 +16,7 @@ class FirstAdminBootstrapService
     public function __construct(
         private readonly IdentityService $identityService,
         private readonly RoleAssignmentService $roleAssignmentService,
+        private readonly TemporaryPasswordGenerator $temporaryPasswordGenerator,
     ) {}
 
     /** @return array{user: User, temporary_password: string} */
@@ -28,7 +29,7 @@ class FirstAdminBootstrapService
                 throw new LogicException("L'amorçage est impossible car un compte existe déjà.");
             }
 
-            $temporaryPassword = bin2hex(random_bytes(16));
+            $temporaryPassword = $this->temporaryPasswordGenerator->generate();
             $person = $this->identityService->createPerson(
                 attributes: [
                     'full_name' => $fullName,

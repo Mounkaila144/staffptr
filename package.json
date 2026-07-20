@@ -5,7 +5,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "check:bundle": "node tests/ci/check-bundle-budget.mjs --manifest=public/build/manifest.json --entry=resources/js/app.js --entry=resources/js/Pages/Platform/Demo.vue --entry=resources/js/Pages/Identity/Login.vue --entry=resources/js/Pages/Identity/ChangePassword.vue --entry=resources/js/Pages/Identity/Home.vue --entry=resources/js/Pages/Identity/LoginAttempts/Index.vue --limit-kb=300",
+    "check:bundle": "node tests/ci/check-bundle-budget.mjs --manifest=public/build/manifest.json --entry=resources/js/app.js --entry=resources/js/Pages/Platform/Demo.vue --entry=resources/js/Pages/Identity/Login.vue --entry=resources/js/Pages/Identity/ChangePassword.vue --entry=resources/js/Pages/Identity/Home.vue --entry=resources/js/Pages/Identity/LoginAttempts/Index.vue --entry=resources/js/Pages/Identity/Accounts/Index.vue --limit-kb=300",
     "check:workflow-duration": "node tests/ci/check-workflow-duration.mjs",
     "test:ci-scripts": "node --test tests/ci/*.test.mjs tests/js/*.test.mjs",
     "test:e2e": "playwright test",

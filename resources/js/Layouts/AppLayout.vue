@@ -19,7 +19,9 @@ function closeMore(event) {
 }
 
 function moreHref(item) {
-    return item === 'Connexions' ? '/connexions' : '#plus';
+    if (item === 'Connexions') return '/connexions';
+    if (item === 'Comptes et rôles') return '/comptes';
+    return '#plus';
 }
 </script>
 

@@ -19,7 +19,7 @@ class AuthorizationMatrixTest extends IdentityTestCase
 
         foreach ($this->matrixRoutes() as $routeName => $entry) {
             Route::middleware(['web', 'auth', "permission:{$entry['permission']}"])
-                ->get($entry['path'], fn () => response()->noContent())
+                ->match([$entry['method'] ?? 'GET'], $entry['path'], fn () => response()->noContent())
                 ->name($routeName);
         }
     }
@@ -35,9 +35,10 @@ class AuthorizationMatrixTest extends IdentityTestCase
 
             foreach ($this->matrixRoutes() as $routeName => $entry) {
                 $expectedStatus = $entry['statuses'][$roleName];
+                $path = preg_replace('/\{[^}]+\}/', (string) $user->getKey(), $entry['path']);
 
                 $this->actingAs($user)
-                    ->get($entry['path'])
+                    ->call($entry['method'] ?? 'GET', $path ?? $entry['path'])
                     ->assertStatus($expectedStatus);
             }
         }
@@ -115,6 +116,7 @@ class AuthorizationMatrixTest extends IdentityTestCase
     /**
      * @return array<string, array{
      *     path: string,
+     *     method?: string,
      *     permission: string,
      *     statuses: array<string, int>
      * }>

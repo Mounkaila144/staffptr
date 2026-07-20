@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Identity\AccountController;
 use App\Http\Controllers\Identity\AuthenticationController;
 use App\Http\Controllers\Identity\LoginAttemptController;
 use App\Http\Controllers\Identity\PasswordController;
@@ -30,6 +31,16 @@ Route::middleware(['auth', 'account.active', 'password.changed'])->group(functio
     Route::get('/connexions', [LoginAttemptController::class, 'index'])
         ->middleware('permission:connexion.consulter')
         ->name('login-attempts.index');
+    Route::middleware('permission:compte.gerer|compte.technique.gerer')->group(function (): void {
+        Route::get('/comptes', [AccountController::class, 'index'])
+            ->name('accounts.index');
+        Route::post('/comptes', [AccountController::class, 'store'])
+            ->name('accounts.store');
+        Route::patch('/comptes/{user}/roles', [AccountController::class, 'syncRoles'])
+            ->name('accounts.roles.sync');
+        Route::patch('/comptes/{user}/archiver', [AccountController::class, 'archive'])
+            ->name('accounts.archive');
+    });
 });
 
 if (app()->environment('testing')) {
