@@ -120,7 +120,7 @@ jobs:
         run: php artisan db:show --database=mysql_migration
       - name: Migrer avec le compte privilégié
         run: php artisan migrate:fresh --database=mysql_migration --force
-      - name: Appliquer les phases 2 et 3 de la matrice de privilèges
+      - name: Appliquer les phases 2, 3 et 4 de la matrice de privilèges
         env:
           MYSQL_CONTAINER: ${{ job.services.mysql.id }}
         run: >-
@@ -135,6 +135,13 @@ jobs:
           GRANT UPDATE, DELETE ON staffptr_test.cache_locks TO 'staffptr_app_ci'@'%';
           GRANT UPDATE ON staffptr_test.people TO 'staffptr_app_ci'@'%';
           GRANT UPDATE ON staffptr_test.users TO 'staffptr_app_ci'@'%';
+          GRANT UPDATE ON staffptr_test.roles TO 'staffptr_app_ci'@'%';
+          GRANT UPDATE ON staffptr_test.permissions TO 'staffptr_app_ci'@'%';
+          GRANT UPDATE ON staffptr_test.model_has_roles TO 'staffptr_app_ci'@'%';
+          GRANT UPDATE ON staffptr_test.model_has_permissions TO 'staffptr_app_ci'@'%';
+          GRANT UPDATE ON staffptr_test.role_has_permissions TO 'staffptr_app_ci'@'%';
+          GRANT DELETE ON staffptr_test.model_has_roles TO 'staffptr_app_ci'@'%';
+          GRANT DELETE ON staffptr_test.model_has_permissions TO 'staffptr_app_ci'@'%';
           FLUSH PRIVILEGES;"
       - name: Afficher le moteur applicatif restreint
         run: php artisan db:show --database=mysql
