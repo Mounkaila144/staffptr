@@ -104,4 +104,42 @@ class AuthenticationTest extends IdentityTestCase
 
         $this->assertGuest();
     }
+
+    public function test_ac_1_invited_account_cannot_log_in(): void
+    {
+        $this->assertInactiveAccountCannotLogIn(UserState::Invite);
+    }
+
+    public function test_ac_1_suspended_account_cannot_log_in(): void
+    {
+        $this->assertInactiveAccountCannotLogIn(UserState::Suspendu);
+    }
+
+    public function test_ac_1_terminated_account_cannot_log_in(): void
+    {
+        $this->assertInactiveAccountCannotLogIn(UserState::Termine);
+    }
+
+    public function test_ac_1_archived_account_cannot_log_in(): void
+    {
+        $this->assertInactiveAccountCannotLogIn(UserState::Archive);
+    }
+
+    private function assertInactiveAccountCannotLogIn(UserState $state): void
+    {
+        $password = 'MotDePasse-Inactif-2026';
+        $user = User::factory()->create([
+            'state' => $state,
+            'password' => $password,
+        ]);
+
+        $this->from(route('login'))->post(route('login.store'), [
+            'phone' => $user->phone,
+            'password' => $password,
+        ])->assertSessionHasErrors([
+            'phone' => "Votre compte n'est pas actif. Contactez la direction.",
+        ]);
+
+        $this->assertGuest();
+    }
 }
