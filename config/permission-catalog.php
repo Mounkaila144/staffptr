@@ -39,6 +39,7 @@ $roles = [
         'finance.ecriture.creer',
         'client.consulter',
         'client.gerer',
+        'connexion.consulter',
         'part.consulter',
         'part.gerer',
         'reserve.consulter',

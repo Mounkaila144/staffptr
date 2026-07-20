@@ -140,6 +140,7 @@ jobs:
           GRANT UPDATE ON staffptr_test.model_has_roles TO 'staffptr_app_ci'@'%';
           GRANT UPDATE ON staffptr_test.model_has_permissions TO 'staffptr_app_ci'@'%';
           GRANT UPDATE ON staffptr_test.role_has_permissions TO 'staffptr_app_ci'@'%';
+          GRANT UPDATE ON staffptr_test.login_attempts TO 'staffptr_app_ci'@'%';
           GRANT DELETE ON staffptr_test.model_has_roles TO 'staffptr_app_ci'@'%';
           GRANT DELETE ON staffptr_test.model_has_permissions TO 'staffptr_app_ci'@'%';
           FLUSH PRIVILEGES;"

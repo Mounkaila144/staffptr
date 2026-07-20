@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers\Identity;
 
-use App\Enums\UserState;
+use App\Enums\LoginAuthenticationStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Identity\LoginRequest;
-use App\Models\Identity\User;
+use App\Services\Identity\LoginAttemptService;
+use App\Services\Identity\LoginSecuritySettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,6 +20,11 @@ class AuthenticationController extends Controller
 
     private const INACTIVE_ACCOUNT_MESSAGE = "Votre compte n'est pas actif. Contactez la direction.";
 
+    public function __construct(
+        private readonly LoginAttemptService $loginAttemptService,
+        private readonly LoginSecuritySettings $loginSecuritySettings,
+    ) {}
+
     public function create(): Response
     {
         return Inertia::render('Identity/Login');
@@ -26,26 +32,24 @@ class AuthenticationController extends Controller
 
     public function store(LoginRequest $request): RedirectResponse
     {
-        $credentials = $request->safe()->only(['phone', 'password']);
-        $inactiveAccount = false;
-
-        $authenticated = Auth::attemptWhen(
-            $credentials,
-            static function (User $user) use (&$inactiveAccount): bool {
-                $inactiveAccount = $user->state !== UserState::Actif;
-
-                return ! $inactiveAccount;
-            },
+        $result = $this->loginAttemptService->attempt(
+            phoneAttempted: (string) $request->validated('phone'),
+            password: (string) $request->validated('password'),
+            ipAddress: (string) $request->ip(),
+            userAgent: $request->userAgent(),
         );
 
-        if (! $authenticated) {
+        if ($result->status !== LoginAuthenticationStatus::Authenticated) {
             throw ValidationException::withMessages([
-                'phone' => $inactiveAccount
-                    ? self::INACTIVE_ACCOUNT_MESSAGE
-                    : self::INVALID_CREDENTIALS_MESSAGE,
+                'phone' => match ($result->status) {
+                    LoginAuthenticationStatus::Blocked => $this->loginSecuritySettings->blockedMessage(),
+                    LoginAuthenticationStatus::InactiveAccount => self::INACTIVE_ACCOUNT_MESSAGE,
+                    default => self::INVALID_CREDENTIALS_MESSAGE,
+                },
             ]);
         }
 
+        Auth::login($result->user);
         $request->session()->regenerate();
 
         return redirect()->intended(route('home', absolute: false));

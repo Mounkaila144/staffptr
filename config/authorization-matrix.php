@@ -21,6 +21,11 @@ return [
         'logout' => ['method' => 'POST', 'path' => '/deconnexion'],
     ],
     'routes' => [
+        'login-attempts.index' => [
+            'path' => '/connexions',
+            'permission' => 'connexion.consulter',
+            'statuses' => $statuses(['direction']),
+        ],
         'testing.authorization.dashboard.view' => [
             'path' => '/__test/authorization/dashboard',
             'permission' => 'tableau_bord.consulter',

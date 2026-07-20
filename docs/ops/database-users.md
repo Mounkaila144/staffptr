@@ -56,6 +56,7 @@ nommée.** Le niveau schéma ne porte que `SELECT, INSERT`.
 | `cache_locks` | hérité du schéma | hérité du schéma | oui | **accordé** |
 | `roles`, `permissions`, `role_has_permissions` | hérité du schéma | hérité du schéma | **explicite** | **refusé** |
 | `model_has_roles`, `model_has_permissions` | hérité du schéma | hérité du schéma | **explicite** | **accordé par exception RBAC** |
+| `login_attempts` | hérité du schéma | hérité du schéma | **explicite** | **refusé** |
 | toute table créée ultérieurement | **hérité d'office** | **hérité d'office** | **absent tant qu'il n'est pas accordé** | **refusé par défaut** |
 
 Une migration qui crée une table métier n'a donc rien à faire pour la lecture et l'insertion, mais
@@ -150,6 +151,7 @@ GRANT UPDATE ON `ptrstaff_prod`.`permissions` TO 'ptrstaff_prod_app'@'localhost'
 GRANT UPDATE ON `ptrstaff_prod`.`model_has_roles` TO 'ptrstaff_prod_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_prod`.`model_has_permissions` TO 'ptrstaff_prod_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_prod`.`role_has_permissions` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`login_attempts` TO 'ptrstaff_prod_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`people` TO 'ptrstaff_staging_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`users` TO 'ptrstaff_staging_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`roles` TO 'ptrstaff_staging_app'@'localhost';
@@ -157,6 +159,7 @@ GRANT UPDATE ON `ptrstaff_staging`.`permissions` TO 'ptrstaff_staging_app'@'loca
 GRANT UPDATE ON `ptrstaff_staging`.`model_has_roles` TO 'ptrstaff_staging_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`model_has_permissions` TO 'ptrstaff_staging_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`role_has_permissions` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`login_attempts` TO 'ptrstaff_staging_app'@'localhost';
 
 -- Phase 4 : exception RBAC revue le 20/07/2026 — état courant audité, pivots uniquement.
 GRANT DELETE ON `ptrstaff_prod`.`model_has_roles` TO 'ptrstaff_prod_app'@'localhost';
@@ -193,6 +196,13 @@ Joindre la sortie horodatée au journal d'exploitation. La revue est négative a
 7. `people` et `users`, puis chaque future table métier, portent leur ligne `GRANT UPDATE`, conformément à la consigne
    permanente en tête de ce document ;
 8. seuls les comptes de migration disposent de `GRANT OPTION`.
+
+## Actions dues à l'exploitant pour la story 2.6
+
+Après la migration de `login_attempts`, exécuter les deux lignes `GRANT UPDATE` de phase 3 sur la
+préproduction puis sur la production avec le compte de migration de chaque environnement. Joindre
+les sorties `SHOW GRANTS` horodatées au journal d'exploitation et vérifier explicitement que
+`DELETE` reste absent sur `login_attempts`.
 
 ## Actions dues à l'exploitant pour la story 2.2
 

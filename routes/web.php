@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Identity\AuthenticationController;
+use App\Http\Controllers\Identity\LoginAttemptController;
 use App\Http\Controllers\Identity\PasswordController;
 use App\Http\Controllers\Platform\HealthController;
 use Illuminate\Http\Response;
@@ -26,6 +27,9 @@ Route::middleware(['auth', 'account.active', 'password.changed'])->group(functio
         ->name('password.change.update');
     Route::post('/deconnexion', [AuthenticationController::class, 'destroy'])
         ->name('logout');
+    Route::get('/connexions', [LoginAttemptController::class, 'index'])
+        ->middleware('permission:connexion.consulter')
+        ->name('login-attempts.index');
 });
 
 if (app()->environment('testing')) {

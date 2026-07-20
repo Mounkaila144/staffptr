@@ -163,14 +163,14 @@ class DatabasePrivilegeContractTest extends TestCase
             );
         }
 
-        foreach (['people', 'users', 'roles', 'permissions', 'model_has_roles', 'model_has_permissions', 'role_has_permissions'] as $table) {
+        foreach (['people', 'users', 'roles', 'permissions', 'model_has_roles', 'model_has_permissions', 'role_has_permissions', 'login_attempts'] as $table) {
             $this->assertStringContainsString(
                 "GRANT UPDATE ON staffptr_test.{$table} TO 'staffptr_app_ci'@'%';",
                 $workflow,
             );
         }
 
-        foreach (['people', 'users', 'roles', 'permissions', 'role_has_permissions'] as $table) {
+        foreach (['people', 'users', 'roles', 'permissions', 'role_has_permissions', 'login_attempts'] as $table) {
             $this->assertStringNotContainsString(
                 "GRANT UPDATE, DELETE ON staffptr_test.{$table}",
                 $workflow,
@@ -212,7 +212,7 @@ class DatabasePrivilegeContractTest extends TestCase
         $this->assertStringContainsString('cumulatifs', $documentation);
 
         foreach (['ptrstaff_prod', 'ptrstaff_staging'] as $schema) {
-            foreach (['people', 'users', 'roles', 'permissions', 'model_has_roles', 'model_has_permissions', 'role_has_permissions'] as $table) {
+            foreach (['people', 'users', 'roles', 'permissions', 'model_has_roles', 'model_has_permissions', 'role_has_permissions', 'login_attempts'] as $table) {
                 $this->assertStringContainsString(
                     "GRANT UPDATE ON `{$schema}`.`{$table}` TO",
                     $documentation,
@@ -316,6 +316,18 @@ class DatabasePrivilegeContractTest extends TestCase
         $this->assertStringContainsString('GRANT DELETE ON', $migration);
         $this->assertStringContainsString("'model_has_permissions'", $migration);
         $this->assertStringContainsString("'model_has_roles'", $migration);
+        $this->assertStringContainsString("config('audit.database.app_username')", $migration);
+        $this->assertStringContainsString("config('audit.database.app_host')", $migration);
+    }
+
+    public function test_story_2_6_login_attempt_migration_grants_update_without_delete(): void
+    {
+        $migration = $this->readFile(
+            'database/migrations/2026_07_20_132351_create_login_attempts_table.php',
+        );
+
+        $this->assertStringContainsString('GRANT UPDATE ON', $migration);
+        $this->assertStringNotContainsString('GRANT DELETE', $migration);
         $this->assertStringContainsString("config('audit.database.app_username')", $migration);
         $this->assertStringContainsString("config('audit.database.app_host')", $migration);
     }

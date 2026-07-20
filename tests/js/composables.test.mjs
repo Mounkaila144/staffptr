@@ -80,6 +80,10 @@ test('Story 2.4 Task 7 — chaque rôle réel conserve Accueil sans élargir ses
 
     const superAdmin = usePermissions(ref(['role:super_admin', 'compte.technique.gerer', 'role.gerer', 'parametre.gerer', 'journal_technique.consulter']));
     assert.equal(superAdmin.can('tableau_bord.consulter'), false);
+    assert.equal(superAdmin.moreNavigation.value.includes('Connexions et sessions'), false);
+
+    const direction = usePermissions(ref(['role:direction', 'connexion.consulter']));
+    assert.ok(direction.moreNavigation.value.includes('Connexions'));
 });
 
 test('AC 8 — useDraft cloisonne les utilisateurs et enregistre après deux secondes', () => {

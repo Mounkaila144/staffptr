@@ -56,7 +56,7 @@ const navigationByRole = {
             ['Paramètres', 'settings', '⚙', 'parametre.gerer'],
             ['Journaux', 'logs', '▤', 'journal_technique.consulter'],
         ],
-        more: ["Connexions et sessions", "Santé de l'application", 'Profil', 'Déconnexion'],
+        more: ["Santé de l'application", 'Profil', 'Déconnexion'],
     },
 };
 

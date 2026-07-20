@@ -6,15 +6,22 @@ use App\Enums\UserState;
 use App\Support\Auditing\Auditable;
 use App\Support\PhoneNumber;
 use App\Support\PreventsPhysicalDeletion;
+use Carbon\CarbonImmutable;
 use Database\Factories\Identity\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Spatie\Permission\Traits\HasRoles;
 
-/** @property UserState $state */
+/**
+ * @property UserState $state
+ * @property int $failed_attempts
+ * @property CarbonImmutable|null $locked_until
+ * @property Person $person
+ */
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -40,6 +47,12 @@ class User extends Authenticatable
     public function person(): BelongsTo
     {
         return $this->belongsTo(Person::class);
+    }
+
+    /** @return HasMany<LoginAttempt, $this> */
+    public function loginAttempts(): HasMany
+    {
+        return $this->hasMany(LoginAttempt::class);
     }
 
     /**
