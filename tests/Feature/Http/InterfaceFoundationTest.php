@@ -17,7 +17,7 @@ class InterfaceFoundationTest extends TestCase
                 ->has('auth.permissions', 8)
                 ->where('auth.permissions.0', 'role:direction')
                 ->where('auth.permissions.1', 'role:finance')
-                ->where('auth.permissions.2', 'navigation.home'));
+                ->where('auth.permissions.2', 'tableau_bord.consulter'));
     }
 
     public function test_ac_1_default_shared_permissions_contract_is_empty(): void

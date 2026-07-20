@@ -17,6 +17,13 @@ function closeMore(event) {
         moreOpen.value = false;
     }
 }
+
+function moreHref(item) {
+    if (item === 'Connexions') return '/connexions';
+    if (item === 'Comptes et rôles') return '/comptes';
+    if (item === "Journal d'audit") return '/journal-audit';
+    return '#plus';
+}
 </script>
 
 <template>
@@ -47,7 +54,7 @@ function closeMore(event) {
                 </li>
             </ul>
             <ul v-if="moreOpen" id="more-navigation" class="mt-2 max-h-[45vh] overflow-y-auto border-t border-separator pt-2">
-                <li v-for="item in moreNavigation" :key="item"><a href="#plus" class="touch-target flex items-center rounded-lg px-3 text-sm text-ink-secondary">{{ item }}</a></li>
+                <li v-for="item in moreNavigation" :key="item"><a :href="moreHref(item)" class="touch-target flex items-center rounded-lg px-3 text-sm text-ink-secondary">{{ item }}</a></li>
             </ul>
         </nav>
 
@@ -70,7 +77,7 @@ function closeMore(event) {
             </ul>
             <div v-if="moreOpen" id="mobile-more-navigation" class="absolute inset-x-0 bottom-14 max-h-[60vh] overflow-y-auto border-t border-separator bg-surface p-3 shadow-xl">
                 <p class="mb-2 font-semibold">Plus</p>
-                <ul class="grid gap-2"><li v-for="item in moreNavigation" :key="item"><a href="#plus" class="touch-target flex items-center rounded-lg px-3 text-ink-secondary">{{ item }}</a></li></ul>
+                <ul class="grid gap-2"><li v-for="item in moreNavigation" :key="item"><a :href="moreHref(item)" class="touch-target flex items-center rounded-lg px-3 text-ink-secondary">{{ item }}</a></li></ul>
             </div>
         </nav>
     </div>

@@ -39,6 +39,13 @@ export function collectAssets(manifest, entries) {
     return [...assets].sort();
 }
 
+export function collectIncrementalAssets(manifest, entries, sharedEntries = []) {
+    const sharedAssets = new Set(collectAssets(manifest, sharedEntries));
+
+    return collectAssets(manifest, entries)
+        .filter((asset) => !sharedAssets.has(asset));
+}
+
 export function isWithinBudget(totalBytes, limitBytes) {
     return totalBytes <= limitBytes;
 }
@@ -61,6 +68,7 @@ function argumentValues(name) {
 function run() {
     const manifestPath = argumentValues('manifest')[0] ?? 'public/build/manifest.json';
     const entries = argumentValues('entry');
+    const sharedEntries = argumentValues('shared-entry');
     const limitKb = Number(argumentValues('limit-kb')[0] ?? DEFAULT_LIMIT_KB);
 
     if (entries.length === 0 || !Number.isFinite(limitKb) || limitKb <= 0) {
@@ -69,7 +77,7 @@ function run() {
 
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
     const buildDirectory = dirname(manifestPath);
-    const assets = collectAssets(manifest, entries);
+    const assets = collectIncrementalAssets(manifest, entries, sharedEntries);
     const measuredAssets = assets.map((asset) => ({
         asset,
         compressedBytes: compressedSize(readFileSync(resolve(buildDirectory, asset))),
