@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Spatie\Permission\Traits\HasRoles;
 
+/** @property UserState $state */
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */

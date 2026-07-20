@@ -133,6 +133,26 @@ class IdentityService
         );
     }
 
+    public function changePassword(
+        User $user,
+        string $password,
+        ?int $actorId,
+        string $actorLabel,
+        string $reason,
+    ): User {
+        return $this->updateAudited(
+            $user,
+            [
+                'password' => $password,
+                'must_change_password' => false,
+            ],
+            $actorId,
+            $actorLabel,
+            'password_changed',
+            $reason,
+        );
+    }
+
     /**
      * @template TModel of Model
      *
