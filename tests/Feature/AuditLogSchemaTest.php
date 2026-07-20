@@ -75,12 +75,22 @@ class AuditLogSchemaTest extends AuditTestCase
 
     public function test_ac_1_audit_migration_precedes_every_business_model(): void
     {
-        $migration = collect(glob(database_path('migrations/*.php')) ?: [])
+        $migrations = collect(glob(database_path('migrations/*.php')) ?: []);
+        $auditMigration = $migrations
             ->first(fn (string $path): bool => str_contains($path, 'create_audit_logs_table'));
+        $peopleMigration = $migrations
+            ->first(fn (string $path): bool => str_contains($path, 'create_people_table'));
+        $usersMigration = $migrations
+            ->first(fn (string $path): bool => str_contains($path, 'create_users_table'));
 
-        $this->assertIsString($migration);
+        $this->assertIsString($auditMigration);
+        $this->assertIsString($peopleMigration);
+        $this->assertIsString($usersMigration);
+        $this->assertLessThan($peopleMigration, $auditMigration);
+        $this->assertLessThan($usersMigration, $peopleMigration);
         $this->assertFileDoesNotExist(app_path('Models/User.php'));
-        $this->assertFalse($this->migrationSchema()->hasTable('users'));
+        $this->assertTrue($this->migrationSchema()->hasTable('people'));
+        $this->assertTrue($this->migrationSchema()->hasTable('users'));
     }
 
     public function test_ac_3_sqlite_limitations_and_mysql_barriers_are_documented(): void

@@ -154,6 +154,17 @@ class DatabasePrivilegeContractTest extends TestCase
             );
         }
 
+        foreach (['people', 'users'] as $table) {
+            $this->assertStringContainsString(
+                "GRANT UPDATE ON staffptr_test.{$table} TO 'staffptr_app_ci'@'%';",
+                $workflow,
+            );
+            $this->assertStringNotContainsString(
+                "GRANT UPDATE, DELETE ON staffptr_test.{$table}",
+                $workflow,
+            );
+        }
+
         preg_match_all(
             "/GRANT ([^;]+?) ON staffptr_test\.\* TO 'staffptr_app_ci'@'%'/i",
             $workflow,
@@ -176,6 +187,15 @@ class DatabasePrivilegeContractTest extends TestCase
         $this->assertStringContainsString('story 2.1', $header);
         $this->assertStringContainsString('GRANT UPDATE', $header);
         $this->assertStringContainsString('cumulatifs', $documentation);
+
+        foreach (['ptrstaff_prod', 'ptrstaff_staging'] as $schema) {
+            foreach (['people', 'users'] as $table) {
+                $this->assertStringContainsString(
+                    "GRANT UPDATE ON `{$schema}`.`{$table}` TO",
+                    $documentation,
+                );
+            }
+        }
     }
 
     /**
@@ -236,6 +256,21 @@ class DatabasePrivilegeContractTest extends TestCase
 
         foreach (array_keys($this->accounts()) as $account) {
             $this->assertStringNotContainsString($account, $migration);
+        }
+    }
+
+    public function test_ac_1_identity_migrations_grant_update_without_delete(): void
+    {
+        foreach ([
+            'database/migrations/2026_07_19_230525_create_people_table.php',
+            'database/migrations/2026_07_19_230526_create_users_table.php',
+        ] as $migrationPath) {
+            $migration = $this->readFile($migrationPath);
+
+            $this->assertStringContainsString('GRANT UPDATE ON', $migration);
+            $this->assertStringNotContainsString('GRANT DELETE', $migration);
+            $this->assertStringContainsString("config('audit.database.app_username')", $migration);
+            $this->assertStringContainsString("config('audit.database.app_host')", $migration);
         }
     }
 

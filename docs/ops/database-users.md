@@ -132,9 +132,10 @@ GRANT UPDATE, DELETE ON `ptrstaff_staging`.`cache_locks` TO 'ptrstaff_staging_ap
 
 -- Phase 3 : tables métier, à compléter story par story à partir de 2.1.
 -- Une ligne GRANT UPDATE par table métier créée. Jamais de DELETE.
--- Exemple, à décommenter lorsque la table existera :
--- GRANT UPDATE ON `ptrstaff_prod`.`users` TO 'ptrstaff_prod_app'@'localhost';
--- GRANT UPDATE ON `ptrstaff_staging`.`users` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`people` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`users` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`people` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`users` TO 'ptrstaff_staging_app'@'localhost';
 ```
 
 Le réglage global `log_bin_trust_function_creators` ne figure volontairement pas dans ce modèle :
@@ -161,7 +162,13 @@ Joindre la sortie horodatée au journal d'exploitation. La revue est négative a
 4. les comptes applicatifs n'ont aucun `DELETE` sur une table métier ;
 5. `audit_logs` ne reçoit ni `UPDATE` ni `DELETE`, à aucun niveau ;
 6. les six tables d'infrastructure accordent bien `UPDATE, DELETE` ;
-7. chaque table métier existante porte sa ligne `GRANT UPDATE`, conformément à la consigne
+7. `people` et `users`, puis chaque future table métier, portent leur ligne `GRANT UPDATE`, conformément à la consigne
    permanente en tête de ce document ;
 8. seuls les comptes de migration disposent de `GRANT OPTION`.
 
+## Actions dues à l'exploitant pour la story 2.1
+
+Après déploiement des migrations, exécuter les quatre lignes de phase 3 ci-dessus sur la
+préproduction puis sur la production, avec le compte de migration de chaque environnement. Joindre
+les sorties `SHOW GRANTS` horodatées au journal d'exploitation. Aucun droit `DELETE` ne doit être
+ajouté sur `people` ou `users`.
