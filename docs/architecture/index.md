@@ -16,7 +16,7 @@ Ils font foi ; les sections numérotées ci-dessous en sont le détail.
 | [`database-schema.md`](database-schema.md) | Ordre des migrations, règles non négociables | stories backend |
 | [`backend-architecture.md`](backend-architecture.md) | Contrôleurs, services, policies, transactions | stories backend |
 | [`rest-api-spec.md`](rest-api-spec.md) | *Aucune API publique* | stories backend |
-| [`external-apis.md`](external-apis.md) | *Aucune intégration externe en MVP* | stories backend |
+| [`external-apis.md`](external-apis.md) | *WhatsApp (Evolution API, DEC-15), seule intégration externe en MVP* | stories backend |
 | [`frontend-architecture.md`](frontend-architecture.md) | Inertia, contraintes de poids et de rendu | stories front |
 | [`components.md`](components.md) | Système de design propre, composants transverses | stories front |
 | [`core-workflows.md`](core-workflows.md) | Sept parcours critiques | stories front |

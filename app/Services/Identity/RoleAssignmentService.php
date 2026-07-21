@@ -12,7 +12,10 @@ use Spatie\Permission\Models\Role;
 
 class RoleAssignmentService
 {
-    public function __construct(private readonly AuditLogger $auditLogger) {}
+    public function __construct(
+        private readonly AuditLogger $auditLogger,
+        private readonly UserHistoryService $userHistoryService,
+    ) {}
 
     public function assignRole(
         User $user,
@@ -197,6 +200,17 @@ class RoleAssignmentService
                 newValues: [$key => $newValues],
                 reason: $reason,
             );
+
+            if ($key === 'roles') {
+                $this->userHistoryService->record(
+                    user: $user,
+                    field: 'roles',
+                    oldValue: $this->userHistoryService->rolesSnapshot($oldValues),
+                    newValue: $this->userHistoryService->rolesSnapshot($newValues),
+                    actor: $this->userHistoryService->actor($actorId),
+                    reason: $reason,
+                );
+            }
 
             $user->unsetRelation('roles');
             $user->unsetRelation('permissions');

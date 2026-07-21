@@ -14,8 +14,10 @@ appliqué selon la recommandation tant que vous n'en décidez pas autrement.
 | **DEC-07** | Suivi des erreurs | Sentry auto-hébergé, ou fichiers seuls | Étape 1 |
 | **DEC-08** | Q11 — pièces jointes | PDF, JPEG, PNG, WebP, HEIC — 8 Mo | Étape 1 — Story pièces jointes |
 | **DEC-09** | Q6 — comptes financiers réels | Liste attendue | **Jalon 4 — Story 8.1** |
-| **DEC-10** | Q9 — vérification d'identité | Procédure humaine à écrire | Jalon 1 — Story 2.8 |
+| **DEC-10** | Q9 — vérification d'identité | ✅ **Tranché 20/07/2026** — code de confirmation WhatsApp, § 7.4 | Jalon 1 — Story 2.8 |
 | **DEC-11** | Q12 — conservation 10 ans | Confirme NFR26 et le disque | Étape 4 |
+| **DEC-15** | Fournisseur du canal WhatsApp | ✅ **Tranché 20/07/2026** — Evolution API 2.3.7, coûts au § 9.4bis | Jalon 1 — Story 3.7 |
+| **DEC-16** | Q18 — portée et consentement WhatsApp | ✅ **Tranché 20/07/2026** — toutes les notifications de FR31, sans refus par l'utilisateur | Jalon 1 — Story 3.7 |
 
 **Contradictions PRD toujours ouvertes, rappelées ici parce qu'elles pèsent sur le modèle de
 données de l'Étape 4 :**

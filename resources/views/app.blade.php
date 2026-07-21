@@ -4,6 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#F7F7F5">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
         @if (($page['component'] ?? null) === 'Identity/Login')
             <title>Connexion — PTR Staff</title>
         @endif

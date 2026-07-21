@@ -2,28 +2,31 @@
 
 namespace App\Services\Identity;
 
+use App\Services\Platform\SettingsService;
 use InvalidArgumentException;
 
 final class LoginSecuritySettings
 {
+    public function __construct(private readonly SettingsService $settingsService) {}
+
     public function maxFailedAttempts(): int
     {
-        return $this->positiveInteger('max_failed_attempts');
+        return $this->settingsService->loginMaxFailedAttempts();
     }
 
     public function lockoutMinutes(): int
     {
-        return $this->positiveInteger('lockout_minutes');
+        return $this->settingsService->loginLockoutMinutes();
     }
 
     public function rateLimitAttempts(): int
     {
-        return $this->positiveInteger('rate_limit_attempts');
+        return $this->positiveConfigInteger('rate_limit_attempts');
     }
 
     public function rateLimitDecaySeconds(): int
     {
-        return $this->positiveInteger('rate_limit_decay_seconds');
+        return $this->positiveConfigInteger('rate_limit_decay_seconds');
     }
 
     public function blockedMessage(): string
@@ -34,7 +37,7 @@ final class LoginSecuritySettings
         );
     }
 
-    private function positiveInteger(string $key): int
+    private function positiveConfigInteger(string $key): int
     {
         $value = config("login-security.{$key}");
 

@@ -162,7 +162,7 @@ uniforme.
 | **DEC-06** | Hébergeur des sauvegardes hors site — **la donnée quitte le Niger** | **Bloque la mise en production du Jalon 1** (11.1) | Direction — décision non technique |
 | **CONTRA-03** | Aucune soupape d'exception à la double approbation | **Avant 4.5** — le renversement après mise en production coûterait cher | Direction |
 | ~~DEC-05~~ | ✅ **Tranché 19/07/2026** — préprod et production sur le VPS **existant, partagé** avec d'autres projets | — | Direction |
-| **DEC-10** | Q9 — vérification d'identité à la réinitialisation | Avant 2.8 | Direction — procédure humaine |
+| ~~DEC-10~~ | ✅ **Tranché 20/07/2026** — code de confirmation envoyé sur le **WhatsApp enregistré de la cible** (DEC-15), saisi par l'auteur avant génération du mot de passe temporaire ; jamais le mot de passe temporaire lui-même | — | Direction |
 | **DEC-08** | Q11 — types et taille des pièces jointes | Avant 3.5 — défaut appliqué : PDF/JPEG/PNG/WebP/HEIC, 8 Mo | Direction |
 | **DEC-07** | Suivi des erreurs — Sentry auto-hébergé ou fichiers seuls | Avant 11.3 | Direction |
 | **CONTRA-01** | Base des parts — prévisionnel + régularisation, ou versement à la clôture | **Avant le modèle financier de l'Epic 8** | Direction |
@@ -172,6 +172,8 @@ uniforme.
 | **CONTRA-07** | L'alerte rouge n'a aucun effet sur les parts | Avant 9.2 | Direction |
 | **DEC-11** | Q12 — conservation 10 ans | Avant 11.1 (dimensionnement disque) | Direction |
 | DEC-01 à DEC-04 | Fuseau UTC, tests MySQL, `spatie/laravel-permission`, Redis | Appliqués par défaut, révocables | Architecte |
+| ~~DEC-15~~ | ✅ **Tranché 20/07/2026** — canal **WhatsApp** intégré au MVP via **Evolution API 2.3.7** (`WHATSAPP-BAILEYS`), pour les notifications sortantes de FR34 uniquement. Coût : dépendance à un service tiers non officiel (risque de restriction du numéro par Meta), clé d'administration globale à protéger, accès actuel en HTTP sans TLS à corriger **avant mise en service** (architecture § 9.4bis) | — | Direction |
+| ~~DEC-16~~ | ✅ **Tranché 20/07/2026** — **toutes** les notifications de FR31 sont relayées sur WhatsApp, sans mécanisme de refus par l'utilisateur ; chaque compte est garanti porteur d'un numéro WhatsApp actif (postulat opérationnel de la direction) | — | Direction |
 
 **Impact si renversé** — seul CONTRA-03 est coûteux : il introduirait un état et un circuit
 dérogatoires dans un mécanisme déjà en production. CONTRA-01 est contenu (`ShareCalculator` prend la
@@ -493,8 +495,9 @@ n'immobilise personne une journée.* — [PRD 1.5, FR6]
 4. Elle produit une entrée d'audit nommant **l'auteur et la cible**.
 5. La procédure de vérification d'identité hors application est référencée à l'écran et documentée dans `docs/ops/`.
 
-> **DEC-10 / Q9 en attente.** Quelle vérification d'identité exactement avant réinitialisation. La
-> procédure est humaine ; l'application n'en trace que le résultat.
+> **DEC-10 — tranché le 20/07/2026.** Code de confirmation envoyé sur le WhatsApp enregistré de la
+> cible (DEC-15), saisi par l'auteur avant génération du mot de passe temporaire — jamais le mot de
+> passe temporaire lui-même. Voir `architecture/7-authentification-par-tlphone-et-mot-de-passe.md#74-réinitialisation--fr6--q9`.
 
 ---
 
@@ -655,11 +658,11 @@ Livrée ici et non au Jalon 4 : les relances de double approbation (4.6) et les 
 (6.2) en dépendent — voir ÉCART-02.
 
 1. Un centre de notifications avec **compteur de non-lues** est accessible depuis toute page authentifiée.
-2. Le système de notifications Laravel est utilisé avec le **canal `database` seul** (A-07) ; l'architecture permet d'ajouter SMS ou WhatsApp en phase 2 sans refonte.
+2. Le système de notifications Laravel est utilisé avec **deux canaux** : `database` toujours, et **WhatsApp** (Evolution API, DEC-15) pour **toutes** les notifications (A-07, DEC-16 — tout compte est garanti porteur d'un numéro actif) ; l'architecture permet d'ajouter SMS de la même façon en phase 2, sans refonte.
 3. Chaque notification porte un **lien direct vers l'objet concerné**.
 4. ⛔ Depuis la notification, l'objet lié est atteignable en **au plus 3 interactions**, prouvé ici sur une notification générique et son lien autorisé (FR32). **La mesure sur les deux parcours réels est faite là où ils naissent** : approbation de dépense en **4.6**, validation de rapport en **6.3**.
 5. Une notification est marquée lue **explicitement** par l'utilisateur ou **implicitement** à l'ouverture de l'objet ; les deux comportements sont testés.
-6. ⛔ Aucun envoi SMS, WhatsApp ou courriel n'est déclenché ; un test vérifie qu'aucun canal externe n'est appelé (FR34).
+6. ⛔ Aucun envoi **SMS ni courriel** n'est déclenché ; **WhatsApp est appelé pour toute notification** ; un test vérifie qu'aucun canal non autorisé n'est appelé (FR34).
 7. État vide : « Vous êtes à jour. » — ton positif, le vide étant ici une bonne nouvelle.
 8. Le compteur ne provoque pas de requête à chaque navigation : il est porté par la réponse Inertia partagée.
 
@@ -685,7 +688,7 @@ engagement soit opposable.* — [PRD 3.13] — **avancée au Jalon 1, voir ÉCAR
 1. Chaque membre a une fiche complète avec responsable direct, et la chaîne hiérarchique est sans cycle.
 2. Les paramètres livrés à ce jalon — jours travaillés, heure limite, délai de rappel, limite de stagiaires, pourcentage et objectif de réserve, types et taille des pièces jointes, tentatives et durée de blocage — sont modifiables à l'écran, et un test prouve pour chacun le changement de comportement **sans redéploiement**. Les quatre familles restantes de FR25 arrivent en 4.1, 4.3, 7.6 et 8.2.
 3. ⛔ Aucune pièce jointe n'est atteignable par URL publique ; le refus de type et de taille est prouvé côté serveur.
-4. Le centre de notifications fonctionne et **aucun canal externe n'est appelé**.
+4. Le centre de notifications fonctionne ; **aucun canal non autorisé n'est appelé** — WhatsApp est appelé pour toute notification (FR34).
 5. Le règlement intérieur est publié et l'état des acceptations est visible par `direction`.
 6. La campagne d'autorisation couvre les nouvelles ressources, dossiers personnels compris.
 
@@ -1526,7 +1529,7 @@ afin de ne rien découvrir en retard.* — [FR31, reste]
 1 bis. La notification de **fin de contrat ou de stage proche** consomme le service exposé en **3.2 AC4**, qui n'émettait rien faute de centre de notifications à ce jalon. ⛔ Un test vérifie que l'échéance détectée en 3.2 produit bien une notification ici.
 2. ⛔ Chaque notification permet d'atteindre l'action attendue en **au plus 3 interactions** ; mesuré pour les trois plus fréquentes.
 3. Les tâches planifiées d'émission sont **idempotentes** : un test rejoue la tâche et vérifie qu'aucune notification n'est dupliquée.
-4. ⛔ **Aucun canal externe n'est appelé** ; testé à nouveau en fin de MVP (FR34).
+4. ⛔ **Seul WhatsApp est appelé, jamais SMS ni courriel** ; testé à nouveau en fin de MVP sur les onze événements de FR31 (FR34).
 5. Une notification dont l'objet a été supprimé du périmètre de l'utilisateur n'expose pas son contenu ; l'accès est refusé proprement.
 6. La file d'attente est supervisée (11.3) : un travail échoué est visible et alerte.
 
@@ -1539,7 +1542,7 @@ afin de ne rien découvrir en retard.* — [FR31, reste]
 3. La dépendance avant de 7.3 est fermée : l'activation d'un compte en rouge est refusée, testée.
 4. Le tableau de bord direction se rend **sous 3 secondes en 3G** et reste lisible à 320 px.
 5. Aucun bloc de tableau de bord non autorisé n'est rendu, même vide.
-6. Toutes les notifications de FR31 existent, idempotentes, sans canal externe.
+6. Toutes les notifications de FR31 existent, **idempotentes** — une tâche rejouée n'envoie jamais deux fois le même message WhatsApp réel à la même personne — et seul WhatsApp est appelé, jamais SMS ni courriel.
 
 ---
 
@@ -1702,7 +1705,7 @@ cesse d'être une intention.* — [NFR25]
 *En tant qu'exploitant, je veux être averti d'une panne avant les utilisateurs, afin qu'une
 interruption ne se découvre pas par un appel téléphonique.*
 
-1. Surveillance externe (UptimeRobot ou équivalent) sur `/up`, avec **alerte SMS** — le canal externe est ici légitime : il concerne l'exploitation, pas les notifications applicatives interdites par FR34.
+1. Surveillance externe (UptimeRobot ou équivalent) sur `/up`, avec **alerte SMS** — le canal externe est ici légitime : il concerne l'exploitation, pas le canal WhatsApp que FR34 réserve aux notifications applicatives.
 2. `queue:monitor` alerte sur les travaux échoués et sur une file qui s'allonge anormalement.
 3. `backup:monitor` alerte sur l'absence de sauvegarde récente (11.1).
 4. `DB::whenQueryingForLongerThan(500ms)` écrit dans un journal d'alerte ; les requêtes lentes sont revues à chaque jalon.
@@ -1746,7 +1749,7 @@ que le test de restauration soit une vérification continue plutôt qu'une théo
 
    Le basculement d'un régime à l'autre est explicite et documenté ; il ne se déduit pas.
 4. Aucune donnée personnelle réelle ne subsiste après anonymisation ; un test parcourt les colonnes sensibles et échoue s'il en trouve.
-5. La préproduction ne reçoit **aucune sauvegarde** et n'envoie aucune notification externe.
+5. La préproduction ne reçoit **aucune sauvegarde** et **n'appelle jamais l'API WhatsApp réelle** — le canal est désactivé ou pointé vers une instance de test **par configuration d'environnement**, indépendamment de la réussite de l'anonymisation. ⛔ **La garde ne repose pas sur la qualité de l'anonymisation** : si elle reposait sur des numéros anonymisés, un échec ou une incomplétude de la Task 1 enverrait de vrais messages WhatsApp à de vraies personnes. Un test vérifie qu'aucun appel HTTP sortant vers Evolution API n'est possible en préproduction, y compris si un numéro anonymisé était mal remplacé.
 6. La procédure d'alimentation est documentée dans `docs/ops/`.
 
 ---
@@ -1879,8 +1882,9 @@ d'autorisation), 9.6 (notifications métier complètes), 10.4 (invariants), 10.5
 Rappelé ici pour qu'aucune story du MVP n'aille au-devant de ces sujets. Par ordre de valeur
 décroissante (PRD § 3.2) : présence complète et pointage ; clients et ventes complets ; abonnements
 SaaS et commissions récurrentes ; exports PDF et Excel ; réunions et décisions ; workflow de
-recrutement complet ; notifications SMS / WhatsApp ; 2FA et réinitialisation par OTP ; PWA
-installable et brouillons hors ligne ; matériel et accès numériques ; rôle Auditeur lecture seule.
+recrutement complet ; notifications SMS *(WhatsApp est intégré au MVP — DEC-15, FR34)* ; 2FA et
+réinitialisation en libre-service par code WhatsApp ; PWA installable et brouillons hors ligne ;
+matériel et accès numériques ; rôle Auditeur lecture seule.
 
 **Deux exigences structurelles anticipent la phase 2 sans la livrer**, et ne doivent pas être
 retirées comme du superflu :
@@ -1901,3 +1905,5 @@ employés, application native, multi-entreprise.
 | 18/07/2026 | 1.0 | Plan d'exécution initial. 11 epics, 82 stories, 4 jalons. Couvre les 51 stories du PRD et comble dix manques : CI, sécurité HTTP, socle d'interface, amorçage du premier administrateur, données initiales, campagne d'autorisation, sauvegarde, restauration, supervision et livraison. Trois écarts d'ordonnancement signalés au § 4. | John (PM) |
 | 18/07/2026 | 1.1 | Corrections après revue PO : compte de stories PRD rétabli à 51 ; couverture FR confirmée 176/176. | John (PM) |
 | 18/07/2026 | 1.2 | **Séquencement corrigé — 24 corrections issues de la revue PO.** Les sept dépendances avant intra-epic sont levées : notification de fin de contrat (3.2 → 9.6), tableau de bord personnel livré par incréments (5.8 → 6.1, 6.6, 7.5), test de solde reporté (8.1 → 8.6), statuts de facture (8.4 → 8.5), calcul des parts (8.5 → 8.7), `MonthGuard` avancé en 8.5, calculateur d'alerte créé en 8.13 et réutilisé en 9.1, `ptr:check-invariants` créée en 2.3 puis enrichie en 4.5, 11.1 et 10.4. NFR27 couverte par 10.5 AC9. Ajouts : table de couverture NFR 32/32, registre complet des arbitrages, dépôt git et README en 1.1. Trois défauts d'exploitation corrigés : `/up` n'expose la sauvegarde qu'à partir de 11.1, le journal de restauration sort du `docs/` d'une release, la préproduction a un régime d'amorçage distinct. | John (PM) |
+| 20/07/2026 | 1.3 | **Canal WhatsApp intégré au MVP** (DEC-15, Evolution API 2.3.7) : story 3.7 (AC2, AC6) et critères de fin de l'epic 3 transformés — plus de canal `database` seul, garde contre tout canal non autorisé au lieu de tout canal externe ; story 9.6 (AC4) et critères de fin de l'epic 9 alignés, avec l'idempotence renforcée face à un canal réel ; story 11.3 clarifiée sur la distinction exploitation / applicatif ; story 11.5 renforcée — la garde préproduction contre un envoi WhatsApp réel ne dépend plus de la qualité de l'anonymisation. Nouvelle question ouverte DEC-16 (Q18, portée et consentement). Phase 2 : WhatsApp retiré, SMS conservé. | John (PM) |
+| 20/07/2026 | 1.4 | **DEC-10 et DEC-16 tranchés par la direction.** DEC-10 : code de confirmation WhatsApp envoyé au numéro enregistré de la cible avant réinitialisation (story 2.8). DEC-16 : toutes les notifications de FR31 sont éligibles, sans mécanisme de refus, chaque compte étant garanti porteur d'un numéro WhatsApp actif — simplification des AC de 3.7 et 9.6, qui ne distinguent plus de types éligibles par paramétrage. | John (PM) |

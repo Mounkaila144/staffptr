@@ -33,7 +33,7 @@ uniforme.
 | ~~DEC-12~~ | ✅ **Tranché 19/07/2026** — préprod et production sur **MariaDB 10.11** (instance existante du VPS de DEC-05) au lieu de MySQL 8 ; la divergence CI (MySQL 8) / production est assumée ; adaptation d'exploitation : `SET GLOBAL` + fichier de conf au lieu de `SET PERSIST` | — | Direction |
 | ~~DEC-13~~ | ✅ **Tranché 19/07/2026** — serveur web **Apache 2.4** (déjà en place sur le VPS partagé de DEC-05) au lieu de Nginx ; les pièces jointes contrôlées passent par **`X-Sendfile`** (`mod_xsendfile`) au lieu de `X-Accel-Redirect`, même propriété « PHP valide, le serveur transmet » ; certbot Apache, `mod_headers`, `mod_brotli`/`mod_deflate`, `mod_http2`. Réversible : un retour à Nginx ne change que la configuration serveur | — | Direction |
 | ~~DEC-14~~ | ✅ **Tranché 19/07/2026** — **UFW volontairement inactif** sur le VPS partagé : huit ports tiers publics (3001–3040) appartiennent aux autres projets et l'exploitant a choisi de ne pas statuer sur eux. La clause « UFW limité aux ports 22/80/443 » de la story 1.6 est un écart assumé (gate OPS-004) ; MariaDB et Redis restent bornés à la boucle locale. À réévaluer si un service PTR Staff cesse d'écouter localement, si les ports tiers passent derrière un reverse proxy, ou en cas de VPS dédié (révision DEC-05) | — | Direction |
-| **DEC-10** | Q9 — vérification d'identité à la réinitialisation | Avant 2.8 | Direction — procédure humaine |
+| ~~DEC-10~~ | ✅ **Tranché 20/07/2026** — code de confirmation envoyé sur le **WhatsApp enregistré de la cible** (DEC-15), saisi par l'auteur avant génération du mot de passe temporaire ; jamais le mot de passe temporaire lui-même | — | Direction |
 | **DEC-08** | Q11 — types et taille des pièces jointes | Avant 3.5 — défaut appliqué : PDF/JPEG/PNG/WebP/HEIC, 8 Mo | Direction |
 | **DEC-07** | Suivi des erreurs — Sentry auto-hébergé ou fichiers seuls | Avant 11.3 | Direction |
 | **CONTRA-01** | Base des parts — prévisionnel + régularisation, ou versement à la clôture | **Avant le modèle financier de l'Epic 8** | Direction |
@@ -43,6 +43,8 @@ uniforme.
 | **CONTRA-07** | L'alerte rouge n'a aucun effet sur les parts | Avant 9.2 | Direction |
 | **DEC-11** | Q12 — conservation 10 ans | Avant 11.1 (dimensionnement disque) | Direction |
 | DEC-01 à DEC-04 | Fuseau UTC, tests MySQL, `spatie/laravel-permission`, Redis | Appliqués par défaut, révocables | Architecte |
+| ~~DEC-15~~ | ✅ **Tranché 20/07/2026** — canal **WhatsApp** intégré au MVP via **Evolution API 2.3.7** (`WHATSAPP-BAILEYS`), pour les notifications sortantes de FR34 uniquement. Coût : dépendance à un service tiers non officiel (risque de restriction du numéro par Meta), clé d'administration globale à protéger, accès actuel en HTTP sans TLS à corriger **avant mise en service** (architecture § 9.4bis) | — | Direction |
+| ~~DEC-16~~ | ✅ **Tranché 20/07/2026** — **toutes** les notifications de FR31 sont relayées sur WhatsApp, sans mécanisme de refus par l'utilisateur ; chaque compte est garanti porteur d'un numéro WhatsApp actif (postulat opérationnel de la direction) | — | Direction |
 
 **Impact si renversé** — seul CONTRA-03 est coûteux : il introduirait un état et un circuit
 dérogatoires dans un mécanisme déjà en production. CONTRA-01 est contenu (`ShareCalculator` prend la

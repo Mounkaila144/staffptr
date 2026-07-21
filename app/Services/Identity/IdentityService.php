@@ -17,6 +17,8 @@ class IdentityService
     public function __construct(
         private readonly AuditLogger $auditLogger,
         private readonly SessionRevocationService $sessionRevocationService,
+        private readonly UserHistoryService $userHistoryService,
+        private readonly PersonProfileService $personProfileService,
     ) {}
 
     /** @param array{full_name: string, operational_status?: PersonOperationalStatus|string, first_seen_at: string} $attributes */
@@ -56,14 +58,40 @@ class IdentityService
         string $actorLabel,
         string $reason,
     ): Person {
-        return $this->updateAudited(
+        return DB::connection($person->getConnectionName())->transaction(function () use (
             $person,
-            ['operational_status' => $status],
+            $status,
             $actorId,
             $actorLabel,
-            'person_status_changed',
             $reason,
-        );
+        ): Person {
+            $oldStatus = $person->operational_status;
+            $updatedPerson = $this->updateAudited(
+                $person,
+                ['operational_status' => $status],
+                $actorId,
+                $actorLabel,
+                'person_status_changed',
+                $reason,
+            );
+
+            if ($oldStatus !== $status) {
+                $account = $this->personProfileService->currentAccountOrNull($person);
+
+                if ($account !== null) {
+                    $this->userHistoryService->record(
+                        user: $account,
+                        field: 'operational_status',
+                        oldValue: $this->userHistoryService->statusSnapshot($oldStatus),
+                        newValue: $this->userHistoryService->statusSnapshot($status),
+                        actor: $this->userHistoryService->actor($actorId),
+                        reason: $reason,
+                    );
+                }
+            }
+
+            return $updatedPerson;
+        });
     }
 
     /**

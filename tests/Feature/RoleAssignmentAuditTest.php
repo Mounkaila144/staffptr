@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Identity\User;
 use App\Models\Platform\AuditLog;
 use App\Services\Identity\RoleAssignmentService;
+use App\Services\Identity\UserHistoryService;
 use App\Support\Auditing\AuditLogger;
 use Closure;
 use Mockery;
@@ -81,7 +82,7 @@ class RoleAssignmentAuditTest extends IdentityTestCase
                 throw new RuntimeException("L'audit est indisponible.");
             });
 
-        $service = new RoleAssignmentService($logger);
+        $service = new RoleAssignmentService($logger, app(UserHistoryService::class));
 
         try {
             $service->assignRole($user, 'direction', null, 'Direction test');

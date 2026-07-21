@@ -40,7 +40,9 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request): bool => $request->is('up'),
+            fn (Request $request): bool => $request->is('up')
+                || ($request->is('internal/v1/attachments') && $request->expectsJson())
+                || ($request->is('parametres/apercu') && $request->expectsJson()),
         );
 
         $exceptions->respond(function (Response $response, Throwable $_exception, Request $request): Response {

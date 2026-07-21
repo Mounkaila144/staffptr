@@ -1,0 +1,50 @@
+# <!-- Powered by BMAD™ Core -->
+schema: 1
+story: "2.2"
+story_title: "Rôles, permissions et contrôle d'accès serveur"
+gate: PASS
+status_reason: "Les sept AC sont prouvés, y compris les trois pièges explicitement signalés par la story : absence de Gate::before() (scan récursif de app/ et bootstrap/), exception DELETE strictement limitée aux deux pivots model_has_roles/model_has_permissions (preuve MySQL, erreur 1142 sur roles/permissions/role_has_permissions), et convention de nommage depense.approuver unique. La règle bloquante 9 est prouvée à trois niveaux (HTTP 403, Gate de policy, absence de raccourci global). CI verte sur les six contrôles dont PHPUnit sous MySQL 8."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-07-20T09:15:00+01:00"
+
+waiver: { active: false }
+
+top_issues:
+  - id: "UX-001"
+    severity: low
+    finding: "Le contrat auth.permissions calculé par HandleInertiaRequests utilise désormais les vraies permissions du catalogue (depense.approuver, compte.technique.gerer, role:direction…), mais navigationByRole dans resources/js/Composables/usePermissions.js filtre toujours sur des clés de fixture (accounts.view, approvals.view, navigation.home…) héritées de la story 1.7. Recoupement direct des deux listes : aucune intersection. Le Dev Note de 2.2 demandait de corriger le côté qui diverge ; seul le côté serveur l'a été. Impact actuel nul — aucun écran authentifié n'existe encore — mais la première page réelle de la story 2.4 afficherait une navigation primaire vide pour tous les rôles, Accueil compris."
+    suggested_action: "En ouverture de la story 2.4 : aligner les clés `permission` de navigationByRole sur le catalogue réel (ou traiter les entrées sans permission, à commencer par Accueil, comme toujours visibles) et ajouter un test de non-régression qui vérifie une primaryNavigation non vide pour un jeu de permissions réel par rôle."
+    suggested_owner: "dev"
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 1 }
+  recommendations:
+    must_fix: []
+    monitor:
+      - "UX-001 : désalignement permissions serveur / clés de navigation front, à corriger avant que la story 2.4 n'expose un écran authentifié réel."
+
+evidence:
+  tests_reviewed: 138
+  assertions: 1439
+  risks_identified: 1
+  local_run: "138 tests, 123 passés, 15 réservés au moteur MySQL de la CI (skip sous SQLite local), 1439 assertions — Pint et Larastan niveau 6 propres. PR #20 verte sur les six contrôles (Pint, Larastan, PHPUnit MySQL 8, Frontend Build & Budget, Playwright, CI Duration), preuves MySQL incluses (run 29724477270 et 29724638229)."
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7]
+    ac_partial: []
+    note: "AC3 (règle bloquante 9) est le mieux couvert : test catalogue + test HTTP 403 + test Gate de policy de fixture + test de non-existence de Gate::before() par scan de fichiers. AC6 couvre séparément attribution, modification (sync) et retrait pour rôles et permissions, plus un test de rollback transactionnel sur échec d'audit."
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "DELETE refusé par défaut et limité par exception motivée aux deux pivots d'affectation ; roles/permissions/role_has_permissions restent un catalogue non supprimable par le compte applicatif (preuve MySQL, erreur 1142). Comptes et hôtes des GRANT validés par regex avant interpolation SQL. Permissions client strictement décoratives, jamais utilisées comme barrière serveur."
+  performance:
+    status: PASS
+    notes: "Cache interne de spatie/laravel-permission invalidé automatiquement à chaque écriture (PERM-08 vérifié par test avant/après révocation sur HandleInertiaRequests::share()). Budget de navigation (300 Ko / 80 Ko) toujours respecté selon le contrôle CI Frontend Build & Budget."
+  reliability:
+    status: PASS
+    notes: "Échec d'audit annule le pivot dans la même transaction, prouvé par un AuditLogger mocké qui lève après l'opération ; l'absence de ligne en base et l'état en mémoire du modèle sont tous deux vérifiés."
+  maintainability:
+    status: CONCERNS
+    notes: "RoleAssignmentService et le catalogue sont propres et bien testés. Le point faible est hors du périmètre strict de cette story : la navigation front reste couplée à un jeu de permissions de fixture désormais orphelin (UX-001), une dette identifiée mais non résorbée."
+
+recommended_status: "✓ Ready for Done — un point de vigilance à faible sévérité (UX-001, désalignement du contrat de permissions côté navigation front, sans impact actuel), à traiter en ouverture de la story 2.4."

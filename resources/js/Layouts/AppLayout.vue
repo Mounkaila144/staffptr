@@ -1,15 +1,19 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import { usePermissions } from '../Composables/usePermissions';
 
 const props = defineProps({
     title: { type: String, required: true },
     backLabel: { type: String, default: '' },
+    backHref: { type: String, default: '/' },
     activeNavigation: { type: String, default: 'home' },
     permissions: { type: Array, default: null },
 });
 
 const moreOpen = ref(false);
+const page = usePage();
+const unreadNotificationCount = computed(() => Number(page.props.notifications?.unread_count ?? 0));
 const { primaryNavigation, moreNavigation } = usePermissions(props.permissions);
 
 function closeMore(event) {
@@ -19,8 +23,11 @@ function closeMore(event) {
 }
 
 function moreHref(item) {
+    if (item === 'Profil' || item === 'Mon profil') return page.props.auth?.person_id ? `/personnes/${page.props.auth.person_id}` : '/';
+    if (item === 'Organisation') return '/organisation';
     if (item === 'Connexions') return '/connexions';
     if (item === 'Comptes et rôles') return '/comptes';
+    if (item === 'Paramètres') return '/parametres';
     if (item === "Journal d'audit") return '/journal-audit';
     return '#plus';
 }
@@ -30,13 +37,20 @@ function moreHref(item) {
     <div @keydown="closeMore">
         <a class="skip-link" href="#main-content">Aller au contenu</a>
         <header class="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-3 border-b border-separator bg-surface px-4 md:pl-56" aria-label="En-tête">
-            <a v-if="backLabel" href="/" class="touch-target inline-flex items-center gap-2 font-semibold text-primary">
+            <a v-if="backLabel" :href="backHref" class="touch-target inline-flex items-center gap-2 font-semibold text-primary">
                 <span aria-hidden="true">←</span>{{ backLabel }}
             </a>
             <p class="min-w-0 flex-1 truncate font-semibold">{{ title }}</p>
-            <button type="button" class="touch-target rounded-lg text-xl" aria-label="Notifications indisponibles pour le moment">
+            <a
+                href="/notifications"
+                class="touch-target relative inline-flex items-center justify-center rounded-lg text-xl text-primary"
+                :aria-label="unreadNotificationCount > 0 ? `Notifications, ${unreadNotificationCount} non lue${unreadNotificationCount > 1 ? 's' : ''}` : 'Notifications, aucune non lue'"
+            >
                 <span aria-hidden="true">♢</span>
-            </button>
+                <span v-if="unreadNotificationCount > 0" class="absolute right-0 top-0 min-w-5 rounded-full bg-danger px-1 text-center text-xs font-bold leading-5 text-white" aria-hidden="true">
+                    {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+                </span>
+            </a>
         </header>
 
         <nav class="fixed inset-y-0 left-0 z-40 hidden w-52 border-r border-separator bg-surface px-3 py-4 md:block" aria-label="Navigation principale">

@@ -140,8 +140,9 @@ n'immobilise personne une journée.* — [PRD 1.5, FR6]
 4. Elle produit une entrée d'audit nommant **l'auteur et la cible**.
 5. La procédure de vérification d'identité hors application est référencée à l'écran et documentée dans `docs/ops/`.
 
-> **DEC-10 / Q9 en attente.** Quelle vérification d'identité exactement avant réinitialisation. La
-> procédure est humaine ; l'application n'en trace que le résultat.
+> **DEC-10 — tranché le 20/07/2026.** Code de confirmation envoyé sur le WhatsApp enregistré de la
+> cible (DEC-15), saisi par l'auteur avant génération du mot de passe temporaire — jamais le mot de
+> passe temporaire lui-même. Voir `architecture/7-authentification-par-tlphone-et-mot-de-passe.md#74-réinitialisation--fr6--q9`.
 
 ---
 

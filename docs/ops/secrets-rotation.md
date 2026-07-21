@@ -68,6 +68,28 @@ Tant que l'ancienne clé publique est présente, restaurer l'ancien secret GitHu
 arrière. Si les deux clés échouent, l'exploitant utilise l'accès console du VPS, jamais un accès
 `root` ajouté à la clé de déploiement.
 
+## `EVOLUTION_API_KEY`
+
+Clé **administrateur globale** de l'instance Evolution API (DEC-15, architecture § 9.4bis) : au-delà
+de l'envoi de messages, elle permet de créer et de supprimer des instances. Une fuite compromet plus
+que le canal WhatsApp.
+
+Déclencheurs : suspicion, exposition du `.env`, changement d'exploitant ou échéance périodique. Si
+Evolution API expose une clé à portée d'instance, la préférer à la clé globale pour l'usage courant
+et réserver cette dernière à l'administration — ce qui réduit d'autant la surface de rotation.
+
+1. générer la nouvelle clé côté panneau d'administration Evolution, sans révoquer l'ancienne ;
+2. remplacer `EVOLUTION_API_KEY` dans `shared/.env`, sans journaliser sa valeur ;
+3. recharger le pool PHP-FPM ;
+4. envoyer un message de test vers un numéro de recette et vérifier la réception ; c'est le point de
+   bascule ;
+5. révoquer l'ancienne clé côté panneau Evolution.
+
+Avant l'étape 5, restaurer l'ancien `EVOLUTION_API_KEY` puis recharger PHP-FPM constitue le retour
+arrière. La clé ne doit jamais apparaître dans les journaux applicatifs : le filtre de rédaction
+(`RedactSensitiveDataProcessor`) doit la couvrir au même titre que les autres secrets. Vérifier après
+rotation qu'aucune trace d'erreur récente ne l'a exposée.
+
 ## Secrets de sauvegarde à venir
 
 Les emplacements réservés sont `BACKUP_OBJECT_ENDPOINT`, `BACKUP_OBJECT_BUCKET`,

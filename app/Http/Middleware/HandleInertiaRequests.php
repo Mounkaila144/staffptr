@@ -50,6 +50,12 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 // Masquage d'interface uniquement : chaque requête reste autorisée côté serveur.
                 'permissions' => $permissions,
+                'person_id' => $user instanceof User ? (int) $user->person_id : null,
+            ],
+            'notifications' => fn (): array => [
+                'unread_count' => $user instanceof User
+                    ? $user->unreadNotifications()->count()
+                    : 0,
             ],
         ];
     }

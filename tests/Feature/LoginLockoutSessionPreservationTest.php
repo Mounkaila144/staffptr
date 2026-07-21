@@ -24,7 +24,7 @@ class LoginLockoutSessionPreservationTest extends IdentityTestCase
 
     public function test_ac_1_lockout_keeps_existing_session_open_and_account_active(): void
     {
-        config()->set('login-security.max_failed_attempts', 2);
+        $this->setSetting('login_max_failed_attempts', 2);
         config()->set('login-security.rate_limit_attempts', 10);
         $password = 'Session-Conservee-2.6';
         $user = User::factory()->active()->create(['password' => $password]);

@@ -11,7 +11,7 @@ class LoginAttemptConfidentialityTest extends IdentityTestCase
 {
     public function test_ac_6_passwords_are_absent_from_history_audit_and_technical_logs(): void
     {
-        config()->set('login-security.max_failed_attempts', 1);
+        $this->setSetting('login_max_failed_attempts', 1);
         config()->set('login-security.rate_limit_attempts', 10);
         $passwordTypedAsPhone = 'Secret-Dans-Le-Champ-Numero-2.6';
         $wrongPassword = 'Secret-Mot-De-Passe-Errone-2.6';

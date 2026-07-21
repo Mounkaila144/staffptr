@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Http;
 class EvolutionApiClient
 {
     /** @throws EvolutionApiUnavailable */
-    public function sendPasswordResetConfirmation(string $phone, string $confirmationCode): void
+    public function sendText(string $phone, string $text): void
     {
         $instance = $this->configuredString('instance');
 
@@ -25,7 +25,7 @@ class EvolutionApiClient
 
             $response = $this->request()->post('/message/sendText/'.rawurlencode($instance), [
                 'number' => PhoneNumber::forEvolutionApi($phone),
-                'text' => "PTR Staff — code de confirmation pour la réinitialisation : {$confirmationCode}. Valable 10 minutes. Ne le partagez qu’avec la personne qui effectue l’opération.",
+                'text' => $text,
             ]);
 
             if ($response->status() !== 201) {
@@ -34,6 +34,15 @@ class EvolutionApiClient
         } catch (ConnectionException) {
             throw new EvolutionApiUnavailable;
         }
+    }
+
+    /** @throws EvolutionApiUnavailable */
+    public function sendPasswordResetConfirmation(string $phone, string $confirmationCode): void
+    {
+        $this->sendText(
+            $phone,
+            "PTR Staff — code de confirmation pour la réinitialisation : {$confirmationCode}. Valable 10 minutes. Ne le partagez qu’avec la personne qui effectue l’opération.",
+        );
     }
 
     /** @throws EvolutionApiUnavailable */

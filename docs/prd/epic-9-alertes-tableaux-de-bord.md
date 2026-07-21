@@ -93,7 +93,7 @@ afin de ne rien découvrir en retard.* — [FR31, reste]
 1 bis. La notification de **fin de contrat ou de stage proche** consomme le service exposé en **3.2 AC4**, qui n'émettait rien faute de centre de notifications à ce jalon. ⛔ Un test vérifie que l'échéance détectée en 3.2 produit bien une notification ici.
 2. ⛔ Chaque notification permet d'atteindre l'action attendue en **au plus 3 interactions** ; mesuré pour les trois plus fréquentes.
 3. Les tâches planifiées d'émission sont **idempotentes** : un test rejoue la tâche et vérifie qu'aucune notification n'est dupliquée.
-4. ⛔ **Aucun canal externe n'est appelé** ; testé à nouveau en fin de MVP (FR34).
+4. ⛔ **Seul WhatsApp est appelé, jamais SMS ni courriel** ; testé à nouveau en fin de MVP sur les onze événements de FR31 (FR34).
 5. Une notification dont l'objet a été supprimé du périmètre de l'utilisateur n'expose pas son contenu ; l'accès est refusé proprement.
 6. La file d'attente est supervisée (11.3) : un travail échoué est visible et alerte.
 
@@ -106,7 +106,7 @@ afin de ne rien découvrir en retard.* — [FR31, reste]
 3. La dépendance avant de 7.3 est fermée : l'activation d'un compte en rouge est refusée, testée.
 4. Le tableau de bord direction se rend **sous 3 secondes en 3G** et reste lisible à 320 px.
 5. Aucun bloc de tableau de bord non autorisé n'est rendu, même vide.
-6. Toutes les notifications de FR31 existent, idempotentes, sans canal externe.
+6. Toutes les notifications de FR31 existent, **idempotentes** — une tâche rejouée n'envoie jamais deux fois le même message WhatsApp réel à la même personne — et seul WhatsApp est appelé, jamais SMS ni courriel.
 
 ---
 

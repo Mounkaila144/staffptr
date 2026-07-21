@@ -12,7 +12,7 @@ class PersonPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $this->canReadAccounts($user);
+        return $this->canReadAccounts($user) || $user->can('fiche.consulter');
     }
 
     /**
@@ -20,7 +20,7 @@ class PersonPolicy
      */
     public function view(User $user, Person $person): bool
     {
-        return $this->canReadAccounts($user)
+        return $user->can('fiche.consulter')
             && Person::query()->visibleTo($user)->whereKey($person->getKey())->exists();
     }
 
@@ -37,7 +37,8 @@ class PersonPolicy
      */
     public function update(User $user, Person $person): bool
     {
-        return $this->canManageAccounts($user)
+        return $user->hasRole('direction')
+            && $user->can('fiche.gerer')
             && Person::query()->visibleTo($user)->whereKey($person->getKey())->exists();
     }
 

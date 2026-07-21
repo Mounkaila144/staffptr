@@ -154,10 +154,8 @@ class PasswordResetTest extends IdentityTestCase
 
     public function test_ac_2_blocked_account_can_login_with_temporary_password_after_reset(): void
     {
-        config([
-            'login-security.max_failed_attempts' => 2,
-            'login-security.rate_limit_attempts' => 99,
-        ]);
+        $this->setSetting('login_max_failed_attempts', 2);
+        config()->set('login-security.rate_limit_attempts', 99);
         $actor = User::factory()->active()->create();
         $target = User::factory()->active()->create(['password' => 'Secret-Oublie']);
         $loginAttempts = app(LoginAttemptService::class);

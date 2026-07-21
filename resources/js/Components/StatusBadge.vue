@@ -18,6 +18,7 @@ const states = {
     'en retard': ['⚠', 'En retard', 'border-solid border-danger bg-danger-soft text-danger'],
     invite: ['✉', 'Invité', 'border-solid border-warning bg-warning-soft text-warning'],
     actif: ['✓', 'Actif', 'border-solid border-success bg-success-soft text-success'],
+    inactif: ['⏸', 'Désactivé', 'border-solid border-neutral bg-neutral-soft text-neutral'],
     suspendu: ['⏸', 'Suspendu', 'border-solid border-warning bg-warning-soft text-warning'],
     termine: ['■', 'Terminé', 'border-solid border-neutral bg-neutral-soft text-neutral'],
     archive: ['▣', 'Archivé', 'border-dashed border-neutral bg-neutral-soft text-neutral'],

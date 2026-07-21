@@ -48,6 +48,11 @@ nommée.** Le niveau schéma ne porte que `SELECT, INSERT`.
 |---|---:|---:|---:|---:|
 | tables métier et financières des epics 2 à 8 | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
 | `audit_logs` | hérité du schéma | hérité du schéma | **refusé** | **refusé** |
+| `user_history` | hérité du schéma | hérité du schéma | **refusé** | **refusé** |
+| `settings` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
+| `attachments` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
+| `person_documents` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
+| `notifications` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
 | `sessions` | hérité du schéma | hérité du schéma | oui | **accordé** |
 | `jobs` | hérité du schéma | hérité du schéma | oui | **accordé** |
 | `job_batches` | hérité du schéma | hérité du schéma | oui | **accordé** |
@@ -83,6 +88,10 @@ il n'est ni faux ni superflu et **doit être conservé** : les privilèges MySQL
 migration portable entre CI, préproduction et production sans configuration supplémentaire, et il
 documente l'intention sur la table la plus sensible du schéma. `UPDATE` et `DELETE` sur `audit_logs`
 restent refusés parce qu'ils ne sont accordés à **aucun** niveau — ni schéma, ni table.
+
+La migration de `user_history` reprend volontairement le même `GRANT SELECT, INSERT` explicite et
+les mêmes limites. Ce registre permanent est alimenté uniquement par insertion : aucun `GRANT
+UPDATE` ni `DELETE` ne doit lui être ajouté, même lors d'une intervention corrective.
 
 ## Modèle SQL idempotent
 
@@ -152,6 +161,13 @@ GRANT UPDATE ON `ptrstaff_prod`.`model_has_roles` TO 'ptrstaff_prod_app'@'localh
 GRANT UPDATE ON `ptrstaff_prod`.`model_has_permissions` TO 'ptrstaff_prod_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_prod`.`role_has_permissions` TO 'ptrstaff_prod_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_prod`.`login_attempts` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`companies` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`departments` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`job_functions` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`settings` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`attachments` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`person_documents` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`notifications` TO 'ptrstaff_prod_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`people` TO 'ptrstaff_staging_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`users` TO 'ptrstaff_staging_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`roles` TO 'ptrstaff_staging_app'@'localhost';
@@ -160,6 +176,13 @@ GRANT UPDATE ON `ptrstaff_staging`.`model_has_roles` TO 'ptrstaff_staging_app'@'
 GRANT UPDATE ON `ptrstaff_staging`.`model_has_permissions` TO 'ptrstaff_staging_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`role_has_permissions` TO 'ptrstaff_staging_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`login_attempts` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`companies` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`departments` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`job_functions` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`settings` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`attachments` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`person_documents` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`notifications` TO 'ptrstaff_staging_app'@'localhost';
 
 -- Phase 4 : exception RBAC revue le 20/07/2026 — état courant audité, pivots uniquement.
 GRANT DELETE ON `ptrstaff_prod`.`model_has_roles` TO 'ptrstaff_prod_app'@'localhost';
@@ -192,10 +215,11 @@ Joindre la sortie horodatée au journal d'exploitation. La revue est négative a
 4. les comptes applicatifs n'ont aucun `DELETE` sur une table métier, hormis l'exception motivée
    limitée aux pivots `model_has_roles` et `model_has_permissions` ;
 5. `audit_logs` ne reçoit ni `UPDATE` ni `DELETE`, à aucun niveau ;
-6. les six tables d'infrastructure accordent bien `UPDATE, DELETE` ;
-7. `people` et `users`, puis chaque future table métier, portent leur ligne `GRANT UPDATE`, conformément à la consigne
+6. `user_history` ne reçoit ni `UPDATE` ni `DELETE`, à aucun niveau ;
+7. les six tables d'infrastructure accordent bien `UPDATE, DELETE` ;
+8. `people`, `users`, `settings`, puis chaque future table métier, portent leur ligne `GRANT UPDATE`, conformément à la consigne
    permanente en tête de ce document ;
-8. seuls les comptes de migration disposent de `GRANT OPTION`.
+9. seuls les comptes de migration disposent de `GRANT OPTION`.
 
 ## Actions dues à l'exploitant pour la story 2.6
 
@@ -210,6 +234,44 @@ Aucun nouveau privilège n'est requis. La migration ajoute uniquement des index 
 le compte applicatif conserve strictement `SELECT, INSERT` sur cette table, sans `UPDATE` ni
 `DELETE`. Après déploiement, joindre la sortie `SHOW GRANTS` horodatée au journal d'exploitation
 et vérifier que cette interdiction reste inchangée.
+
+## Actions dues à l'exploitant pour la story 3.1
+
+Après les migrations de `companies`, `departments` et `job_functions`, exécuter les six lignes
+`GRANT UPDATE` correspondantes de phase 3 sur la préproduction puis sur la production avec le
+compte de migration de chaque environnement. Joindre les sorties `SHOW GRANTS` horodatées au
+journal d'exploitation et vérifier que `DELETE` reste absent sur ces trois tables.
+
+## Actions dues à l'exploitant pour la story 3.3
+
+Aucun privilège de modification n'est requis. Après la migration, vérifier la présence des
+déclencheurs MySQL `user_history_prevent_update` et `user_history_prevent_delete`, puis joindre la
+sortie `SHOW GRANTS` horodatée au journal d'exploitation. Le compte applicatif doit conserver
+uniquement `SELECT, INSERT` sur `user_history` ; `UPDATE` et `DELETE` doivent rester absents.
+
+## Actions dues à l'exploitant pour la story 3.4
+
+La migration de `settings` accorde elle-même `UPDATE` au compte applicatif configuré. Après
+déploiement, joindre la sortie `SHOW GRANTS` horodatée au journal d'exploitation et vérifier que
+`settings` porte `SELECT`, `INSERT` et `UPDATE`, sans aucun `DELETE`.
+
+## Actions dues à l'exploitant pour la story 3.5
+
+La migration de `attachments` accorde elle-même `UPDATE` au compte applicatif configuré afin que
+le worker puisse renseigner `thumbnail_path`. Après déploiement, joindre la sortie `SHOW GRANTS`
+horodatée et vérifier que `attachments` porte `SELECT`, `INSERT` et `UPDATE`, sans aucun `DELETE`.
+
+## Actions dues à l'exploitant pour la story 3.6
+
+La migration de `person_documents` accorde elle-même `UPDATE` au compte applicatif configuré pour
+l'archivage motivé. Après déploiement, joindre la sortie `SHOW GRANTS` horodatée et vérifier que
+`person_documents` porte `SELECT`, `INSERT` et `UPDATE`, sans aucun `DELETE`.
+
+## Actions dues à l'exploitant pour la story 3.7
+
+La migration de `notifications` accorde elle-même `UPDATE` au compte applicatif afin de renseigner
+`read_at`. Après déploiement, joindre la sortie `SHOW GRANTS` horodatée et vérifier que
+`notifications` porte `SELECT`, `INSERT` et `UPDATE`, sans aucun `DELETE`.
 
 ## Actions dues à l'exploitant pour la story 2.2
 

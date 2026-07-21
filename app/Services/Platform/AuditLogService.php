@@ -2,11 +2,19 @@
 
 namespace App\Services\Platform;
 
+use App\Enums\DocumentType;
 use App\Enums\PersonOperationalStatus;
+use App\Enums\RelationType;
 use App\Enums\UserState;
+use App\Models\Identity\Company;
+use App\Models\Identity\Department;
+use App\Models\Identity\JobFunction;
 use App\Models\Identity\Person;
+use App\Models\Identity\PersonDocument;
 use App\Models\Identity\User;
+use App\Models\Platform\Attachment;
 use App\Models\Platform\AuditLog;
+use App\Models\Platform\Setting;
 use App\Support\Auditing\AuditLogger;
 use App\Support\DateTimeFormatter;
 use Carbon\CarbonImmutable;
@@ -241,9 +249,21 @@ final class AuditLogService
     private function fieldLabel(string $field): string
     {
         return match ($field) {
+            'name' => 'Nom',
             'state' => 'État du compte',
             'operational_status' => 'Situation de la personne',
             'phone' => 'Téléphone',
+            'department_id' => 'Service',
+            'job_function_id' => 'Fonction',
+            'manager_id' => 'Responsable direct',
+            'relation_type' => 'Type de relation',
+            'contract_start_date' => 'Date de début',
+            'contract_end_date' => 'Date de fin',
+            'photo_path' => 'Photo',
+            'email' => 'Adresse e-mail',
+            'address' => 'Adresse',
+            'logo_path' => 'Logo',
+            'is_active' => 'Actif',
             'must_change_password' => 'Changement de mot de passe requis',
             'locked_until' => "Blocage jusqu'au",
             'failed_attempts' => 'Tentatives échouées',
@@ -253,6 +273,21 @@ final class AuditLogService
             'data_nature' => 'Nature des données',
             'row_count' => 'Nombre de lignes',
             'filters' => 'Filtres',
+            'key' => 'Paramètre',
+            'value' => 'Valeur',
+            'effective_at' => "Date d'effet",
+            'original_name' => "Nom d'origine",
+            'mime_type' => 'Type du fichier',
+            'extension' => 'Extension normalisée',
+            'size_bytes' => 'Taille en octets',
+            'attachable_type' => "Type d'objet rattaché",
+            'attachable_id' => 'Objet rattaché',
+            'uploaded_by' => 'Déposé par',
+            'person_id' => 'Personne concernée',
+            'document_type' => 'Type de document',
+            'attachment_ulid' => 'Fichier rattaché',
+            'archive_reason' => "Motif d'archivage",
+            'archived_at' => "Date d'archivage",
             default => "{$field} (nom technique)",
         };
     }
@@ -269,6 +304,22 @@ final class AuditLogService
 
         if ($field === 'operational_status' && is_string($value)) {
             return PersonOperationalStatus::tryFrom($value)?->label() ?? $value;
+        }
+
+        if ($field === 'relation_type' && is_string($value)) {
+            return RelationType::tryFrom($value)?->label() ?? $value;
+        }
+
+        if ($field === 'document_type' && is_string($value)) {
+            return DocumentType::tryFrom($value)?->label() ?? $value;
+        }
+
+        if ($field === 'is_active' && (is_bool($value) || is_int($value))) {
+            return (bool) $value ? 'Oui' : 'Non';
+        }
+
+        if ($field === 'key' && is_string($value) && in_array($value, SettingsService::keys(), true)) {
+            return SettingsService::label($value);
         }
 
         if (is_bool($value)) {
@@ -311,9 +362,15 @@ final class AuditLogService
     private function objectLabel(string $type, ?int $identifier): string
     {
         $label = match ($type) {
+            Company::class => 'Entreprise',
+            Department::class => 'Service',
+            JobFunction::class => 'Fonction',
             User::class => 'Compte',
             Person::class => 'Personne',
+            PersonDocument::class => 'Document du dossier personnel',
             AuditLog::class => "Journal d'audit",
+            Setting::class => 'Paramètre général',
+            Attachment::class => 'Pièce jointe',
             default => "{$type} (nom technique)",
         };
 
@@ -323,6 +380,18 @@ final class AuditLogService
     private function actionLabel(string $action): string
     {
         return match ($action) {
+            'person_profile_updated' => 'Modification de la personne',
+            'user_profile_updated' => 'Modification de la fiche',
+            'manager_changed' => 'Changement de responsable',
+            'company_updated' => "Modification de l'entreprise",
+            'department_created' => 'Création du service',
+            'department_renamed' => 'Renommage du service',
+            'department_deactivated' => 'Désactivation du service',
+            'department_reactivated' => 'Réactivation du service',
+            'job_function_created' => 'Création de la fonction',
+            'job_function_renamed' => 'Renommage de la fonction',
+            'job_function_deactivated' => 'Désactivation de la fonction',
+            'job_function_reactivated' => 'Réactivation de la fonction',
             'created', 'person_created', 'user_created' => 'Création',
             'updated', 'person_updated', 'user_updated' => 'Modification',
             'person_status_changed', 'user_state_changed' => "Changement d'état",
@@ -334,6 +403,12 @@ final class AuditLogService
             'login_lock_started' => 'Blocage de connexion',
             'login_lock_expired', 'login_lock_cleared_by_password_reset' => 'Fin du blocage de connexion',
             'audit_log_exported' => "Export du journal d'audit",
+            'setting_changed' => 'Modification du paramètre',
+            'attachment_uploaded' => 'Dépôt de la pièce jointe',
+            'attachment_attached' => 'Rattachement de la pièce jointe',
+            'person_document_deposited' => 'Dépôt du document personnel',
+            'person_document_viewed' => 'Consultation du document personnel',
+            'person_document_archived' => 'Archivage du document personnel',
             default => "{$action} (nom technique)",
         };
     }

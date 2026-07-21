@@ -38,7 +38,7 @@ const navigationByRole = {
             ['Équipe', 'team', '♙', 'compte.consulter'],
             ['Argent', 'finance', '¤', 'finance.ecriture.consulter'],
         ],
-        more: ['Mon rapport du jour', 'Mes objectifs', 'Comptes et rôles', 'Paramètres', 'Calendrier', "Journal d'audit", 'Connexions', 'Réserve', 'Rapport mensuel', 'Recherche', 'Documents', 'Profil', 'Déconnexion'],
+        more: ['Mon rapport du jour', 'Mes objectifs', 'Organisation', 'Comptes et rôles', 'Paramètres', 'Calendrier', "Journal d'audit", 'Connexions', 'Réserve', 'Rapport mensuel', 'Recherche', 'Documents', 'Profil', 'Déconnexion'],
     },
     finance: {
         primary: [
@@ -66,7 +66,7 @@ function normalizeNavigationItem([label, key, glyph, permission]) {
         key,
         glyph,
         permission,
-        href: key === 'home' ? '/' : (key === 'accounts' ? '/comptes' : `/#${key}`),
+        href: key === 'home' ? '/' : ({ accounts: '/comptes', settings: '/parametres' }[key] ?? `/#${key}`),
     };
 }
 

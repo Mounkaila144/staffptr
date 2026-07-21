@@ -14,7 +14,7 @@ class LoginLockoutTest extends IdentityTestCase
     public function test_ac_1_account_is_persistently_locked_after_the_configured_failures(): void
     {
         $this->freezeTime();
-        config()->set('login-security.max_failed_attempts', 3);
+        $this->setSetting('login_max_failed_attempts', 3);
         config()->set('login-security.rate_limit_attempts', 10);
         $user = User::factory()->active()->create([
             'phone' => '+22790123456',
@@ -44,8 +44,8 @@ class LoginLockoutTest extends IdentityTestCase
     public function test_ac_2_block_message_interpolates_the_configured_duration(): void
     {
         $this->freezeTime();
-        config()->set('login-security.max_failed_attempts', 1);
-        config()->set('login-security.lockout_minutes', 7);
+        $this->setSetting('login_max_failed_attempts', 1);
+        $this->setSetting('login_lockout_minutes', 7);
         config()->set('login-security.rate_limit_attempts', 10);
         $user = User::factory()->active()->create(['password' => 'MotDePasse-Correct-2.6']);
 
@@ -57,7 +57,7 @@ class LoginLockoutTest extends IdentityTestCase
 
     public function test_ac_3_address_limit_blocks_account_b_after_failures_against_account_a(): void
     {
-        config()->set('login-security.max_failed_attempts', 99);
+        $this->setSetting('login_max_failed_attempts', 99);
         config()->set('login-security.rate_limit_attempts', 3);
         $accountA = User::factory()->active()->create(['password' => 'Correct-A-2.6']);
         $accountB = User::factory()->active()->create(['password' => 'Correct-B-2.6']);
@@ -76,7 +76,7 @@ class LoginLockoutTest extends IdentityTestCase
 
     public function test_ac_3_account_lock_survives_a_change_of_address(): void
     {
-        config()->set('login-security.max_failed_attempts', 2);
+        $this->setSetting('login_max_failed_attempts', 2);
         config()->set('login-security.rate_limit_attempts', 10);
         $user = User::factory()->active()->create(['password' => 'Correct-Compte-2.6']);
 
@@ -92,7 +92,7 @@ class LoginLockoutTest extends IdentityTestCase
 
     public function test_ac_1_success_resets_the_failure_counter_and_is_recorded(): void
     {
-        config()->set('login-security.max_failed_attempts', 5);
+        $this->setSetting('login_max_failed_attempts', 5);
         config()->set('login-security.rate_limit_attempts', 10);
         $user = User::factory()->active()->create([
             'password' => 'Correct-Reinitialisation-2.6',
@@ -113,8 +113,8 @@ class LoginLockoutTest extends IdentityTestCase
     public function test_ac_1_known_and_unknown_lock_expirations_are_journalized_on_the_next_attempt(): void
     {
         $this->freezeTime();
-        config()->set('login-security.max_failed_attempts', 1);
-        config()->set('login-security.lockout_minutes', 1);
+        $this->setSetting('login_max_failed_attempts', 1);
+        $this->setSetting('login_lockout_minutes', 1);
         config()->set('login-security.rate_limit_attempts', 10);
         $user = User::factory()->active()->create(['password' => 'Correct-Expiration-2.6']);
         $lastAuditId = (int) (AuditLog::query()->max('id') ?? 0);
@@ -139,8 +139,8 @@ class LoginLockoutTest extends IdentityTestCase
     public function test_ac_1_temporal_oracle_stays_closed_after_limit_and_limiter_window_expiration(): void
     {
         $this->freezeTime();
-        config()->set('login-security.max_failed_attempts', 2);
-        config()->set('login-security.lockout_minutes', 15);
+        $this->setSetting('login_max_failed_attempts', 2);
+        $this->setSetting('login_lockout_minutes', 15);
         config()->set('login-security.rate_limit_attempts', 2);
         config()->set('login-security.rate_limit_decay_seconds', 60);
         $wrongPassword = 'Oracle-Temporel-Errone-2.6';

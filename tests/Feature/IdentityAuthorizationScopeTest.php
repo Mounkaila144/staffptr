@@ -24,7 +24,7 @@ class IdentityAuthorizationScopeTest extends IdentityTestCase
         $other = User::factory()->active()->create();
         $direction = User::factory()->active()->create();
         $readOnlyRole = Role::create(['name' => 'lecture_identite', 'guard_name' => 'web']);
-        $readOnlyRole->givePermissionTo('compte.consulter');
+        $readOnlyRole->givePermissionTo(['compte.consulter', 'fiche.consulter']);
         $service = app(RoleAssignmentService::class);
 
         $service->assignRole($reader, $readOnlyRole->name, null, 'Test RBAC');
