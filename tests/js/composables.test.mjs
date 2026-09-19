@@ -65,6 +65,38 @@ test('AC 8 — usePermissions masque l’interface sans prétendre autoriser le 
     assert.ok(navigation.moreNavigation.value.includes('Rapprochement'));
 });
 
+test('Les liens Équipe et Rapport pointent vers un écran réel, jamais sur une ancre d’accueil', () => {
+    const hrefFor = (permissions, key) => usePermissions(ref(permissions))
+        .primaryNavigation.value.find((item) => item.key === key)?.href;
+
+    // `team` se résout par rôle : les stagiaires du tuteur d’un côté, les comptes de l’autre.
+    assert.equal(hrefFor(['role:tuteur', 'stagiaire.consulter'], 'team'), '/stages');
+    assert.equal(hrefFor(['role:direction', 'compte.consulter'], 'team'), '/comptes');
+    assert.equal(hrefFor(['role:employe', 'rapport_quotidien.consulter'], 'report'), '/rapports');
+
+    // Aucun élément de navigation primaire ne doit retomber sur le fallback `/#<clé>`, à
+    // l'exception de `logs` : l'écran des journaux techniques (`journal_technique.consulter`)
+    // n'existe pas encore côté routes. À retirer d'ici dès qu'il sera livré.
+    const screensNotBuiltYet = ['logs'];
+    const catalog = readFileSync(new URL('../../config/permission-catalog.php', import.meta.url), 'utf8');
+
+    for (const role of ['super_admin', 'direction', 'finance', 'tuteur', 'employe', 'stagiaire']) {
+        const roleBlock = catalog.match(new RegExp(`'${role}'\\s*=>\\s*\\[([\\s\\S]*?)\\],`));
+        const permissions = [...roleBlock[1].matchAll(/'([^']+)'/g)].map((match) => match[1]);
+
+        for (const item of usePermissions(ref([`role:${role}`, ...permissions])).primaryNavigation.value) {
+            if (screensNotBuiltYet.includes(item.key)) {
+                continue;
+            }
+
+            assert.ok(
+                !item.href.startsWith('/#'),
+                `${role} : le menu « ${item.label} » retombe sur le fallback ${item.href}.`,
+            );
+        }
+    }
+});
+
 test('Story 2.4 Task 7 — chaque rôle réel conserve Accueil sans élargir ses permissions', () => {
     const catalog = readFileSync(new URL('../../config/permission-catalog.php', import.meta.url), 'utf8');
 

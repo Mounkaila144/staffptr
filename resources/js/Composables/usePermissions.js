@@ -11,7 +11,7 @@ const navigationByRole = {
             ['Objectifs', 'objectives', '◎', 'objectif_individuel.consulter'],
             ['Tâches', 'tasks', '✓', 'projet.consulter'],
         ],
-        more: ['Mes blocages', 'Mes absences', 'Mes demandes de dépense', 'Ma revue', 'Ma part', 'Documents internes', 'Mon profil', 'Déconnexion'],
+        more: ['Recherche', 'Projets', 'Livrables', 'Mes blocages', 'Mes absences', 'Mes demandes de dépense', 'Ma revue', 'Ma part', 'Documents internes', 'Mon profil', 'Déconnexion'],
     },
     stagiaire: {
         primary: [
@@ -20,7 +20,7 @@ const navigationByRole = {
             ['Mon stage', 'internship', '◇', 'stagiaire.consulter'],
             ['Tâches', 'tasks', '✓', 'projet.consulter'],
         ],
-        more: ['Mes blocages', 'Mes absences', 'Mes demandes', 'Ma revue', 'Documents internes', 'Mon profil', 'Déconnexion'],
+        more: ['Recherche', 'Objectifs', 'Projets', 'Livrables', 'Mes blocages', 'Mes absences', 'Mes demandes', 'Ma revue', 'Documents internes', 'Mon profil', 'Déconnexion'],
     },
     tuteur: {
         primary: [
@@ -29,7 +29,7 @@ const navigationByRole = {
             ['Rapport', 'report', '▤', 'rapport_quotidien.consulter'],
             ['Objectifs', 'objectives', '◎', 'objectif_individuel.consulter'],
         ],
-        more: ['Mes stagiaires', 'Créneaux de suivi', 'Revues hebdomadaires', 'Mes blocages', 'Mes absences', 'Mes demandes', 'Documents', 'Profil', 'Déconnexion'],
+        more: ['Tâches', 'Projets', 'Livrables', 'Mes stagiaires', 'Créneaux de suivi', 'Revues hebdomadaires', 'Mes blocages', 'Mes absences', 'Mes demandes', 'Recherche', 'Documents', 'Profil', 'Déconnexion'],
     },
     direction: {
         primary: [
@@ -38,7 +38,7 @@ const navigationByRole = {
             ['Équipe', 'team', '♙', 'compte.consulter'],
             ['Argent', 'finance', '¤', 'finance.ecriture.consulter'],
         ],
-        more: ['Mon rapport du jour', 'Mes objectifs', 'Organisation', 'Comptes et rôles', 'Paramètres', 'Calendrier', "Journal d'audit", 'Connexions', 'Réserve', 'Rapport mensuel', 'Recherche', 'Documents', 'Profil', 'Déconnexion'],
+        more: ['Tableau de bord direction', 'Mon rapport du jour', 'Mes objectifs', 'Tâches', 'Projets', 'Livrables', 'Absences', 'Organisation', 'Comptes et rôles', 'Paramètres', 'Calendrier', "Journal d'audit", 'Connexions', 'Réserve', 'Rapport mensuel', 'Plans correctifs', 'Recherche', 'Listes et exports', 'Documents', 'Profil', 'Déconnexion'],
     },
     finance: {
         primary: [
@@ -47,7 +47,7 @@ const navigationByRole = {
             ['Dépenses', 'expenses', '▥', 'depense.consulter'],
             ['Contrats', 'contracts', '▧', 'client.consulter'],
         ],
-        more: ['Rapprochement', 'Rapport mensuel', 'Budgets et charges', 'Clients et factures', 'Mon rapport du jour', 'Mes objectifs', 'Recherche', 'Documents', 'Profil', 'Déconnexion'],
+        more: ['Tableau de bord direction', 'Rapprochement', 'Rapport mensuel', 'Plans correctifs', 'Budgets et charges', 'Clients et factures', 'Mon rapport du jour', 'Mes objectifs', 'Tâches', 'Projets', 'Livrables', 'Mes absences', 'Recherche', 'Listes et exports', 'Documents', 'Profil', 'Déconnexion'],
     },
     super_admin: {
         primary: [
@@ -60,13 +60,31 @@ const navigationByRole = {
     },
 };
 
-function normalizeNavigationItem([label, key, glyph, permission]) {
+// La clé `team` mène à deux écrans différents selon le rôle : le tuteur y voit ses stagiaires,
+// la direction y gère les comptes. Une table par clé ne suffit donc pas, d'où cette surcharge.
+const navigationHrefOverridesByRole = {
+    tuteur: { team: '/stages' },
+    direction: { team: '/comptes' },
+};
+
+function normalizeNavigationItem([label, key, glyph, permission], role) {
     return {
         label,
         key,
         glyph,
         permission,
-        href: key === 'home' ? '/' : ({ accounts: '/comptes', settings: '/parametres' }[key] ?? `/#${key}`),
+        href: key === 'home' ? '/' : (navigationHrefOverridesByRole[role]?.[key] ?? {
+            accounts: '/comptes',
+            approvals: '/depenses/approbations',
+            expenses: '/depenses',
+            internship: '/stages',
+            objectives: '/objectifs',
+            report: '/rapports',
+            tasks: '/taches/aujourdhui',
+            settings: '/parametres',
+            finance: '/finances/tableau-de-bord',
+            contracts: '/finances/contrats',
+        }[key] ?? `/#${key}`),
     };
 }
 
@@ -92,7 +110,7 @@ export function usePermissions(permissionSource = null) {
     const roles = computed(() => rolePriority.filter((role) => checker.value.can(`role:${role}`)));
     const activeRole = computed(() => roles.value[0] ?? 'employe');
     const primaryNavigation = computed(() => navigationByRole[activeRole.value].primary
-        .map(normalizeNavigationItem)
+        .map((item) => normalizeNavigationItem(item, activeRole.value))
         .filter((item) => item.permission === null || checker.value.can(item.permission)));
     const moreNavigation = computed(() => {
         const entries = roles.value.flatMap((role) => navigationByRole[role].more);
