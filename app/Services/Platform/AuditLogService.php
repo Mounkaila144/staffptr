@@ -2,10 +2,27 @@
 
 namespace App\Services\Platform;
 
+use App\Enums\AbsenceState;
+use App\Enums\AbsenceType;
 use App\Enums\DocumentType;
 use App\Enums\PersonOperationalStatus;
 use App\Enums\RelationType;
 use App\Enums\UserState;
+use App\Models\Finance\Account;
+use App\Models\Finance\Client;
+use App\Models\Finance\Contract;
+use App\Models\Finance\Expense;
+use App\Models\Finance\ExpenseCategory;
+use App\Models\Finance\FixedCharge;
+use App\Models\Finance\Invoice;
+use App\Models\Finance\MonthClosure;
+use App\Models\Finance\MonthlyBudget;
+use App\Models\Finance\MonthlyReport;
+use App\Models\Finance\Payment;
+use App\Models\Finance\Reconciliation;
+use App\Models\Finance\ReserveMovement;
+use App\Models\Finance\ShareEntitlement;
+use App\Models\Identity\Absence;
 use App\Models\Identity\Company;
 use App\Models\Identity\Department;
 use App\Models\Identity\JobFunction;
@@ -14,6 +31,10 @@ use App\Models\Identity\PersonDocument;
 use App\Models\Identity\User;
 use App\Models\Platform\Attachment;
 use App\Models\Platform\AuditLog;
+use App\Models\Platform\Holiday;
+use App\Models\Platform\InternalDocument;
+use App\Models\Platform\InternalDocumentAcknowledgement;
+use App\Models\Platform\InternalDocumentVersion;
 use App\Models\Platform\Setting;
 use App\Support\Auditing\AuditLogger;
 use App\Support\DateTimeFormatter;
@@ -264,6 +285,8 @@ final class AuditLogService
             'address' => 'Adresse',
             'logo_path' => 'Logo',
             'is_active' => 'Actif',
+            'label' => 'Libellé',
+            'date' => "Date d'effet",
             'must_change_password' => 'Changement de mot de passe requis',
             'locked_until' => "Blocage jusqu'au",
             'failed_attempts' => 'Tentatives échouées',
@@ -288,6 +311,47 @@ final class AuditLogService
             'attachment_ulid' => 'Fichier rattaché',
             'archive_reason' => "Motif d'archivage",
             'archived_at' => "Date d'archivage",
+            'title' => 'Titre',
+            'requires_acknowledgement' => "Accusé d'acceptation requis",
+            'current_version_id' => 'Version courante',
+            'internal_document_id' => 'Document interne',
+            'internal_document_version_id' => 'Version du document interne',
+            'version_number' => 'Numéro de version',
+            'effective_date' => "Date d'application",
+            'published_by' => 'Publié par',
+            'published_at' => 'Date de publication',
+            'user_id' => 'Utilisateur concerné',
+            'acknowledged_at' => "Date de l'acceptation",
+            'type' => "Type d'absence",
+            'start_date' => 'Début de l’absence',
+            'end_date' => 'Fin de l’absence',
+            'reason' => 'Motif',
+            'decision_reason' => 'Motif de la décision',
+            'decided_by' => 'Décision prise par',
+            'decided_at' => 'Date de la décision',
+            'is_essential' => 'Dépense essentielle',
+            'requested_amount' => 'Montant demandé',
+            'monthly_amount' => 'Montant mensuel',
+            'budget_amount' => 'Montant budgété',
+            'movement_amount' => 'Montant du mouvement',
+            'received_amount' => 'Montant encaissé',
+            'expected_total_amount' => 'Montant total attendu',
+            'forecast_profit_amount' => 'Bénéfice prévisionnel',
+            'physical_balance_amount' => 'Solde physique constaté',
+            'calculated_balance_amount' => 'Solde calculé',
+            'difference_amount' => 'Montant de l’écart',
+            'difference_explanation' => 'Explication de l’écart',
+            'corrective_action' => 'Action corrective',
+            'reconstitution_plan' => 'Plan de reconstitution',
+            'approval_state' => 'État des approbations',
+            'prepared_by' => 'Préparé par',
+            'controlled_by' => 'Contrôlé par',
+            'validated_by' => 'Validé par',
+            'closed_by' => 'Clôturé par',
+            'reopened_by' => 'Rouvert par',
+            'reopen_reason' => 'Motif de réouverture',
+            'approver_id' => 'Compte de direction ayant décidé',
+            'approval_decision' => "Décision d'approbation",
             default => "{$field} (nom technique)",
         };
     }
@@ -299,7 +363,13 @@ final class AuditLogService
         }
 
         if ($field === 'state' && is_string($value)) {
-            return UserState::tryFrom($value)?->label() ?? $value;
+            return AbsenceState::tryFrom($value)?->label()
+                ?? UserState::tryFrom($value)?->label()
+                ?? $value;
+        }
+
+        if ($field === 'type' && is_string($value)) {
+            return AbsenceType::tryFrom($value)?->label() ?? $value;
         }
 
         if ($field === 'operational_status' && is_string($value)) {
@@ -368,9 +438,28 @@ final class AuditLogService
             User::class => 'Compte',
             Person::class => 'Personne',
             PersonDocument::class => 'Document du dossier personnel',
+            InternalDocument::class => 'Document interne',
+            InternalDocumentVersion::class => 'Version de document interne',
+            InternalDocumentAcknowledgement::class => "Accusé d'acceptation",
             AuditLog::class => "Journal d'audit",
             Setting::class => 'Paramètre général',
             Attachment::class => 'Pièce jointe',
+            Holiday::class => 'Jour férié',
+            Absence::class => 'Absence',
+            ExpenseCategory::class => 'Catégorie de dépense',
+            Expense::class => 'Dépense',
+            Account::class => 'Compte financier',
+            FixedCharge::class => 'Charge fixe',
+            Client::class => 'Client',
+            Contract::class => 'Contrat',
+            Invoice::class => 'Facture',
+            Payment::class => 'Encaissement',
+            ShareEntitlement::class => 'Droit à part',
+            ReserveMovement::class => 'Mouvement de réserve',
+            MonthlyBudget::class => 'Budget mensuel',
+            Reconciliation::class => 'Rapprochement',
+            MonthlyReport::class => 'Rapport financier mensuel',
+            MonthClosure::class => 'Clôture mensuelle',
             default => "{$type} (nom technique)",
         };
 
@@ -409,6 +498,59 @@ final class AuditLogService
             'person_document_deposited' => 'Dépôt du document personnel',
             'person_document_viewed' => 'Consultation du document personnel',
             'person_document_archived' => 'Archivage du document personnel',
+            'internal_document_published' => 'Publication du document interne',
+            'internal_document_version_published' => "Publication d'une nouvelle version",
+            'internal_document_acknowledged' => 'Acceptation du document interne',
+            'holiday_created' => "Création d'un jour férié",
+            'holiday_updated' => "Modification d'un jour férié",
+            'holiday_deactivated' => "Désactivation d'un jour férié",
+            'holiday_reactivated' => "Réactivation d'un jour férié",
+            'absence_requested' => "Déclaration d'une absence",
+            'absence_approved' => "Approbation d'une absence",
+            'absence_refused' => "Refus d'une absence",
+            'absence_cancelled' => "Annulation d'une absence",
+            'expense_category_created' => "Création d'une catégorie de dépense",
+            'expense_category_renamed' => "Renommage d'une catégorie de dépense",
+            'expense_category_deactivated' => "Désactivation d'une catégorie de dépense",
+            'expense_category_reactivated' => "Réactivation d'une catégorie de dépense",
+            'expense_category_essential_changed' => "Modification du marqueur essentiel d'une catégorie de dépense",
+            'expense_requested' => 'Demande de dépense',
+            'expense_updated' => 'Modification de la demande de dépense',
+            'expense_cancelled' => 'Annulation de la demande de dépense',
+            'expense_approved' => 'Approbation de la dépense',
+            'expense_refused' => 'Refus de la dépense',
+            'financial_account_created' => 'Création du compte financier',
+            'financial_account_deactivated' => 'Désactivation du compte financier',
+            'fixed_charge_created' => 'Création de la charge fixe',
+            'fixed_charge_updated' => 'Modification de la charge fixe',
+            'fixed_charge_activated' => 'Réactivation de la charge fixe',
+            'fixed_charge_deactivated' => 'Désactivation de la charge fixe',
+            'client_created' => 'Création du client',
+            'client_updated' => 'Modification du client',
+            'contract_created' => 'Création du contrat',
+            'contract_updated' => 'Modification du contrat',
+            'contract_closed' => 'Clôture du contrat',
+            'invoice_created' => 'Création de la facture',
+            'invoice_cancelled' => 'Annulation de la facture',
+            'payment_recorded' => 'Enregistrement de l’encaissement',
+            'payment_corrected' => 'Correction de l’encaissement',
+            'payment_cancelled_by_counter_entry' => 'Annulation de l’encaissement par contre-écriture',
+            'expense_paid' => 'Paiement de la dépense',
+            'expense_payment_cancelled_by_counter_entry' => 'Annulation du paiement par contre-écriture',
+            'share_payment_requested' => 'Demande de versement de part',
+            'monthly_budget_created' => 'Création du budget mensuel',
+            'monthly_budget_updated' => 'Modification du budget mensuel',
+            'reserve_usage_requested' => 'Demande d’utilisation de la réserve',
+            'reserve_usage_first_approved' => 'Première approbation de la réserve',
+            'reserve_usage_approved' => 'Deuxième approbation et utilisation de la réserve',
+            'reconciliation_prepared' => 'Préparation du rapprochement',
+            'reconciliation_corrected' => 'Correction versionnée du rapprochement',
+            'reconciliation_validated' => 'Validation du rapprochement',
+            'monthly_report_prepared' => 'Préparation du rapport financier',
+            'monthly_report_controlled' => 'Contrôle du rapport financier',
+            'monthly_report_validated' => 'Validation du rapport financier',
+            'month_closed' => 'Clôture du mois',
+            'month_reopened' => 'Réouverture du mois',
             default => "{$action} (nom technique)",
         };
     }

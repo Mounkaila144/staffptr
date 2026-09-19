@@ -102,12 +102,18 @@ final class AccountAdministrationService
                     reason: 'Création depuis l’administration des comptes.',
                 );
             $temporaryPassword = $this->temporaryPasswordGenerator->generate();
+            // Un compte de stagiaire naît `invite` : son activation est subordonnée à la fiche
+            // d'entrée approuvée, au tuteur désigné et aux trois objectifs (AC 16, 41). Le créer
+            // directement `actif` contournerait ce contrôle.
+            $initialState = in_array('stagiaire', $attributes['roles'], true)
+                ? UserState::Invite
+                : UserState::Actif;
             $user = $this->identityService->createUser(
                 person: $person,
                 attributes: [
                     'phone' => $attributes['phone'],
                     'password' => $temporaryPassword,
-                    'state' => UserState::Actif,
+                    'state' => $initialState,
                     'must_change_password' => true,
                 ],
                 actorId: $actor->getKey(),

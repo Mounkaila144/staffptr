@@ -143,6 +143,7 @@ function previewDifference() {
                     <StatusBadge status="actif" />
                 </div>
                 <p class="text-ink-secondary">Adaptez les règles chiffrées sans redéploiement. Chaque changement est daté et conservé dans le journal d’audit.</p>
+                <a href="/categories-depense" class="touch-target inline-flex w-fit items-center font-semibold text-primary underline-offset-4 hover:underline">Gérer les catégories de dépense</a>
             </header>
 
             <p v-if="previewError" role="alert" class="rounded-lg border border-danger bg-danger-soft p-3 font-semibold text-danger">⚠ {{ previewError }}</p>

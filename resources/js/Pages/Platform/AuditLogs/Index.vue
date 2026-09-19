@@ -30,30 +30,30 @@ function resetFilters() {
 <template>
     <Head title="Journal d’audit" />
     <AppLayout title="Journal d’audit">
-        <div class="grid gap-8">
-            <header class="grid gap-2">
+        <div class="grid min-w-0 gap-8">
+            <header class="grid min-w-0 gap-2">
                 <h1 class="text-screen-title">Journal d’audit</h1>
                 <p class="text-ink-secondary">Consultez les opérations enregistrées et leur différentiel, en heure de Niamey.</p>
             </header>
 
-            <form method="get" action="/journal-audit" class="grid gap-4 rounded-xl border border-separator bg-surface p-4" aria-label="Filtrer le journal d’audit">
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <label class="grid gap-2 text-field-label font-semibold">Auteur
-                        <select name="actor_id" :value="filters.actor_id ?? ''" class="touch-target rounded-lg border border-separator bg-surface px-3 font-normal">
+            <form method="get" action="/journal-audit" class="grid min-w-0 gap-4 rounded-xl border border-separator bg-surface p-4" aria-label="Filtrer le journal d’audit">
+                <div class="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <label class="grid min-w-0 gap-2 text-field-label font-semibold">Auteur
+                        <select name="actor_id" :value="filters.actor_id ?? ''" class="touch-target min-w-0 max-w-full rounded-lg border border-separator bg-surface px-3 font-normal">
                             <option value="">Tous les auteurs</option>
                             <option v-for="author in authors" :key="author.value" :value="author.value">{{ author.label }}</option>
                         </select>
                     </label>
                     <FormField id="from" v-model="from" label="Du" variant="date" />
                     <FormField id="to" v-model="to" label="Au" variant="date" />
-                    <label class="grid gap-2 text-field-label font-semibold">Type d’objet
-                        <select name="auditable_type" :value="filters.auditable_type ?? ''" class="touch-target rounded-lg border border-separator bg-surface px-3 font-normal">
+                    <label class="grid min-w-0 gap-2 text-field-label font-semibold">Type d’objet
+                        <select name="auditable_type" :value="filters.auditable_type ?? ''" class="touch-target min-w-0 max-w-full rounded-lg border border-separator bg-surface px-3 font-normal">
                             <option value="">Tous les objets</option>
                             <option v-for="type in objectTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
                         </select>
                     </label>
-                    <label class="grid gap-2 text-field-label font-semibold">Action
-                        <select name="action" :value="filters.action ?? ''" class="touch-target rounded-lg border border-separator bg-surface px-3 font-normal">
+                    <label class="grid min-w-0 gap-2 text-field-label font-semibold">Action
+                        <select name="action" :value="filters.action ?? ''" class="touch-target min-w-0 max-w-full rounded-lg border border-separator bg-surface px-3 font-normal">
                             <option value="">Toutes les actions</option>
                             <option v-for="action in actions" :key="action.value" :value="action.value">{{ action.label }}</option>
                         </select>
@@ -73,24 +73,24 @@ function resetFilters() {
                 </form>
             </div>
 
-            <section aria-labelledby="entries-title" class="grid gap-4">
+            <section aria-labelledby="entries-title" class="grid min-w-0 gap-4">
                 <h2 id="entries-title" class="sr-only">Entrées du journal</h2>
 
-                <div v-if="entries.data.length" class="grid gap-4">
-                    <article v-for="entry in entries.data" :key="entry.id" class="grid gap-4 rounded-xl border border-separator bg-surface p-4">
-                        <header class="flex flex-wrap items-start justify-between gap-3">
-                            <div class="grid gap-1">
-                                <p class="font-semibold">{{ entry.actor }}</p>
-                                <p class="text-sm text-ink-secondary">{{ entry.occurred_at }} · {{ entry.object }}</p>
+                <div v-if="entries.data.length" class="grid min-w-0 gap-4">
+                    <article v-for="entry in entries.data" :key="entry.id" class="grid min-w-0 gap-4 rounded-xl border border-separator bg-surface p-4">
+                        <header class="flex min-w-0 flex-wrap items-start justify-between gap-3">
+                            <div class="grid min-w-0 gap-1">
+                                <p class="break-words font-semibold">{{ entry.actor }}</p>
+                                <p class="break-words text-sm text-ink-secondary">{{ entry.occurred_at }} · {{ entry.object }}</p>
                             </div>
                             <StatusBadge status="audit" variant="avec contexte" :context="entry.action" />
                         </header>
 
-                        <dl v-if="entry.changes.length" class="grid gap-3">
-                            <div v-for="change in entry.changes" :key="change.field" class="grid gap-2 rounded-lg bg-neutral-soft p-3 sm:grid-cols-2">
+                        <dl v-if="entry.changes.length" class="grid min-w-0 gap-3">
+                            <div v-for="change in entry.changes" :key="change.field" class="grid min-w-0 gap-2 rounded-lg bg-neutral-soft p-3 sm:grid-cols-2">
                                 <dt class="font-semibold sm:col-span-2">{{ change.label }}</dt>
-                                <dd><span class="block text-xs font-semibold uppercase text-ink-secondary">Ancienne valeur</span><span class="break-words">{{ change.old }}</span></dd>
-                                <dd><span class="block text-xs font-semibold uppercase text-ink-secondary">Nouvelle valeur</span><span class="break-words">{{ change.new }}</span></dd>
+                                <dd class="min-w-0"><span class="block text-xs font-semibold uppercase text-ink-secondary">Ancienne valeur</span><span class="break-all">{{ change.old }}</span></dd>
+                                <dd class="min-w-0"><span class="block text-xs font-semibold uppercase text-ink-secondary">Nouvelle valeur</span><span class="break-all">{{ change.new }}</span></dd>
                             </div>
                         </dl>
                         <p v-else class="text-sm text-ink-secondary">Aucun différentiel de valeur pour cette opération.</p>

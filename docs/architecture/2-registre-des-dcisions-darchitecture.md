@@ -33,14 +33,15 @@
 | **DEC-06** | Hébergeur des sauvegardes hors site | À choisir — la donnée quitte le Niger |
 | **DEC-07** | Suivi des erreurs (Sentry ou fichiers seuls) | Sentry auto-hébergé, ou fichiers seuls |
 | **DEC-08** | Q11 — types et taille des pièces jointes | PDF/JPEG/PNG/WebP/HEIC, 8 Mo |
-| **DEC-09** | Q6 — comptes financiers réels à initialiser | Liste à fournir |
+| **DEC-09** | Q6 — comptes financiers réels à initialiser | ✅ **Tranché 17/08/2026** — « Caisse principale » (`caisse`) et « Mobile Money PTR-Niger » (`mobile_money`) |
 | **DEC-10** | Q9 — vérification d'identité à la réinitialisation | ✅ **Tranché 20/07/2026** — code de confirmation envoyé sur le WhatsApp enregistré de la cible, saisi par l'auteur avant génération du mot de passe temporaire. Voir § 7.4 |
 | **DEC-11** | Q12 — conservation 10 ans | Confirme NFR26 et le dimensionnement disque |
 | **DEC-15** | Fournisseur du canal WhatsApp | ✅ **Tranché 20/07/2026** — Evolution API 2.3.7 (`WHATSAPP-BAILEYS`). Coûts détaillés au § 9.4bis |
 | **DEC-16** | Q18 — portée et consentement du canal WhatsApp | ✅ **Tranché 20/07/2026** — toutes les notifications de FR31 sont éligibles, sans mécanisme de refus ; chaque compte est garanti porteur d'un numéro WhatsApp actif |
 
-**Rappel PRD :** les contradictions CONTRA-01, 03, 04, 05 et 07 restent ouvertes. Aucune ne bloque
-l'Étape 1. CONTRA-01 (régularisation des parts à la clôture de contrat) et CONTRA-04 (employé
-apporteur) **doivent être tranchées avant l'écriture du modèle de données financier de l'Étape 4**.
+**Arbitrages financiers confirmés le 17/08/2026 :** CONTRA-01 retient le bénéfice prévisionnel avec
+régularisation à la clôture ; CONTRA-04 ouvre la part apporteur de 10 % aux employés ; CONTRA-05
+autorise un bénéficiaire non-associé à consulter uniquement sa propre ligne. CONTRA-03 et CONTRA-07
+restent indépendants de ce modèle.
 
 ---

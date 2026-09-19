@@ -59,7 +59,7 @@ class CheckInvariantsTest extends IdentityTestCase
             ->assertExitCode(Command::FAILURE);
     }
 
-    public function test_ac_12_all_four_invariants_are_checked_before_the_command_fails(): void
+    public function test_ac_12_all_six_invariants_are_checked_before_the_command_fails(): void
     {
         config(['app.env' => 'production', 'app.debug' => true]);
 
@@ -68,6 +68,10 @@ class CheckInvariantsTest extends IdentityTestCase
             ->expectsOutputToContain('Permissions métier du super administrateur')
             ->expectsOutputToContain("Déclencheurs d'immuabilité du journal d'audit")
             ->expectsOutputToContain("Privilège DELETE du journal d'audit")
+            ->expectsOutputToContain('Nombre de comptes approbateurs de dépenses')
+            ->expectsOutputToContain('Double approbation des dépenses approuvées ou payées')
+            ->expectsOutputToContain('Envois de notification en échec de file')
+            ->expectsOutputToContain('Intégrité du livre financier')
             ->assertExitCode(Command::FAILURE);
     }
 

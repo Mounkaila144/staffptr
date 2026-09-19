@@ -23,6 +23,10 @@ const states = {
     termine: ['■', 'Terminé', 'border-solid border-neutral bg-neutral-soft text-neutral'],
     archive: ['▣', 'Archivé', 'border-dashed border-neutral bg-neutral-soft text-neutral'],
     audit: ['✓', 'Consignée', 'border-solid border-primary bg-surface text-primary'],
+    demandee: ['⏳', 'Demandée', 'border-solid border-warning bg-warning-soft text-warning'],
+    approuvee: ['✓', 'Approuvée', 'border-solid border-success bg-success-soft text-success'],
+    refusee: ['×', 'Refusée', 'border-2 border-solid border-danger bg-danger-soft text-danger'],
+    annulee: ['⏸', 'Annulée', 'border-solid border-neutral bg-neutral-soft text-neutral'],
 };
 
 const state = computed(() => states[props.status] ?? states.brouillon);

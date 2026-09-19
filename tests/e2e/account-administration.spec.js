@@ -13,7 +13,7 @@ test('AC 2, 6 et 7 — création et cartes de comptes restent utilisables à 320
     await page.getByRole('link', { name: 'Comptes et rôles', exact: true }).click();
     await expect(page).toHaveURL(/\/comptes$/);
     await expect(page.getByRole('heading', { name: 'Administration des comptes' })).toBeVisible();
-    await expect(page.getByText('Les dépenses ne sont pas encore approuvables', { exact: false })).toBeVisible();
+    await expect(page.getByText('Les dépenses ne sont pas encore approuvables', { exact: false })).toHaveCount(0);
 
     const creation = page.getByRole('heading', { name: 'Créer un compte' }).locator('xpath=ancestor::section');
     await creation.getByLabel('Nom complet').fill(`Compte E2E ${suffix}`);

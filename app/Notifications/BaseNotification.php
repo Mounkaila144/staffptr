@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Services\Platform\WhatsAppChannel;
+use App\Services\Platform\WhatsAppPacer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -27,6 +28,24 @@ abstract class BaseNotification extends Notification implements ShouldQueue
     public function backoff(): array
     {
         return [60, 300, 900];
+    }
+
+    /**
+     * Étalement des envois WhatsApp (voir WhatsAppPacer).
+     *
+     * Laravel appelle cette méthode **par canal** : le canal `database` renvoie
+     * toujours `null` et reste donc instantané. Seul WhatsApp est calé, et
+     * seulement pour les types qui y sortent réellement — sinon une rafale de
+     * notifications purement internes consommerait des créneaux pour rien et
+     * retarderait celles qui, elles, partent.
+     */
+    public function withDelay(object $notifiable, string $channel): ?int
+    {
+        if ($channel !== WhatsAppChannel::class || ! WhatsAppChannel::delivers(static::class)) {
+            return null;
+        }
+
+        return app(WhatsAppPacer::class)->reserveDelay();
     }
 
     /** @return array{message: string, link: string} */

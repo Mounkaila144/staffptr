@@ -23,12 +23,32 @@ function closeMore(event) {
 }
 
 function moreHref(item) {
+    if (item === 'Objectifs' || item === 'Mes objectifs') return '/objectifs';
+    if (item === 'Tâches' || item === 'Mes tâches') return '/taches';
+    if (item === 'Projets') return '/projets';
+    if (item === 'Livrables') return '/livrables';
+    if (item === 'Absences' || item === 'Mes absences') return '/absences';
+    if (item === 'Documents' || item === 'Documents internes') return '/documents-internes';
     if (item === 'Profil' || item === 'Mon profil') return page.props.auth?.person_id ? `/personnes/${page.props.auth.person_id}` : '/';
     if (item === 'Organisation') return '/organisation';
     if (item === 'Connexions') return '/connexions';
     if (item === 'Comptes et rôles') return '/comptes';
     if (item === 'Paramètres') return '/parametres';
+    if (item === 'Calendrier') return '/calendrier';
+    if (item === 'Mes stagiaires' || item === 'Mon stage') return '/stages';
+    if (item === 'Créneaux de suivi') return '/creneaux-suivi';
+    if (item === 'Revues hebdomadaires' || item === 'Ma revue') return '/revues-hebdomadaires';
     if (item === "Journal d'audit") return '/journal-audit';
+    if (item === 'Réserve') return '/finances/reserve';
+    if (item === 'Rapport mensuel') return '/finances/rapports-mensuels';
+    if (item === 'Rapprochement') return '/finances/rapprochements';
+    if (item === 'Budgets et charges') return '/finances/budgets-mensuels';
+    if (item === 'Clients et factures') return '/finances/clients';
+    if (item === 'Ma part') return '/finances/parts';
+    if (item === 'Tableau de bord direction') return '/tableau-de-bord/direction';
+    if (item === 'Plans correctifs') return '/finances/plans-correctifs';
+    if (item === 'Recherche') return '/recherche';
+    if (item === 'Listes et exports') return '/listes/depenses';
     return '#plus';
 }
 </script>

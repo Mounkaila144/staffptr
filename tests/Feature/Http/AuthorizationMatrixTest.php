@@ -50,9 +50,14 @@ class AuthorizationMatrixTest extends IdentityTestCase
         $this->assertOnlyRolesAllowed('accounts.index', ['super_admin', 'direction']);
         $this->assertOnlyRolesAllowed('audit.index', ['direction']);
         $this->assertOnlyRolesAllowed('audit.export', ['direction']);
-        $this->assertOnlyRolesAllowed('testing.authorization.expense.approve', ['direction']);
-        $this->assertOnlyRolesAllowed('testing.authorization.objective.validate', ['direction']);
-        $this->assertOnlyRolesAllowed('testing.authorization.financial-report.validate', ['direction']);
+        $this->assertOnlyRolesAllowed('expenses.approvals.index', ['direction']);
+        $this->assertOnlyRolesAllowed('expenses.approvals.show', ['direction']);
+        $this->assertOnlyRolesAllowed('expenses.approvals.attachment', ['direction']);
+        $this->assertOnlyRolesAllowed('company-priorities.index', ['super_admin', 'direction', 'finance', 'tuteur', 'employe', 'stagiaire']);
+        $this->assertOnlyRolesAllowed('company-priorities.store', ['direction']);
+        $this->assertOnlyRolesAllowed('objectives.validate', ['direction', 'tuteur']);
+        $this->assertOnlyRolesAllowed('projects.budget', ['direction', 'finance']);
+        $this->assertOnlyRolesAllowed('financial-reports.validate', ['direction']);
 
         foreach ($this->matrixRoutes() as $entry) {
             $permissions = explode('|', $entry['permission']);

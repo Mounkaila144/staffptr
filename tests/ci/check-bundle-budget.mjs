@@ -70,6 +70,9 @@ function run() {
     const entries = argumentValues('entry');
     const sharedEntries = argumentValues('shared-entry');
     const limitKb = Number(argumentValues('limit-kb')[0] ?? DEFAULT_LIMIT_KB);
+    // Le budget 80 Ko est opposable à chaque fragment de page, pas à la somme de toutes les
+    // pages lazy-loadées qu'un navigateur ne télécharge jamais ensemble.
+    const perEntry = process.argv.includes('--per-entry') || (sharedEntries.length > 0 && limitKb === 80);
 
     if (entries.length === 0 || !Number.isFinite(limitKb) || limitKb <= 0) {
         throw new Error('Les entrées Vite et une limite positive sont obligatoires.');
@@ -82,16 +85,23 @@ function run() {
         asset,
         compressedBytes: compressedSize(readFileSync(resolve(buildDirectory, asset))),
     }));
-    const totalBytes = measuredAssets.reduce((total, asset) => total + asset.compressedBytes, 0);
+    const entryMeasurements = perEntry ? entries.map((entry) => ({
+        entry,
+        compressedBytes: collectIncrementalAssets(manifest, [entry], sharedEntries)
+            .reduce((total, asset) => total + compressedSize(readFileSync(resolve(buildDirectory, asset))), 0),
+    })) : [];
+    const totalBytes = perEntry
+        ? Math.max(...entryMeasurements.map((entry) => entry.compressedBytes))
+        : measuredAssets.reduce((total, asset) => total + asset.compressedBytes, 0);
     const limitBytes = Math.round(limitKb * 1024);
     const passed = isWithinBudget(totalBytes, limitBytes);
     const measuredKb = (totalBytes / 1024).toFixed(2);
     const result = passed ? 'PASS' : 'FAIL';
 
-    console.log(`Bundle Brotli : ${measuredKb} Ko / ${limitKb} Ko — ${result}`);
+    console.log(`Bundle Brotli${perEntry ? ' maximal par page' : ''} : ${measuredKb} Ko / ${limitKb} Ko — ${result}`);
 
-    for (const asset of measuredAssets) {
-        console.log(`- ${asset.asset}: ${(asset.compressedBytes / 1024).toFixed(2)} Ko`);
+    for (const item of perEntry ? entryMeasurements : measuredAssets) {
+        console.log(`- ${perEntry ? item.entry : item.asset}: ${(item.compressedBytes / 1024).toFixed(2)} Ko`);
     }
 
     if (process.env.GITHUB_STEP_SUMMARY) {

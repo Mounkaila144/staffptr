@@ -15,6 +15,7 @@ const environment = {
     DB_CONNECTION: 'sqlite',
     DB_DATABASE: database,
     SESSION_DRIVER: 'database',
+    QUEUE_CONNECTION: 'database',
 };
 
 writeFileSync(database, '');

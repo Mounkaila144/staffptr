@@ -7,6 +7,7 @@ use App\Enums\UserState;
 use App\Models\Platform\Attachment;
 use App\Support\Auditing\Auditable;
 use App\Support\PreventsPhysicalDeletion;
+use Carbon\CarbonImmutable;
 use Database\Factories\Identity\PersonFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,7 +16,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
+ * @property string $full_name
  * @property PersonOperationalStatus $operational_status
+ * @property CarbonImmutable $first_seen_at
  */
 class Person extends Model
 {

@@ -1,0 +1,102 @@
+name: Déploiement
+
+# Story 11.1, Task 8 (AC 42, AC 43, AC 44).
+#
+# Deux étages, volontairement asymétriques :
+#
+#   • **staging** part tout seul à chaque fusion dans `main` (AC 42). C'est là qu'on découvre les
+#     problèmes, donc il ne doit rien coûter de le déployer.
+#   • **production** exige une **approbation humaine explicite** (AC 43). Elle est portée par le
+#     GitHub Environment `production` et ses reviewers requis, pas par une condition dans ce
+#     fichier : une règle écrite ici pourrait être contournée en modifiant ce fichier, alors que
+#     l'approbation d'environnement ne le peut pas.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    name: Préproduction
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Déployer en préproduction
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            export PHP_VERSION='${{ vars.PHP_VERSION }}'
+            export HEALTH_URL='${{ vars.STAGING_URL }}/up'
+            ${{ vars.STAGING_ROOT }}/current/deploy/deploy.sh \
+              '${{ vars.STAGING_ROOT }}' \
+              '${{ vars.DEPLOY_REPOSITORY }}' \
+              '${{ github.sha }}'
+
+      # AC 42 — les invariants sont exécutés en préproduction après déploiement. Un écart ici
+      # arrête la chaîne : il ne doit pas atteindre la production.
+      - name: Invariants en préproduction
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd '${{ vars.STAGING_ROOT }}/current'
+            php artisan ptr:check-invariants
+
+  production:
+    name: Production
+    needs: staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # AC 43 — l'environnement `production` porte les reviewers requis. Sans approbation humaine,
+    # ce job ne démarre pas. C'est la seule barrière qui compte.
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # AC 44 — le script effectue lui-même la porte post-déploiement et le retour arrière
+      # automatique en cas d'échec. Le workflow ne fait que constater son code de sortie : la
+      # logique de rollback vit sur le serveur, où elle reste utilisable à la main pendant un
+      # incident, même si GitHub est inaccessible.
+      - name: Déployer en production
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            export PHP_VERSION='${{ vars.PHP_VERSION }}'
+            export HEALTH_URL='${{ vars.PRODUCTION_URL }}/up'
+            ${{ vars.PRODUCTION_ROOT }}/current/deploy/deploy.sh \
+              '${{ vars.PRODUCTION_ROOT }}' \
+              '${{ vars.DEPLOY_REPOSITORY }}' \
+              '${{ github.sha }}'
+
+      - name: Consigner la mise en service
+        if: success()
+        run: |
+          echo "Déploiement production de ${{ github.sha }} approuvé par ${{ github.actor }}." >> "$GITHUB_STEP_SUMMARY"
+          echo "La décision datée doit être consignée dans docs/ops/go-live-decisions.md (AC 53)." >> "$GITHUB_STEP_SUMMARY"

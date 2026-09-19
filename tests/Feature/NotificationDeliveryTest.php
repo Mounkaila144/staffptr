@@ -25,6 +25,16 @@ class NotificationDeliveryTest extends IdentityTestCase
             'services.evolution.url' => 'https://evolution.test',
             'services.evolution.key' => 'evolution-test-key',
             'services.evolution.instance' => 'ptr-test',
+
+            // Cette suite éprouve le *mécanisme* du canal WhatsApp — reprise
+            // sur échec, contenu du message, lien interne — et se sert de
+            // GenericLinkedNotification comme véhicule. Ce type ne sort pas sur
+            // WhatsApp en production : la liste blanche le retient dans
+            // l'application, pour ne pas exposer le numéro à un blocage.
+            // L'autoriser ici garde ces assertions sur leur objet ; c'est
+            // WhatsAppVolumeControlTest qui vérifie la politique de routage
+            // elle-même, valeurs livrées comprises.
+            'notifications.whatsapp.enabled' => [GenericLinkedNotification::class],
         ]);
     }
 

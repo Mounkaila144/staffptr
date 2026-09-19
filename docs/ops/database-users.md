@@ -53,6 +53,12 @@ nommée.** Le niveau schéma ne porte que `SELECT, INSERT`.
 | `attachments` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
 | `person_documents` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
 | `notifications` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
+| `internal_documents` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
+| `internal_document_versions` | explicite | explicite | **refusé** | **refusé** |
+| `internal_document_acknowledgements` | explicite | explicite | **refusé** | **refusé** |
+| `holidays` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
+| `absences` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
+| `expense_categories` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
 | `sessions` | hérité du schéma | hérité du schéma | oui | **accordé** |
 | `jobs` | hérité du schéma | hérité du schéma | oui | **accordé** |
 | `job_batches` | hérité du schéma | hérité du schéma | oui | **accordé** |
@@ -168,6 +174,14 @@ GRANT UPDATE ON `ptrstaff_prod`.`settings` TO 'ptrstaff_prod_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_prod`.`attachments` TO 'ptrstaff_prod_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_prod`.`person_documents` TO 'ptrstaff_prod_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_prod`.`notifications` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`internal_documents` TO 'ptrstaff_prod_app'@'localhost';
+GRANT SELECT, INSERT ON `ptrstaff_prod`.`internal_document_versions` TO 'ptrstaff_prod_app'@'localhost';
+GRANT SELECT, INSERT ON `ptrstaff_prod`.`internal_document_acknowledgements` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`holidays` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`absences` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`expense_categories` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`expenses` TO 'ptrstaff_prod_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_prod`.`expense_approvals` TO 'ptrstaff_prod_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`people` TO 'ptrstaff_staging_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`users` TO 'ptrstaff_staging_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`roles` TO 'ptrstaff_staging_app'@'localhost';
@@ -183,6 +197,14 @@ GRANT UPDATE ON `ptrstaff_staging`.`settings` TO 'ptrstaff_staging_app'@'localho
 GRANT UPDATE ON `ptrstaff_staging`.`attachments` TO 'ptrstaff_staging_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`person_documents` TO 'ptrstaff_staging_app'@'localhost';
 GRANT UPDATE ON `ptrstaff_staging`.`notifications` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`internal_documents` TO 'ptrstaff_staging_app'@'localhost';
+GRANT SELECT, INSERT ON `ptrstaff_staging`.`internal_document_versions` TO 'ptrstaff_staging_app'@'localhost';
+GRANT SELECT, INSERT ON `ptrstaff_staging`.`internal_document_acknowledgements` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`holidays` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`absences` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`expense_categories` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`expenses` TO 'ptrstaff_staging_app'@'localhost';
+GRANT UPDATE ON `ptrstaff_staging`.`expense_approvals` TO 'ptrstaff_staging_app'@'localhost';
 
 -- Phase 4 : exception RBAC revue le 20/07/2026 — état courant audité, pivots uniquement.
 GRANT DELETE ON `ptrstaff_prod`.`model_has_roles` TO 'ptrstaff_prod_app'@'localhost';
@@ -273,6 +295,14 @@ La migration de `notifications` accorde elle-même `UPDATE` au compte applicatif
 `read_at`. Après déploiement, joindre la sortie `SHOW GRANTS` horodatée et vérifier que
 `notifications` porte `SELECT`, `INSERT` et `UPDATE`, sans aucun `DELETE`.
 
+## Actions dues à l'exploitant pour la story 3.8
+
+La migration accorde `UPDATE` à `internal_documents`, sans `DELETE`. Les tables
+`internal_document_versions` et `internal_document_acknowledgements` restent en ajout seul :
+`SELECT` et `INSERT` uniquement, sans `UPDATE` ni `DELETE`, avec déclencheurs MySQL bloquant toute
+modification ou suppression. Après déploiement, joindre la sortie `SHOW GRANTS` et vérifier les
+quatre déclencheurs `*_prevent_update` / `*_prevent_delete`.
+
 ## Actions dues à l'exploitant pour la story 2.2
 
 Après la migration RBAC, exécuter les dix lignes `GRANT UPDATE` et les quatre lignes d'exception
@@ -287,3 +317,16 @@ Après déploiement des migrations, exécuter les quatre lignes de phase 3 ci-de
 préproduction puis sur la production, avec le compte de migration de chaque environnement. Joindre
 les sorties `SHOW GRANTS` horodatées au journal d'exploitation. Aucun droit `DELETE` ne doit être
 ajouté sur `people` ou `users`.
+
+## Actions dues à l'exploitant pour la story 4.3
+
+La migration de `expense_categories` accorde elle-même `UPDATE` au compte applicatif configuré.
+Après déploiement, joindre la sortie `SHOW GRANTS` horodatée et vérifier que `expense_categories`
+porte `SELECT`, `INSERT` et `UPDATE`, sans aucun `DELETE`.
+
+## Actions dues à l'exploitant pour la story 4.4
+
+Les migrations de `expenses` et `expense_approvals` accordent elles-mêmes `UPDATE` au compte
+applicatif configuré. Après déploiement, joindre la sortie `SHOW GRANTS` horodatée et vérifier que
+les deux tables portent `SELECT`, `INSERT` et `UPDATE`, sans aucun `DELETE`. Aucune colonne de
+paiement n'est présente — ces colonnes seront ajoutées par migration en 8.6.

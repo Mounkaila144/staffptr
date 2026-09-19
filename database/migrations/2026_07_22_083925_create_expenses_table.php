@@ -1,0 +1,94 @@
+<?php
+
+use App\Enums\ExpenseState;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        $connectionName = $this->connectionName();
+
+        Schema::connection($connectionName)->create('expenses', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('requester_id')->constrained('users')->onDelete('restrict');
+            $table->foreignId('category_id')->constrained('expense_categories')->onDelete('restrict');
+            $table->string('reason');
+            $table->unsignedBigInteger('requested_amount')->comment('Montant en XOF, entier');
+            $table->string('beneficiary');
+            $table->text('expected_result');
+            $table->string('project_or_contract_note')->nullable()->comment('Note libre, lien structuré ajouté par migration ultérieure');
+            $table->string('state')->default(ExpenseState::Demandee->value);
+            $table->string('cancel_reason')->nullable();
+            $table->timestamps(3);
+        });
+
+        $this->grantApplicationUpdate($connectionName, 'expenses');
+    }
+
+    public function down(): void
+    {
+        $connectionName = $this->connectionName();
+
+        $this->revokeApplicationUpdate($connectionName, 'expenses');
+        Schema::connection($connectionName)->dropIfExists('expenses');
+    }
+
+    private function grantApplicationUpdate(string $connectionName, string $table): void
+    {
+        if (! $this->isMysqlFamily($connectionName)) {
+            return;
+        }
+
+        DB::connection($connectionName)->unprepared(
+            "GRANT UPDATE ON {$this->qualifiedTable($connectionName, $table)} TO {$this->applicationAccount()}"
+        );
+    }
+
+    private function revokeApplicationUpdate(string $connectionName, string $table): void
+    {
+        if (! $this->isMysqlFamily($connectionName)) {
+            return;
+        }
+
+        DB::connection($connectionName)->unprepared(
+            "REVOKE UPDATE ON {$this->qualifiedTable($connectionName, $table)} FROM {$this->applicationAccount()}"
+        );
+    }
+
+    private function connectionName(): string
+    {
+        return $this->getConnection() ?? (string) config('database.default');
+    }
+
+    private function isMysqlFamily(string $connectionName): bool
+    {
+        return in_array(DB::connection($connectionName)->getDriverName(), ['mysql', 'mariadb'], true);
+    }
+
+    private function qualifiedTable(string $connectionName, string $table): string
+    {
+        $database = DB::connection($connectionName)->getDatabaseName();
+
+        return '`'.str_replace('`', '``', $database).'`.`'.str_replace('`', '``', $table).'`';
+    }
+
+    private function applicationAccount(): string
+    {
+        $username = config('audit.database.app_username');
+        $host = config('audit.database.app_host');
+
+        if (! is_string($username) || preg_match('/\A[A-Za-z0-9_]+\z/', $username) !== 1) {
+            throw new RuntimeException('AUDIT_DB_APP_USERNAME doit identifier le compte applicatif MySQL.');
+        }
+
+        if (! is_string($host) || preg_match('/\A[A-Za-z0-9_.:%-]+\z/', $host) !== 1) {
+            throw new RuntimeException('AUDIT_DB_APP_HOST contient une valeur MySQL invalide.');
+        }
+
+        return "'{$username}'@'{$host}'";
+    }
+};

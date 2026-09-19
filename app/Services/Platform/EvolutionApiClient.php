@@ -13,6 +13,7 @@ class EvolutionApiClient
     /** @throws EvolutionApiUnavailable */
     public function sendText(string $phone, string $text): void
     {
+        $this->assertRealDeliveryAllowed();
         $instance = $this->configuredString('instance');
 
         try {
@@ -43,6 +44,27 @@ class EvolutionApiClient
             $phone,
             "PTR Staff — code de confirmation pour la réinitialisation : {$confirmationCode}. Valable 10 minutes. Ne le partagez qu’avec la personne qui effectue l’opération.",
         );
+    }
+
+    /**
+     * Garde de préproduction (story 11.1, AC 37).
+     *
+     * La préproduction ne doit **jamais** joindre l'API WhatsApp réelle, même si l'anonymisation
+     * est incomplète. C'est l'ordre des garanties qui compte : si l'on comptait sur des numéros
+     * factices, une anonymisation partielle enverrait de vrais messages à de vraies personnes. La
+     * garde repose donc sur la **configuration d'environnement**, indépendamment du contenu de la
+     * base.
+     *
+     * `services.evolution.allow_real_delivery` vaut faux partout sauf en production, où il est
+     * explicitement activé.
+     *
+     * @throws EvolutionApiUnavailable
+     */
+    private function assertRealDeliveryAllowed(): void
+    {
+        if (config('services.evolution.allow_real_delivery') !== true) {
+            throw new EvolutionApiUnavailable;
+        }
     }
 
     /** @throws EvolutionApiUnavailable */

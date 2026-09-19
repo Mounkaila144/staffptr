@@ -4,7 +4,13 @@ namespace App\Models\Identity;
 
 use App\Enums\RelationType;
 use App\Enums\UserState;
+use App\Models\Accountability\Blocker;
+use App\Models\Accountability\DailyReport;
+use App\Models\Accountability\Internship;
+use App\Models\Accountability\TaskRequest;
 use App\Models\Platform\Attachment;
+use App\Models\Work\Objective;
+use App\Models\Work\Task as WorkTask;
 use App\Support\Auditing\Auditable;
 use App\Support\PhoneNumber;
 use App\Support\PreventsPhysicalDeletion;
@@ -88,6 +94,18 @@ class User extends Authenticatable
         return $this->hasMany(User::class, 'manager_id');
     }
 
+    /** @return HasMany<Objective, $this> */
+    public function objectives(): HasMany
+    {
+        return $this->hasMany(Objective::class);
+    }
+
+    /** @return HasMany<WorkTask, $this> */
+    public function workTasks(): HasMany
+    {
+        return $this->hasMany(WorkTask::class, 'assignee_id');
+    }
+
     /** @return HasMany<UserHistory, $this> */
     public function history(): HasMany
     {
@@ -110,6 +128,53 @@ class User extends Authenticatable
     public function uploadedPersonDocuments(): HasMany
     {
         return $this->hasMany(PersonDocument::class, 'uploaded_by');
+    }
+
+    /** @return HasMany<Absence, $this> */
+    public function absences(): HasMany
+    {
+        return $this->hasMany(Absence::class);
+    }
+
+    /** @return HasMany<DailyReport, $this> */
+    public function dailyReports(): HasMany
+    {
+        return $this->hasMany(DailyReport::class, 'author_id');
+    }
+
+    /** @return HasMany<TaskRequest, $this> */
+    public function taskRequests(): HasMany
+    {
+        return $this->hasMany(TaskRequest::class, 'requested_by');
+    }
+
+    /** @return HasMany<Blocker, $this> */
+    public function reportedBlockers(): HasMany
+    {
+        return $this->hasMany(Blocker::class, 'created_by');
+    }
+
+    /** @return HasMany<Blocker, $this> */
+    public function solicitedBlockers(): HasMany
+    {
+        return $this->hasMany(Blocker::class, 'solicited_user_id');
+    }
+
+    /** @return HasMany<Absence, $this> */
+    public function decidedAbsences(): HasMany
+    {
+        return $this->hasMany(Absence::class, 'decided_by');
+    }
+
+    /**
+     * Stages encadrés par ce compte, quel que soit son rôle : la limite s'applique aux associés
+     * comme aux employés porteurs du rôle `tuteur` (AC 24).
+     *
+     * @return HasMany<Internship, $this>
+     */
+    public function supervisedInternships(): HasMany
+    {
+        return $this->hasMany(Internship::class, 'tutor_id');
     }
 
     /**

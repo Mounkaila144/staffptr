@@ -153,9 +153,8 @@ en production.
 
 ### Registre des arbitrages en attente
 
-**Aucun n'est tranché à ce jour.** Chacun porte une résolution provisoire appliquée dans le plan ;
-aucun ne bloque la story 1.1. Ils sont listés avec leur échéance réelle, pas avec une urgence
-uniforme.
+Les arbitrages non barrés restent ouverts. Les décisions barrées ont été confirmées par la
+direction et sont opposables à l'implémentation.
 
 | Réf. | Sujet | Échéance réelle | Qui décide |
 |---|---|---|---|
@@ -165,10 +164,10 @@ uniforme.
 | ~~DEC-10~~ | ✅ **Tranché 20/07/2026** — code de confirmation envoyé sur le **WhatsApp enregistré de la cible** (DEC-15), saisi par l'auteur avant génération du mot de passe temporaire ; jamais le mot de passe temporaire lui-même | — | Direction |
 | **DEC-08** | Q11 — types et taille des pièces jointes | Avant 3.5 — défaut appliqué : PDF/JPEG/PNG/WebP/HEIC, 8 Mo | Direction |
 | **DEC-07** | Suivi des erreurs — Sentry auto-hébergé ou fichiers seuls | Avant 11.3 | Direction |
-| **CONTRA-01** | Base des parts — prévisionnel + régularisation, ou versement à la clôture | **Avant le modèle financier de l'Epic 8** | Direction |
-| **CONTRA-04** | Un employé apporteur perçoit-il 10 % ? | **Avant Epic 8** (8.3) | Direction |
-| **DEC-09** | Q6 — comptes financiers réels à initialiser | **Avant Epic 8** (8.1) | Direction |
-| **CONTRA-05** | Un non-associé voit sa propre ligne de répartition | Avant 8.8 | Direction |
+| ~~CONTRA-01~~ | ✅ **Tranché 17/08/2026** — parts calculées sur le bénéfice prévisionnel, avec régularisation à la clôture du contrat | — | Direction |
+| ~~CONTRA-04~~ | ✅ **Tranché 17/08/2026** — un employé apporteur peut percevoir la part de 10 % | — | Direction |
+| ~~DEC-09~~ | ✅ **Tranché 17/08/2026** — comptes initiaux « Caisse principale » (`caisse`) et « Mobile Money PTR-Niger » (`mobile_money`) | — | Direction |
+| ~~CONTRA-05~~ | ✅ **Tranché 17/08/2026** — un bénéficiaire non-associé voit uniquement sa propre ligne de répartition | — | Direction |
 | **CONTRA-07** | L'alerte rouge n'a aucun effet sur les parts | Avant 9.2 | Direction |
 | **DEC-11** | Q12 — conservation 10 ans | Avant 11.1 (dimensionnement disque) | Direction |
 | DEC-01 à DEC-04 | Fuseau UTC, tests MySQL, `spatie/laravel-permission`, Redis | Appliqués par défaut, révocables | Architecte |
@@ -1207,9 +1206,9 @@ paiement et à l'écriture comptable.
 **Jalon 4.** C'est le plus gros epic du plan : un **point de contrôle intermédiaire** est posé après
 8.8.
 
-> **À trancher avant d'écrire le modèle de données de cet epic :** CONTRA-01 (base des parts —
-> prévisionnel avec régularisation, ou versement à la clôture du contrat), CONTRA-04 (un employé
-> apporteur perçoit-il 10 % ?), et DEC-09 / Q6 (quels comptes financiers réels initialiser).
+> **Arbitrages confirmés le 17/08/2026 :** base des parts sur le bénéfice prévisionnel avec
+> régularisation à la clôture ; part apporteur de 10 % ouverte aux employés ; comptes initiaux
+> « Caisse principale » et « Mobile Money PTR-Niger ».
 
 ---
 
@@ -1225,8 +1224,8 @@ connaître à tout moment l'argent réellement disponible.* — [PRD 4.1]
 5. ⛔ Aucune intégration bancaire ou Mobile Money ; un test vérifie qu'**aucun appel externe** n'est émis (FR101).
 6. Aucun compte n'est supprimable ; désactivation motivée uniquement.
 
-> **DEC-09 / Q6 en attente.** Aucun seeder n'invente de compte : la liste réelle (caisse, quelle
-> banque, Airtel Money, Moov Money) est requise avant de figer les écrans de rapprochement.
+> **DEC-09 / Q6 tranchée le 17/08/2026.** Le seeder initialise uniquement « Caisse principale » et
+> « Mobile Money PTR-Niger ». Les comptes supplémentaires sont créés par l'écran de gestion.
 
 ---
 

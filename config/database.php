@@ -62,6 +62,88 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+
+            /**
+             * Sauvegarde — story 11.1 AC 2.
+             *
+             * `--single-transaction` prend le dump dans une transaction cohérente : sans lui, un
+             * dump démarré pendant un encaissement pourrait contenir la ligne de paiement sans son
+             * mouvement de compte. L'archive serait restaurable et **fausse**, ce qui est pire
+             * qu'une archive absente.
+             *
+             * `--skip-lock-tables` est le corollaire : verrouiller les tables sur un VPS partagé
+             * bloquerait l'application pendant toute la durée du dump.
+             */
+            'dump' => [
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', ''),
+                'use_single_transaction' => true,
+                'add_extra_option' => '--skip-lock-tables --routines --triggers',
+                'timeout' => 60 * 15,
+            ],
+        ],
+
+        /**
+         * Connexion réservée à la **sauvegarde** (story 11.1, AC 2).
+         *
+         * Elle existe pour une raison précise et vérifiée en production : sans le privilège
+         * `TRIGGER`, `mysqldump` **omet silencieusement les déclencheurs** — l'archive se restaure
+         * sans les barrières d'immuabilité du journal d'audit et du module financier. Le défaut ne
+         * se voit qu'au moment de la restauration, c'est-à-dire trop tard.
+         *
+         * L'utilisateur applicatif ne doit pas porter ces privilèges : il n'a pas à lire les
+         * définitions de schéma. Un troisième rôle, **en lecture seule mais complet**, est la
+         * bonne réponse. Le moindre privilège ne veut pas dire trop peu de privilèges pour faire
+         * le travail — il veut dire exactement ceux qu'il faut.
+         *
+         * `--events` a été retiré : il exige le privilège `EVENT`, l'application n'utilise aucun
+         * événement MariaDB, et le demander élargirait le rôle sans rien apporter.
+         */
+        'mysql_backup' => [
+            'driver' => 'mysql',
+            'host' => env('DB_BACKUP_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('DB_BACKUP_PORT', env('DB_PORT', '3306')),
+            'database' => env('DB_BACKUP_DATABASE', env('DB_DATABASE', 'laravel')),
+            'username' => env('DB_BACKUP_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('DB_BACKUP_PASSWORD', env('DB_PASSWORD', '')),
+            'unix_socket' => env('DB_BACKUP_SOCKET', env('DB_SOCKET', '')),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'dump' => [
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', ''),
+                'use_single_transaction' => true,
+                'add_extra_option' => '--skip-lock-tables --routines --triggers',
+                'timeout' => 60 * 15,
+            ],
+        ],
+
+        /**
+         * Connexion réservée au **test de restauration** (story 11.1, AC 14).
+         *
+         * Créer et détruire une base jetable exige des droits de schéma que ni l'utilisateur
+         * applicatif ni celui de sauvegarde ne doivent porter. Les privilèges de ce rôle sont
+         * limités au **motif** `ptr_restore_test_%` : il lui est structurellement impossible
+         * d'atteindre `staffptr_production`, `staffptr_staging` ou le schéma d'une autre
+         * application du VPS partagé.
+         */
+        'mysql_restore' => [
+            'driver' => 'mysql',
+            'host' => env('DB_RESTORE_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('DB_RESTORE_PORT', env('DB_PORT', '3306')),
+            // Aucune base par défaut : la base jetable est créée puis sélectionnée à l'exécution.
+            'database' => env('DB_RESTORE_DATABASE', ''),
+            'username' => env('DB_RESTORE_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('DB_RESTORE_PASSWORD', env('DB_PASSWORD', '')),
+            'unix_socket' => env('DB_RESTORE_SOCKET', env('DB_SOCKET', '')),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => false,
+            'engine' => null,
         ],
 
         'mysql_migration' => [

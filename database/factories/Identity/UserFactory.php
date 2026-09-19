@@ -6,7 +6,10 @@ use App\Enums\RelationType;
 use App\Enums\UserState;
 use App\Models\Identity\Person;
 use App\Models\Identity\User;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * @extends Factory<User>
@@ -85,6 +88,22 @@ class UserFactory extends Factory
     public function withoutManager(): static
     {
         return $this->state(fn (): array => ['manager_id' => null]);
+    }
+
+    /**
+     * Assign a catalogue role to the created account, seeding the RBAC catalogue
+     * (idempotent) when the role is not present yet.
+     */
+    public function withRole(string $role): static
+    {
+        return $this->afterCreating(function (User $user) use ($role): void {
+            if (Role::query()->where('name', $role)->where('guard_name', 'web')->doesntExist()) {
+                app(RolePermissionSeeder::class)->run();
+            }
+
+            $user->assignRole($role);
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+        });
     }
 
     public function endingInDays(int $days): static

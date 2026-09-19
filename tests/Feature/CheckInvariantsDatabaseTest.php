@@ -2,9 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\Identity\User;
+use App\Services\Platform\Invariants\ApprovedExpenseHasTwoApprovalsInvariant;
 use App\Services\Platform\Invariants\AuditDeletePrivilegeInvariant;
 use App\Services\Platform\Invariants\AuditTriggersInvariant;
 use App\Services\Platform\Invariants\EnvironmentInvariant;
+use App\Services\Platform\Invariants\ExpenseApproverCountInvariant;
+use App\Services\Platform\Invariants\QueuedNotificationFailureInvariant;
 use App\Services\Platform\Invariants\SuperAdminPermissionInvariant;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Console\Command;
@@ -27,22 +31,43 @@ class CheckInvariantsDatabaseTest extends TestCase
 
     public function test_ac_11_and_12_healthy_mysql_server_returns_zero(): void
     {
-        foreach ([
-            app(EnvironmentInvariant::class),
-            app(SuperAdminPermissionInvariant::class),
-            app(AuditTriggersInvariant::class),
-            app(AuditDeletePrivilegeInvariant::class),
-        ] as $invariant) {
-            $result = $invariant->check();
-            $this->assertTrue(
-                $result->passed,
-                "{$result->name} — constaté : {$result->observed} — attendu : {$result->expected}",
-            );
+        $directions = [
+            User::factory()->active()->create(),
+            User::factory()->active()->create(),
+        ];
+
+        foreach ($directions as $direction) {
+            $direction->assignRole('direction');
         }
 
-        $this->artisan('ptr:check-invariants')
-            ->expectsOutputToContain('Les quatre invariants sont conformes.')
-            ->assertExitCode(Command::SUCCESS);
+        try {
+            foreach ([
+                app(EnvironmentInvariant::class),
+                app(SuperAdminPermissionInvariant::class),
+                app(AuditTriggersInvariant::class),
+                app(AuditDeletePrivilegeInvariant::class),
+                app(ExpenseApproverCountInvariant::class),
+                app(ApprovedExpenseHasTwoApprovalsInvariant::class),
+                app(QueuedNotificationFailureInvariant::class),
+            ] as $invariant) {
+                $result = $invariant->check();
+                $this->assertTrue(
+                    $result->passed,
+                    "{$result->name} — constaté : {$result->observed} — attendu : {$result->expected}",
+                );
+            }
+
+            $this->artisan('ptr:check-invariants')
+                ->expectsOutputToContain('Les sept invariants sont conformes.')
+                ->assertExitCode(Command::SUCCESS);
+        } finally {
+            $connection = DB::connection($this->migrationConnectionName());
+            $userIds = array_map(static fn (User $direction): int => (int) $direction->getKey(), $directions);
+            $personIds = array_map(static fn (User $direction): int => (int) $direction->person_id, $directions);
+            $connection->table('model_has_roles')->whereIn('model_id', $userIds)->delete();
+            $connection->table('users')->whereIn('id', $userIds)->delete();
+            $connection->table('people')->whereIn('id', $personIds)->delete();
+        }
     }
 
     public function test_ac_11_metadata_function_reads_real_information_schema_without_trigger_privilege(): void

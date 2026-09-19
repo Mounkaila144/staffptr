@@ -32,6 +32,7 @@ export default defineConfig({
             DB_CONNECTION: 'sqlite',
             DB_DATABASE: e2eDatabase,
             SESSION_DRIVER: 'database',
+            QUEUE_CONNECTION: 'database',
         },
         url: 'http://127.0.0.1:8000/up',
         reuseExistingServer: !isCi,
