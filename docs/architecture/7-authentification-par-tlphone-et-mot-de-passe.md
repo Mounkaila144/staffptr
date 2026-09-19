@@ -42,9 +42,24 @@ En MVP, la réinitialisation est effectuée par `direction` ou `super_admin` dep
 des comptes. Elle génère un nouveau mot de passe temporaire, lève `must_change_password`, **invalide
 toutes les sessions de la cible** (FR8) et écrit une entrée d'audit portant l'auteur et la cible.
 
-> **DEC-10.** L'application ne peut pas vérifier l'identité du demandeur : c'est une procédure
-> humaine. Elle doit être écrite et affichée à l'écran de réinitialisation, sans quoi le circuit
-> le plus simple pour prendre un compte reste l'appel téléphonique. À formaliser avec vous.
+> **DEC-10 — tranché le 20/07/2026 : vérification par code de confirmation WhatsApp.** Avant de
+> finaliser une réinitialisation, l'application génère un code, l'envoie sur le **numéro WhatsApp
+> enregistré de la cible** (canal DEC-15) et exige sa saisie par l'auteur (`direction` ou
+> `super_admin`) avant de générer le mot de passe temporaire. La personne qui a appelé pour demander
+> la réinitialisation lit le code reçu sur son WhatsApp à l'auteur, qui le confirme à l'écran — la
+> preuve de possession du numéro remplace l'absence de vérification d'identité automatisée.
+>
+> Postulat opérationnel de cette décision, à la charge de l'exploitant : **chaque compte dispose
+> d'un numéro WhatsApp actif**, sans exception. L'application n'a pas de repli si ce postulat cesse
+> d'être vrai pour un compte donné — voir `stories/2.8.story.md` pour le traitement de ce cas.
+>
+> ⛔ **Le mot de passe temporaire lui-même ne transite jamais par WhatsApp** — seul le code de
+> confirmation, à usage unique et sans valeur au-delà de la preuve de possession du numéro, y est
+> envoyé. Voir § 9.4bis, point 3, sur le risque de l'accès HTTP clair.
+>
+> ⛔ **Si Evolution API est indisponible, la réinitialisation est bloquée** jusqu'au rétablissement
+> du service : aucun contournement n'existe qui n'annulerait la vérification elle-même. C'est une
+> conséquence opérationnelle à surveiller (story 11.3), pas un défaut à corriger dans le code.
 
 ## 7.5 Blocage après échecs — FR10
 

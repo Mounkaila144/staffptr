@@ -6,14 +6,22 @@ use App\Enums\PersonOperationalStatus;
 use App\Enums\UserState;
 use App\Models\Identity\Person;
 use App\Models\Identity\User;
+use App\Services\Finance\AlertLevelService;
 use App\Support\Auditing\AuditLogger;
+use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class IdentityService
 {
-    public function __construct(private readonly AuditLogger $auditLogger) {}
+    public function __construct(
+        private readonly AuditLogger $auditLogger,
+        private readonly SessionRevocationService $sessionRevocationService,
+        private readonly UserHistoryService $userHistoryService,
+        private readonly PersonProfileService $personProfileService,
+    ) {}
 
     /** @param array{full_name: string, operational_status?: PersonOperationalStatus|string, first_seen_at: string} $attributes */
     public function createPerson(
@@ -52,14 +60,40 @@ class IdentityService
         string $actorLabel,
         string $reason,
     ): Person {
-        return $this->updateAudited(
+        return DB::connection($person->getConnectionName())->transaction(function () use (
             $person,
-            ['operational_status' => $status],
+            $status,
             $actorId,
             $actorLabel,
-            'person_status_changed',
             $reason,
-        );
+        ): Person {
+            $oldStatus = $person->operational_status;
+            $updatedPerson = $this->updateAudited(
+                $person,
+                ['operational_status' => $status],
+                $actorId,
+                $actorLabel,
+                'person_status_changed',
+                $reason,
+            );
+
+            if ($oldStatus !== $status) {
+                $account = $this->personProfileService->currentAccountOrNull($person);
+
+                if ($account !== null) {
+                    $this->userHistoryService->record(
+                        user: $account,
+                        field: 'operational_status',
+                        oldValue: $this->userHistoryService->statusSnapshot($oldStatus),
+                        newValue: $this->userHistoryService->statusSnapshot($status),
+                        actor: $this->userHistoryService->actor($actorId),
+                        reason: $reason,
+                    );
+                }
+            }
+
+            return $updatedPerson;
+        });
     }
 
     /**
@@ -87,7 +121,6 @@ class IdentityService
     /**
      * @param array{
      *   phone?: string,
-     *   password?: string,
      *   must_change_password?: bool,
      *   locked_until?: string|null,
      *   failed_attempts?: int
@@ -104,7 +137,6 @@ class IdentityService
             $user,
             Arr::only($attributes, [
                 'phone',
-                'password',
                 'must_change_password',
                 'locked_until',
                 'failed_attempts',
@@ -123,6 +155,9 @@ class IdentityService
         string $actorLabel,
         string $reason,
     ): User {
+        $this->assertAlertLevelAllowsActivation($user, $state, $actorId, $actorLabel);
+        $this->assertInternMayBecomeActive($user, $state);
+
         return $this->updateAudited(
             $user,
             ['state' => $state],
@@ -130,6 +165,117 @@ class IdentityService
             $actorLabel,
             'user_state_changed',
             $reason,
+            $state === UserState::Suspendu
+                ? fn (): array => [
+                    'sessions_revoked' => $this->sessionRevocationService->revokeFor($user),
+                ]
+                : null,
+        );
+    }
+
+    /**
+     * Effet borné du niveau d'alerte rouge : **l'activation d'un nouveau compte employé ou
+     * stagiaire est refusée** côté serveur (story 9.1 AC 8, FR164).
+     *
+     * « Nouveau » se lit littéralement : seul le passage `invite → actif`, c'est-à-dire la
+     * première activation, est concerné. La réactivation d'un compte suspendu ou terminé reste
+     * possible en rouge, parce que le niveau d'alerte peut bloquer une écriture mais **jamais une
+     * personne** (AC 12, RM-18, P3). Aucun état, rôle, permission ni session n'est modifié ici.
+     *
+     * Le contrôle est posé dans le service propriétaire du compte pour qu'aucun chemin
+     * d'activation — administration des comptes ou activation de stagiaire — ne le contourne
+     * (règle de couplage de `source-tree.md`).
+     *
+     * L'audit de l'effet (AC 13) est écrit dans sa propre transaction, validée avant le refus :
+     * une trace du refus doit survivre au rejet de l'opération.
+     */
+    private function assertAlertLevelAllowsActivation(
+        User $user,
+        UserState $state,
+        ?int $actorId,
+        string $actorLabel,
+    ): void {
+        if ($state !== UserState::Actif || $user->state !== UserState::Invite) {
+            return;
+        }
+
+        if (! $user->hasRole('employe') && ! $user->hasRole('stagiaire')) {
+            return;
+        }
+
+        $level = app(AlertLevelService::class)->current();
+
+        if (! $level->blocksAccountActivation()) {
+            return;
+        }
+
+        DB::connection($user->getConnectionName())->transaction(function () use ($user, $level, $actorId, $actorLabel): void {
+            $this->auditLogger->record(
+                actorId: $actorId,
+                actorLabel: $actorLabel,
+                auditable: $user,
+                action: 'account_activation_refused_by_alert',
+                newValues: ['alert_level' => $level->value, 'requested_state' => UserState::Actif->value],
+                reason: "Activation refusée par le niveau d'alerte financière.",
+            );
+        });
+
+        throw ValidationException::withMessages([
+            'state' => sprintf(
+                "Ce compte ne peut pas être activé : le niveau d'alerte financière est %s. Aucune nouvelle activation n'est possible tant que la situation n'est pas revenue au vert ou à l'orange.",
+                $level->label(),
+            ),
+        ]);
+    }
+
+    /**
+     * Aucun compte `stagiaire` ne passe à `actif` sans fiche d'entrée approuvée, tuteur désigné
+     * et trois objectifs enregistrés (AC 16, 41).
+     *
+     * Le contrôle est posé ici, dans le service propriétaire du compte, pour qu'aucun chemin
+     * d'activation ne puisse le contourner.
+     */
+    private function assertInternMayBecomeActive(User $user, UserState $state): void
+    {
+        if ($state !== UserState::Actif || ! $user->hasRole('stagiaire')) {
+            return;
+        }
+
+        $readiness = app(InternActivationReadiness::class);
+        $missing = $readiness->missingConditions($user);
+
+        if ($missing === []) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'state' => sprintf(
+                'Ce compte de stagiaire ne peut pas être activé : %s.',
+                implode(', ', $missing),
+            ),
+        ]);
+    }
+
+    public function changePassword(
+        User $user,
+        string $password,
+        ?int $actorId,
+        string $actorLabel,
+        string $reason,
+    ): User {
+        return $this->updateAudited(
+            $user,
+            [
+                'password' => $password,
+                'must_change_password' => false,
+            ],
+            $actorId,
+            $actorLabel,
+            'password_changed',
+            $reason,
+            fn (): array => [
+                'sessions_revoked' => $this->sessionRevocationService->revokeFor($user),
+            ],
         );
     }
 
@@ -172,6 +318,7 @@ class IdentityService
      *
      * @param  TModel  $model
      * @param  array<string, mixed>  $attributes
+     * @param  (Closure(): array<string, mixed>)|null  $afterUpdate
      * @return TModel
      */
     private function updateAudited(
@@ -181,6 +328,7 @@ class IdentityService
         string $actorLabel,
         string $action,
         ?string $reason,
+        ?Closure $afterUpdate = null,
     ): Model {
         return DB::connection($model->getConnectionName())->transaction(function () use (
             $model,
@@ -189,6 +337,7 @@ class IdentityService
             $actorLabel,
             $action,
             $reason,
+            $afterUpdate,
         ): Model {
             $model->fill($attributes);
             $changes = $model->getDirty();
@@ -200,6 +349,8 @@ class IdentityService
             $oldValues = Arr::only($model->getRawOriginal(), array_keys($changes));
             $newValues = Arr::only($model->getAttributes(), array_keys($changes));
 
+            $operationMetadata = $afterUpdate !== null ? $afterUpdate() : [];
+
             $this->auditLogger->runExplicitly(
                 auditable: $model,
                 operation: fn (): bool => $model->saveOrFail(),
@@ -207,7 +358,7 @@ class IdentityService
                 actorLabel: $actorLabel,
                 action: $action,
                 oldValues: $oldValues,
-                newValues: $newValues,
+                newValues: [...$newValues, ...$operationMetadata],
                 reason: $reason,
             );
 

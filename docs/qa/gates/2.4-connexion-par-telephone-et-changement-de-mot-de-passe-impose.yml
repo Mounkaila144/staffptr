@@ -1,0 +1,45 @@
+# <!-- Powered by BMAD™ Core -->
+schema: 1
+story: "2.4"
+story_title: "Connexion par téléphone et changement de mot de passe imposé"
+gate: PASS
+status_reason: "Les 7 AC sont prouvés, chacun par un test nommé et traçable. Les deux conflits documentaires posés en préalable (message d'échec indifférencié vs message dédié de 2.5 ; défaut de navigation hérité de 2.2) sont résolus et vérifiés par test, pas seulement affirmés : l'ordre d'évaluation d'Auth::attemptWhen() rend structurellement indiscernables un numéro inconnu et un mot de passe faux, prouvé par comparaison octet pour octet de deux réponses ; la navigation est réalignée sur le catalogue réel avec un test qui relit ce catalogue à la source. CI verte sur les six contrôles, y compris PHPUnit MySQL 8, Playwright à 320 px en 3G dégradée avec zéro violation d'accessibilité, et 12/12 tests JS."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-07-20T11:45:00+01:00"
+
+waiver: { active: false }
+
+top_issues: []
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 0 }
+  recommendations:
+    must_fix: []
+    monitor:
+      - "Le repli HTML progressif de l'écran de connexion (resources/views/app.blade.php) duplique une partie du balisage de Login.vue. Choix délibéré et cohérent avec l'absence de SSR (A-01), mais toute évolution du formulaire de connexion devra penser aux deux endroits."
+
+evidence:
+  tests_reviewed: 171
+  assertions: 1703
+  risks_identified: 0
+  local_run: "171 tests, 152 passés, 19 réservés au moteur MySQL de la CI (skip sous SQLite local), 1703 assertions — Pint et Larastan niveau 6 propres, 12/12 tests JS (node --test) verts. PR #22 verte sur les six contrôles (Pint, Larastan, PHPUnit MySQL 8, Frontend Build & Budget, Playwright, CI Duration), run 29739306311."
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7]
+    ac_partial: []
+    note: "AC 5 est le mieux couvert : comparaison octet pour octet de deux réponses (numéro inconnu / mot de passe faux) sur statut, en-tête Location et erreurs sérialisées, plus un test dédié qui prouve que l'état du compte n'est vérifié qu'après des identifiants valides. AC 4 couvre les deux formes de sortie du blocage (302 classique et 409 + X-Inertia-Location, cette dernière vérifiée par une assertion HTTP réelle)."
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "Indifférenciation du message d'échec prouvée par comparaison de réponses, pas par relecture de code. Session régénérée à la connexion, supprimée à la déconnexion, AuthenticateSession actif. Mot de passe changé haché et audité sans valeur en clair. Balayage générique (pas une liste figée) de toutes les routes publiques pour l'absence de création de compte, avec inspection par réflexion du code des contrôleurs ciblés."
+  performance:
+    status: PASS
+    notes: "Bundle Brotli 97,04 Ko / 300 Ko. Premier rendu utile de l'écran de connexion sous 3 s en 3G dégradée mesuré par Playwright (first-contentful-paint), pas simplement supposé du budget global."
+  reliability:
+    status: PASS
+    notes: "Changement de mot de passe transactionnel et audité. Middleware de mot de passe imposé conçu pour s'exclure lui-même sur les routes de sortie (changement, déconnexion), évitant la boucle de redirection infinie identifiée comme piège dans la story."
+  maintainability:
+    status: PASS
+    notes: "Alignement de navigation vérifié à la source (relecture du catalogue par le test, pas une copie figée). Clé étrangère différée de sessions posée par une nouvelle migration, sans toucher celle de 1.5 (SOC-04)."
+
+recommended_status: "✓ Ready for Done"

@@ -1,15 +1,19 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import { usePermissions } from '../Composables/usePermissions';
 
 const props = defineProps({
     title: { type: String, required: true },
     backLabel: { type: String, default: '' },
+    backHref: { type: String, default: '/' },
     activeNavigation: { type: String, default: 'home' },
     permissions: { type: Array, default: null },
 });
 
 const moreOpen = ref(false);
+const page = usePage();
+const unreadNotificationCount = computed(() => Number(page.props.notifications?.unread_count ?? 0));
 const { primaryNavigation, moreNavigation } = usePermissions(props.permissions);
 
 function closeMore(event) {
@@ -17,19 +21,56 @@ function closeMore(event) {
         moreOpen.value = false;
     }
 }
+
+function moreHref(item) {
+    if (item === 'Objectifs' || item === 'Mes objectifs') return '/objectifs';
+    if (item === 'Tâches' || item === 'Mes tâches') return '/taches';
+    if (item === 'Projets') return '/projets';
+    if (item === 'Livrables') return '/livrables';
+    if (item === 'Absences' || item === 'Mes absences') return '/absences';
+    if (item === 'Documents' || item === 'Documents internes') return '/documents-internes';
+    if (item === 'Profil' || item === 'Mon profil') return page.props.auth?.person_id ? `/personnes/${page.props.auth.person_id}` : '/';
+    if (item === 'Organisation') return '/organisation';
+    if (item === 'Connexions') return '/connexions';
+    if (item === 'Comptes et rôles') return '/comptes';
+    if (item === 'Paramètres') return '/parametres';
+    if (item === 'Calendrier') return '/calendrier';
+    if (item === 'Mes stagiaires' || item === 'Mon stage') return '/stages';
+    if (item === 'Créneaux de suivi') return '/creneaux-suivi';
+    if (item === 'Revues hebdomadaires' || item === 'Ma revue') return '/revues-hebdomadaires';
+    if (item === "Journal d'audit") return '/journal-audit';
+    if (item === 'Réserve') return '/finances/reserve';
+    if (item === 'Rapport mensuel') return '/finances/rapports-mensuels';
+    if (item === 'Rapprochement') return '/finances/rapprochements';
+    if (item === 'Budgets et charges') return '/finances/budgets-mensuels';
+    if (item === 'Clients et factures') return '/finances/clients';
+    if (item === 'Ma part') return '/finances/parts';
+    if (item === 'Tableau de bord direction') return '/tableau-de-bord/direction';
+    if (item === 'Plans correctifs') return '/finances/plans-correctifs';
+    if (item === 'Recherche') return '/recherche';
+    if (item === 'Listes et exports') return '/listes/depenses';
+    return '#plus';
+}
 </script>
 
 <template>
     <div @keydown="closeMore">
         <a class="skip-link" href="#main-content">Aller au contenu</a>
         <header class="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-3 border-b border-separator bg-surface px-4 md:pl-56" aria-label="En-tête">
-            <a v-if="backLabel" href="/" class="touch-target inline-flex items-center gap-2 font-semibold text-primary">
+            <a v-if="backLabel" :href="backHref" class="touch-target inline-flex items-center gap-2 font-semibold text-primary">
                 <span aria-hidden="true">←</span>{{ backLabel }}
             </a>
             <p class="min-w-0 flex-1 truncate font-semibold">{{ title }}</p>
-            <button type="button" class="touch-target rounded-lg text-xl" aria-label="Notifications indisponibles pour le moment">
+            <a
+                href="/notifications"
+                class="touch-target relative inline-flex items-center justify-center rounded-lg text-xl text-primary"
+                :aria-label="unreadNotificationCount > 0 ? `Notifications, ${unreadNotificationCount} non lue${unreadNotificationCount > 1 ? 's' : ''}` : 'Notifications, aucune non lue'"
+            >
                 <span aria-hidden="true">♢</span>
-            </button>
+                <span v-if="unreadNotificationCount > 0" class="absolute right-0 top-0 min-w-5 rounded-full bg-danger px-1 text-center text-xs font-bold leading-5 text-white" aria-hidden="true">
+                    {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+                </span>
+            </a>
         </header>
 
         <nav class="fixed inset-y-0 left-0 z-40 hidden w-52 border-r border-separator bg-surface px-3 py-4 md:block" aria-label="Navigation principale">
@@ -47,7 +88,7 @@ function closeMore(event) {
                 </li>
             </ul>
             <ul v-if="moreOpen" id="more-navigation" class="mt-2 max-h-[45vh] overflow-y-auto border-t border-separator pt-2">
-                <li v-for="item in moreNavigation" :key="item"><a href="#plus" class="touch-target flex items-center rounded-lg px-3 text-sm text-ink-secondary">{{ item }}</a></li>
+                <li v-for="item in moreNavigation" :key="item"><a :href="moreHref(item)" class="touch-target flex items-center rounded-lg px-3 text-sm text-ink-secondary">{{ item }}</a></li>
             </ul>
         </nav>
 
@@ -70,7 +111,7 @@ function closeMore(event) {
             </ul>
             <div v-if="moreOpen" id="mobile-more-navigation" class="absolute inset-x-0 bottom-14 max-h-[60vh] overflow-y-auto border-t border-separator bg-surface p-3 shadow-xl">
                 <p class="mb-2 font-semibold">Plus</p>
-                <ul class="grid gap-2"><li v-for="item in moreNavigation" :key="item"><a href="#plus" class="touch-target flex items-center rounded-lg px-3 text-ink-secondary">{{ item }}</a></li></ul>
+                <ul class="grid gap-2"><li v-for="item in moreNavigation" :key="item"><a :href="moreHref(item)" class="touch-target flex items-center rounded-lg px-3 text-ink-secondary">{{ item }}</a></li></ul>
             </div>
         </nav>
     </div>

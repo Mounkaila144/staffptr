@@ -1,0 +1,45 @@
+# <!-- Powered by BMAD™ Core -->
+schema: 1
+story: "2.3"
+story_title: "Amorçage — premier administrateur et rôles de référence"
+gate: PASS
+status_reason: "Les 12 AC sont prouvés, chacun par un test nommé et traçable. Le piège principal de la story (lire l'état réel du serveur, pas le dépôt) est résolu par une fonction SQL SECURITY DEFINER qui donne au compte applicatif une réponse booléenne sur les déclencheurs d'audit sans lui accorder le privilège TRIGGER — prouvé positivement et négativement. L'analyse SHOW GRANTS tolère MySQL 8 et MariaDB 10.11 et échoue explicitement sur tout format non reconnu. CI verte sur les six contrôles, y compris PHPUnit sous MySQL 8 avec preuves par injection d'écart pour les quatre invariants."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-07-20T10:30:00+01:00"
+
+waiver: { active: false }
+
+top_issues: []
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 0 }
+  recommendations:
+    must_fix: []
+    monitor:
+      - "ptr:check-invariants n'est pas encore planifié quotidiennement (reporté à l'epic 11 par conception) ; jusque-là, l'exécution après chaque déploiement reste manuelle et consignée par l'exploitant, comme documenté dans docs/ops/environments.md."
+
+evidence:
+  tests_reviewed: 158
+  assertions: 1549
+  risks_identified: 0
+  local_run: "158 tests, 139 passés, 19 réservés au moteur MySQL de la CI (skip sous SQLite local), 1549 assertions — Pint et Larastan niveau 6 propres. PR #21 verte sur les six contrôles (Pint, Larastan, PHPUnit MySQL 8, Frontend Build & Budget, Playwright, CI Duration), run 29730204388."
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    ac_partial: []
+    note: "AC 11/12 sont les mieux couverts : quatre tests d'injection distincts (APP_DEBUG/APP_ENV incohérents, permission métier directe sur un compte super_admin, déclencheur d'audit supprimé puis restauré, GRANT DELETE ajouté puis révoqué), plus un test prouvant que les quatre invariants sont tous évalués avant l'échec de la commande. AC 7 est doublement couvert : audit nominal (trois événements avec actor_id NULL) et rollback complet sur échec du troisième audit."
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "Compte applicatif limité à GRANT EXECUTE sur une fonction bornée à deux noms de déclencheur codés en dur, jamais au privilège TRIGGER — vérifié par test négatif sur SHOW GRANTS. Mot de passe temporaire généré par random_bytes, jamais journalisé ni audité (vérifié par recherche insensible à la casse). Garde d'exécution unique portant sur tous les états de compte, posée avant toute interaction."
+  performance:
+    status: PASS
+    notes: "Sans objet pour des commandes console ponctuelles ou quotidiennes ; aucun impact sur le chemin de requête utilisateur."
+  reliability:
+    status: PASS
+    notes: "Amorçage et invariants entièrement transactionnels côté écriture ; échec d'audit sur n'importe laquelle des trois étapes annule les trois (prouvé sur la troisième, la plus tardive). Restauration systématique de l'état du serveur après chaque test d'injection."
+  maintainability:
+    status: PASS
+    notes: "Commande d'invariants conçue pour croître : une interface InvariantCheck, une classe par invariant, aucune méthode monolithique. Le seeder de référence n'a pas été réécrit, seulement prouvé, respectant la frontière posée par la story 2.2."
+
+recommended_status: "✓ Ready for Done"

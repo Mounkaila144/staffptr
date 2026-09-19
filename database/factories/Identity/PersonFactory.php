@@ -22,6 +22,7 @@ class PersonFactory extends Factory
             'full_name' => fake()->name(),
             'operational_status' => PersonOperationalStatus::Actif,
             'first_seen_at' => fake()->dateTimeBetween('-10 years', 'now')->format('Y-m-d'),
+            'photo_path' => null,
         ];
     }
 
@@ -30,5 +31,10 @@ class PersonFactory extends Factory
         return $this->state(fn (): array => [
             'operational_status' => PersonOperationalStatus::Sorti,
         ]);
+    }
+
+    public function withPhoto(): static
+    {
+        return $this->state(fn (): array => ['photo_path' => 'people/photo-test.webp']);
     }
 }

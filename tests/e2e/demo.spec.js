@@ -22,7 +22,7 @@ function observeRuntime(page) {
 test('AC 1, 2, 3, 4 et 10 — la démonstration expose tous les états', async ({ page }) => {
     const observed = observeRuntime(page);
     await page.setViewportSize({ width: 320, height: 700 });
-    await page.goto('/');
+    await page.goto('/__test/interface-demo');
 
     await expect(page.getByRole('heading', { name: 'États transverses', level: 1 })).toBeVisible();
     await expect(page.getByRole('navigation', { name: 'Navigation principale sur téléphone' })).toBeVisible();
@@ -42,7 +42,7 @@ test('AC 1, 2, 3, 4 et 10 — la démonstration expose tous les états', async (
 });
 
 test('AC 4 — le chargement reste silencieux 300 ms puis signale une connexion lente', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/__test/interface-demo');
     const timedLoading = page.getByTestId('timed-loading');
 
     await page.getByRole('button', { name: 'Démarrer un chargement chronométré' }).click();
@@ -55,7 +55,7 @@ test('AC 4 — le chargement reste silencieux 300 ms puis signale une connexion 
 });
 
 test('AC 5 — la saisie continue hors connexion et le retour est annoncé trois secondes', async ({ page, context }) => {
-    await page.goto('/');
+    await page.goto('/__test/interface-demo');
     await context.setOffline(true);
     await page.evaluate(() => window.dispatchEvent(new Event('offline')));
 
@@ -73,8 +73,9 @@ test('AC 5 — la saisie continue hors connexion et le retour est annoncé trois
 
 test('AC 7 — 320 px, clavier, cibles tactiles, niveaux de gris et axe', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 });
-    await page.goto('/');
+    await page.goto('/__test/interface-demo');
 
+    await page.evaluate(() => document.activeElement?.blur());
     await page.keyboard.press('Tab');
     await expect(page.getByRole('link', { name: 'Aller au contenu' })).toBeFocused();
     await page.keyboard.press('Enter');

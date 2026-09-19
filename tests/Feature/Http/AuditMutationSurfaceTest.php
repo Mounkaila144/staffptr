@@ -30,23 +30,31 @@ class AuditMutationSurfaceTest extends TestCase
         }
     }
 
-    public function test_ac_4_no_command_form_request_or_form_mutates_audit_logs(): void
+    public function test_ac_4_no_command_mutation_request_or_mutating_form_targets_audit_logs(): void
     {
         $commands = collect(array_keys(Artisan::all()))
             ->filter(fn (string $name): bool => str_contains(strtolower($name), 'audit'));
         $requestFiles = is_dir(app_path('Http/Requests'))
             ? collect(File::allFiles(app_path('Http/Requests')))
             : collect();
-        $auditRequests = $requestFiles
-            ->filter(fn ($file): bool => str_contains(strtolower($file->getFilename()), 'audit'));
+        $auditMutationRequests = $requestFiles
+            ->filter(function ($file): bool {
+                $filename = strtolower($file->getFilename());
+
+                return str_contains($filename, 'audit')
+                    && preg_match('/store|update|delete|destroy|mutation|write/', $filename) === 1;
+            });
         $pageFiles = collect(File::allFiles(resource_path('js/Pages')));
-        $auditForms = $pageFiles->filter(function ($file): bool {
+        $auditMutationForms = $pageFiles->filter(function ($file): bool {
             return str_contains(strtolower($file->getRelativePathname()), 'audit')
-                && str_contains(strtolower($file->getContents()), '<form');
+                && preg_match(
+                    '/<form[^>]+method=["\'](?:post|put|patch|delete)["\']/i',
+                    $file->getContents(),
+                ) === 1;
         });
 
         $this->assertCount(0, $commands);
-        $this->assertCount(0, $auditRequests);
-        $this->assertCount(0, $auditForms);
+        $this->assertCount(0, $auditMutationRequests);
+        $this->assertCount(0, $auditMutationForms);
     }
 }

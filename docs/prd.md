@@ -1,10 +1,18 @@
 # PTR Staff Product Requirements Document (PRD)
 
-**Version :** 1.0 — 18 juillet 2026
+**Version :** 1.1 — 20 juillet 2026
 **Auteur :** John, Product Manager (BMAD)
 **Sources :** `docs/brief.md` (Product Brief v1.1) et `docs/Brief_Analyste_BMAD_PTR_Staff.md` (brief d'entrée v1.0)
 **Type de projet :** nouvelle application web interne (greenfield)
 **Statut :** ✅ Prêt pour l'agent Architect et l'agent PO (shard)
+
+**Journal des versions**
+
+| Date | Version | Description |
+|---|---|---|
+| 18/07/2026 | 1.0 | PRD initial. |
+| 20/07/2026 | 1.1 | Intégration du canal **WhatsApp** (Evolution API, DEC-15) : FR34 réécrit, § 8.3 corrigé (une seule intégration externe en MVP), A-07 actée comme honorée, phase 2 § 3.2 point 7 limité à SMS et point 8 simplifié. Nouvelle question ouverte **Q18** (portée et consentement du canal). |
+| 20/07/2026 | 1.2 | **DEC-10 et DEC-16 tranchés par la direction.** DEC-10 (Q9) : code de confirmation envoyé sur le WhatsApp enregistré de la cible avant réinitialisation. DEC-16 (Q18) : toutes les notifications de FR31 sont relayées, sans mécanisme de refus, chaque compte étant garanti porteur d'un numéro WhatsApp actif. FR34 et § 14.1 mis à jour en conséquence. |
 
 ---
 
@@ -142,8 +150,8 @@ Par ordre de valeur décroissante :
 4. Exports PDF et Excel complets.
 5. Réunions et décisions, dont la réunion de direction du vendredi.
 6. Workflow de recrutement complet — circuit multi-états, coût et financement.
-7. Notifications SMS / WhatsApp, après choix du fournisseur.
-8. Authentification renforcée (2FA) pour direction et finance ; réinitialisation par OTP SMS.
+7. Notifications SMS, après choix du fournisseur. *(WhatsApp n'est plus ici : intégré au MVP via Evolution API — DEC-15, FR34, § 8.3.)*
+8. Authentification renforcée (2FA) pour direction et finance ; réinitialisation en libre-service par code de vérification envoyé sur **WhatsApp** — le canal est déjà intégré (DEC-15), un second fournisseur SMS n'apporterait rien pour ce seul usage.
 9. PWA installable et brouillons hors ligne.
 10. Matériel et accès numériques.
 11. Rôle Auditeur lecture seule.
@@ -284,7 +292,7 @@ fermé à la Finance (D-04), rôle Auditeur retiré (C7).
 - **FR31 :** Les événements notifiés en MVP sont : rapport quotidien bientôt en retard, rapport quotidien en retard, objectif proche de l'échéance, commentaire ou correction demandée, blocage affecté, dépense à approuver, rapprochement ou rapport financier à préparer, document interne à accepter, fin de contrat ou de stage proche.
 - **FR32 :** Une notification porte un lien direct vers l'objet concerné et permet d'atteindre l'action attendue en **au plus 3 interactions**.
 - **FR33 :** Une dépense en attente d'approbation génère un rappel à J+1 et à J+2 vers l'approbateur manquant, tant que la décision n'est pas prise.
-- **FR34 :** Aucune notification n'est envoyée par SMS, WhatsApp ou courriel en MVP.
+- **FR34 :** En plus du centre de notifications interne (FR30), **toute** notification est relayée sur **WhatsApp** (Evolution API, DEC-15) — chaque compte est garanti porteur d'un numéro WhatsApp actif (DEC-16), sans mécanisme de refus par l'utilisateur en MVP. Aucune notification n'est envoyée par **SMS** ni par **courriel**.
 
 ### 5.6 Calendrier des jours travaillés et absences — [Étape 1] *(D-02)*
 
@@ -639,7 +647,7 @@ une petite équipe de développement.
 - **Build et styles :** Vite 8, Tailwind CSS 4 en configuration CSS-first.
 - **Base de données de développement :** SQLite.
 - **Domaine :** `staff.ptrniger.com`.
-- **Intégrations externes en MVP : aucune.** Pas de banque, pas de Mobile Money, pas de SMS, pas de WhatsApp.
+- **Intégrations externes en MVP : une seule.** **WhatsApp**, via **Evolution API 2.3.7** (intégration `WHATSAPP-BAILEYS`), exclusivement pour les notifications sortantes de FR34 — voir DEC-15 et l'architecture § 9.4bis. Pas de banque, pas de Mobile Money, pas de SMS.
 
 ### 8.4 Décisions explicitement laissées à l'Architecte
 
@@ -651,7 +659,7 @@ une petite équipe de développement.
 | A-04 | Stockage des pièces jointes | Hors racine web, accès contrôlé ou lien signé (NFR15). |
 | A-05 | Mécanisme d'immuabilité et de versionnement | Doit couvrir finance, objectifs validés et rapports quotidiens dès l'Étape 1 (NFR20). |
 | A-06 | Modèle **personne / compte applicatif séparé** | Exigence structurelle dès l'Étape 1, même si les commissions récurrentes sont hors MVP *(voir CONTRA-02)*. |
-| A-07 | Stratégie de notification en application | Doit permettre l'ajout ultérieur de SMS/WhatsApp sans refonte. |
+| A-07 | Stratégie de notification en application | **Honorée** : le canal WhatsApp s'ajoute au canal `database` sans refonte (DEC-15, § 9.4bis de l'architecture). Doit permettre l'ajout ultérieur de SMS de la même façon. |
 
 ### 8.5 Testing Requirements
 
@@ -829,7 +837,7 @@ afin de ne pas découvrir un retard ou une demande après coup.
 2. Une notification porte un lien direct vers l'objet concerné.
 3. Depuis la notification, l'action attendue est atteignable en **au plus 3 interactions** ; la mesure est consignée en recette pour l'approbation de dépense et la validation de rapport.
 4. Une notification est marquée lue explicitement par l'utilisateur ou implicitement à l'ouverture de l'objet ; les deux comportements sont testés.
-5. Aucun envoi SMS, WhatsApp ou courriel n'est déclenché ; un test vérifie qu'aucun canal externe n'est appelé.
+5. Aucun envoi SMS ni courriel n'est déclenché ; WhatsApp est appelé pour toutes les notifications (FR34, DEC-15/DEC-16) ; un test vérifie qu'aucun canal non autorisé n'est appelé.
 
 ---
 
@@ -1679,8 +1687,9 @@ Aucune ne bloque le démarrage de l'architecture ni de l'Étape 1.
 |---|---|---|
 | Q6 | Quels comptes financiers existent exactement : caisse, banque (laquelle), Airtel Money, Moov Money, autre ? | Modèle de données financier et écrans de rapprochement (Story 4.1). |
 | Q7 | Quel hébergement et quelle stratégie de sauvegarde / restauration ? | A-03, NFR24, NFR25, risque R5. |
-| Q9 | Qui exactement réinitialise un mot de passe en MVP, et selon quelle vérification d'identité ? | Sécurité du compte et charge opérationnelle (FR6). |
+| Q9 | Qui exactement réinitialise un mot de passe en MVP, et selon quelle vérification d'identité ? | ✅ **Tranché 20/07/2026 (DEC-10)** — code de confirmation WhatsApp, architecture § 7.4. |
 | Q11 | Quels types de fichiers accepter et quelle taille maximale ? | NFR16, coût de bande passante en 3G. |
+| Q18 | Quels types de notification passent par WhatsApp, l'utilisateur peut-il refuser le canal, et que fait-on d'un numéro sans WhatsApp actif ? | ✅ **Tranché 20/07/2026 (DEC-16)** — toutes les notifications de FR31, sans refus, tout compte garanti porteur d'un numéro actif. |
 
 ### 14.2 Non bloquantes
 

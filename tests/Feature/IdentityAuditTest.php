@@ -89,9 +89,9 @@ class IdentityAuditTest extends IdentityTestCase
             null,
             'Direction test',
         );
-        app(IdentityService::class)->updateUser(
+        app(IdentityService::class)->changePassword(
             $serviceUser,
-            ['password' => 'Secret-Modifie-2026'],
+            'Secret-Modifie-2026',
             null,
             'Direction test',
             'Renouvellement du secret',

@@ -6,8 +6,9 @@
 Rappelé ici pour qu'aucune story du MVP n'aille au-devant de ces sujets. Par ordre de valeur
 décroissante (PRD § 3.2) : présence complète et pointage ; clients et ventes complets ; abonnements
 SaaS et commissions récurrentes ; exports PDF et Excel ; réunions et décisions ; workflow de
-recrutement complet ; notifications SMS / WhatsApp ; 2FA et réinitialisation par OTP ; PWA
-installable et brouillons hors ligne ; matériel et accès numériques ; rôle Auditeur lecture seule.
+recrutement complet ; notifications SMS *(WhatsApp est intégré au MVP — DEC-15, FR34)* ; 2FA et
+réinitialisation en libre-service par code WhatsApp ; PWA installable et brouillons hors ligne ;
+matériel et accès numériques ; rôle Auditeur lecture seule.
 
 **Deux exigences structurelles anticipent la phase 2 sans la livrer**, et ne doivent pas être
 retirées comme du superflu :

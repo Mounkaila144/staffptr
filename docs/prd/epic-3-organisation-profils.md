@@ -119,11 +119,11 @@ Livrée ici et non au Jalon 4 : les relances de double approbation (4.6) et les 
 (6.2) en dépendent — voir ÉCART-02.
 
 1. Un centre de notifications avec **compteur de non-lues** est accessible depuis toute page authentifiée.
-2. Le système de notifications Laravel est utilisé avec le **canal `database` seul** (A-07) ; l'architecture permet d'ajouter SMS ou WhatsApp en phase 2 sans refonte.
+2. Le système de notifications Laravel est utilisé avec **deux canaux** : `database` toujours, et **WhatsApp** (Evolution API, DEC-15) pour **toutes** les notifications (A-07, DEC-16 — tout compte est garanti porteur d'un numéro actif) ; l'architecture permet d'ajouter SMS de la même façon en phase 2, sans refonte.
 3. Chaque notification porte un **lien direct vers l'objet concerné**.
 4. ⛔ Depuis la notification, l'objet lié est atteignable en **au plus 3 interactions**, prouvé ici sur une notification générique et son lien autorisé (FR32). **La mesure sur les deux parcours réels est faite là où ils naissent** : approbation de dépense en **4.6**, validation de rapport en **6.3**.
 5. Une notification est marquée lue **explicitement** par l'utilisateur ou **implicitement** à l'ouverture de l'objet ; les deux comportements sont testés.
-6. ⛔ Aucun envoi SMS, WhatsApp ou courriel n'est déclenché ; un test vérifie qu'aucun canal externe n'est appelé (FR34).
+6. ⛔ Aucun envoi **SMS ni courriel** n'est déclenché ; **WhatsApp est appelé pour toute notification** ; un test vérifie qu'aucun canal non autorisé n'est appelé (FR34).
 7. État vide : « Vous êtes à jour. » — ton positif, le vide étant ici une bonne nouvelle.
 8. Le compteur ne provoque pas de requête à chaque navigation : il est porté par la réponse Inertia partagée.
 
@@ -149,7 +149,7 @@ engagement soit opposable.* — [PRD 3.13] — **avancée au Jalon 1, voir ÉCAR
 1. Chaque membre a une fiche complète avec responsable direct, et la chaîne hiérarchique est sans cycle.
 2. Les paramètres livrés à ce jalon — jours travaillés, heure limite, délai de rappel, limite de stagiaires, pourcentage et objectif de réserve, types et taille des pièces jointes, tentatives et durée de blocage — sont modifiables à l'écran, et un test prouve pour chacun le changement de comportement **sans redéploiement**. Les quatre familles restantes de FR25 arrivent en 4.1, 4.3, 7.6 et 8.2.
 3. ⛔ Aucune pièce jointe n'est atteignable par URL publique ; le refus de type et de taille est prouvé côté serveur.
-4. Le centre de notifications fonctionne et **aucun canal externe n'est appelé**.
+4. Le centre de notifications fonctionne ; **aucun canal non autorisé n'est appelé** — WhatsApp est appelé pour toute notification (FR34).
 5. Le règlement intérieur est publié et l'état des acceptations est visible par `direction`.
 6. La campagne d'autorisation couvre les nouvelles ressources, dossiers personnels compris.
 

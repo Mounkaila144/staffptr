@@ -46,4 +46,28 @@ class MoneyTest extends TestCase
 
         Money::from(-1);
     }
+
+    public function test_it_allocates_basis_points_and_assigns_the_integer_remainder_to_rank_one(): void
+    {
+        $allocation = Money::from(11)->allocateByBasisPoints([
+            'rank_one' => 1_000,
+            'rank_two' => 6_000,
+            'rank_three' => 3_000,
+        ]);
+
+        $this->assertSame(['rank_one' => 2, 'rank_two' => 6, 'rank_three' => 3], $allocation);
+        $this->assertSame(11, array_sum($allocation));
+    }
+
+    public function test_it_splits_equally_and_assigns_the_integer_remainder_to_the_first_beneficiary(): void
+    {
+        $this->assertSame([4, 3, 3], Money::from(10)->splitEqually(3));
+        $this->assertSame([0, 0], Money::from(0)->splitEqually(2));
+    }
+
+    public function test_it_rejects_an_invalid_rate_total_or_empty_split(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Money::from(100)->allocateByBasisPoints(['invalid' => 9_999]);
+    }
 }

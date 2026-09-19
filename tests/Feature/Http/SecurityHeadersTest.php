@@ -23,7 +23,7 @@ class SecurityHeadersTest extends TestCase
 
     public function test_ac_1_https_responses_have_the_exact_hsts_value(): void
     {
-        $this->get('https://localhost/')
+        $this->get('https://localhost/__test/interface-demo')
             ->assertOk()
             ->assertHeader(
                 'Strict-Transport-Security',

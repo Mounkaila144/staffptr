@@ -1,0 +1,44 @@
+# <!-- Powered by BMAD™ Core -->
+schema: 1
+story: "2.5"
+story_title: "Cycle de vie du compte et invalidation immédiate des sessions"
+gate: PASS
+status_reason: "Les 5 AC sont prouvés, chacun par un test nommé et traçable. Le piège principal — trois mécanismes déjà livrés produisent un faux vert sur le test littéral de la règle bloquante 10 — est déjoué par le test discriminant exact que la story exigeait : suspendre, réactiver, vérifier que les sessions d'origine restent mortes. L'arbitrage de la portée de révocation au changement de mot de passe (totale puis rétablissement de la session courante de l'auteur, jamais de la cible d'un tiers) est vérifié empiriquement dans les deux sens, y compris le scénario anticipé de la story 2.8. CI verte sur les six contrôles, y compris PHPUnit MySQL 8 avec preuve de rollback transactionnel par injection de déclencheur."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-07-20T12:40:00+01:00"
+
+waiver: { active: false }
+
+top_issues: []
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 0 }
+  recommendations:
+    must_fix: []
+    monitor: []
+
+evidence:
+  tests_reviewed: 184
+  assertions: 1838
+  risks_identified: 0
+  local_run: "184 tests, 164 passés, 20 réservés au moteur MySQL de la CI (skip sous SQLite local), 1838 assertions — Pint et Larastan niveau 6 propres. PR #23 verte sur les six contrôles (Pint, Larastan, PHPUnit MySQL 8, Frontend Build & Budget, Playwright, CI Duration), run 29744319356."
+  trace:
+    ac_covered: [1, 2, 3, 4, 5]
+    ac_partial: []
+    note: "AC 2 est le mieux couvert : test littéral (deux sessions, suspension, rejet), test discriminant par réactivation (celui qui distingue une vraie révocation d'un simple rejet middleware), et deux tests sur le changement de mot de passe (par le propriétaire, avec rétablissement de sa session ; par un tiers anticipant 2.8, sans toucher la session de l'auteur). AC 5 inclut un rollback transactionnel prouvé par injection de déclencheur MySQL, pas par lecture de code."
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "Révocation totale sans exception au changement de mot de passe et à la suspension, avec rétablissement immédiat d'une nouvelle session uniquement pour l'auteur d'un changement sur son propre compte. updateUser() n'accepte plus password, fermant le chemin de contournement de la révocation. Aucun mot de passe, clair ou haché, dans l'audit."
+  performance:
+    status: PASS
+    notes: "Suppression ciblée par user_id indexé, dans la transaction déjà ouverte par la mutation d'état — pas d'aller-retour supplémentaire."
+  reliability:
+    status: PASS
+    notes: "Échec d'audit prouvé annuler état, audit et révocation ensemble par injection de déclencheur MySQL rejetant l'écriture d'audit, avec vérification directe que la session préservée n'a pas été supprimée."
+  maintainability:
+    status: PASS
+    notes: "Un seul chemin de révocation (SessionRevocationService), un seul chemin de changement de mot de passe existant (changePassword, updateUser() fermé). Accès par constructeur de requêtes sur sessions documenté en commentaire pour éviter une fausse alerte de revue future."
+
+recommended_status: "✓ Ready for Done"

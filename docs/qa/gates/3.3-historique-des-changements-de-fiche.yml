@@ -1,0 +1,57 @@
+# <!-- Powered by BMAD™ Core -->
+schema: 1
+story: "3.3"
+story_title: "Historique des changements de fiche"
+gate: PASS
+status_reason: "Les 5 AC sont prouvés, chacun par un test nommé et traçable. Le cœur de la story — un second registre lisible qui coexiste avec le journal d'audit sans le remplacer (AC 3) — est vérifié par deux tests : coexistence audit+historique distincts, et rollback complet de la transaction métier si l'historisation échoue. L'immuabilité (AC 4) reprend à l'identique les trois barrières d'audit_logs et est prouvée en base (déclencheur 1644) ET en applicatif (trait + privilège 1142). L'autorisation (AC 5) réutilise exactement celle de 3.2 : super_admin n'a pas fiche.consulter et aucun bypass Gate::before n'existe, refus 403 vérifié pour un pair et pour super_admin. Un seul point Low, non bloquant : la déduplication par libellé peut omettre un changement réel si deux services/responsables partagent le même nom d'affichage."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-07-21T10:30:00+01:00"
+
+waiver: { active: false }
+
+top_issues:
+  - id: "HIST-DEDUP-LABEL"
+    severity: low
+    summary: "UserHistoryService::record() déduplique sur le libellé (old_value === new_value) ; departments.name n'étant pas unique et managerSnapshot reposant sur person.full_name, un changement réel entre deux entités de même libellé mais d'id différent serait omis de l'historique alors que l'audit enregistre le changement d'id."
+    suggested_owner: dev
+    refs: ["app/Services/Identity/UserHistoryService.php"]
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 1 }
+  recommendations:
+    must_fix: []
+    monitor:
+      - "Envisager une contrainte d'unicité sur departments.name, ou dédupliquer l'historique sur l'identifiant plutôt que sur le libellé rendu."
+
+evidence:
+  tests_reviewed: 16
+  risks_identified: 1
+  local_run: "Vérification ciblée : UserHistoryTest + UserHistoryHttpTest = 9 tests (7 passés, 2 réservés au moteur MySQL de la CI, 85 assertions) ; non-régression PersonProfileHierarchyTest + RoleAssignmentAuditTest = 14 tests passés (47 assertions). Pint --dirty propre, Larastan niveau 6 propre sur les six fichiers de la story. Les preuves déclencheurs/privilèges MySQL sont ignorées sous SQLite local et exécutées en CI, comme pour audit_logs."
+  trace:
+    ac_covered: [1, 2, 3, 4, 5]
+    ac_gaps: []
+    note: "AC 3 et AC 4 sont les mieux couverts : AC 3 par la coexistence audit+historique distincts et par le rollback transactionnel via mock du service d'historique ; AC 4 par trois tests (garde modèle, déclencheur MySQL 1644, privilège applicatif 1142 avec lecture en négatif du SHOW GRANTS)."
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "Autorisation réutilisée de 3.2 sans nouvelle permission (middleware fiche.consulter + policy view avec Person::visibleTo). Refus super_admin vérifié en négatif : absent de permission-catalog.php, aucun bypass Gate::before. Immuabilité triple-barrière (déclencheurs, privilèges SELECT/INSERT, trait Immutable) tracée en base et en applicatif. user_history consigné dans docs/ops/database-users.md avec UPDATE/DELETE refusés et intégré à la checklist de lecture en négatif des SHOW GRANTS."
+  performance:
+    status: PASS
+    notes: "Index (user_id, changed_at) adapté à la consultation par fiche. forDisplay() charge changedBy.person en eager (pas de N+1) et pagine par 20. Snapshots résolus une fois à l'écriture, jamais au rendu."
+  reliability:
+    status: PASS
+    notes: "record() refuse toute écriture hors transaction (transactionLevel() < 1). L'échec de l'historisation annule la transaction métier ET son audit — vérifié par test dédié. changed_at stocké en UTC, rendu Africa/Niamey ; DATETIME(3) pour rétention permanente sans plafond 2038 ni conversion de fuseau."
+  maintainability:
+    status: PASS
+    notes: "Historisation greffée sur quatre points existants et déjà audités, sans nouveau chemin ni duplication de transaction. Libellés de champ et snapshots centralisés dans UserHistoryService. Migration calquée à l'identique sur audit_logs (withinTransaction=false, DDL déclencheurs en MySQL uniquement)."
+
+recommendations:
+  immediate: []
+  future:
+    - action: "Dédupliquer l'historique sur l'identifiant (department_id/manager_id) plutôt que sur le libellé rendu, ou ajouter une contrainte d'unicité sur departments.name."
+      refs: ["app/Services/Identity/UserHistoryService.php"]
+
+quality_score: 90
+
+recommended_status: "✓ Ready for Done"

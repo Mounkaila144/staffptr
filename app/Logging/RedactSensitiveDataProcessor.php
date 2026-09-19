@@ -18,6 +18,7 @@ class RedactSensitiveDataProcessor implements ProcessorInterface
     /** @var list<string> */
     private const SENSITIVE_KEYS = [
         'authorization',
+        'confirmationcode',
         'cookie',
         'password',
         'passwordconfirmation',
@@ -73,7 +74,7 @@ class RedactSensitiveDataProcessor implements ProcessorInterface
         $request = $this->request();
 
         if ($request !== null) {
-            foreach (['password', 'password_confirmation', 'token', 'secret'] as $key) {
+            foreach (['password', 'password_confirmation', 'confirmation_code', 'token', 'secret'] as $key) {
                 $this->appendScalarValues($request->input($key), $values);
             }
 

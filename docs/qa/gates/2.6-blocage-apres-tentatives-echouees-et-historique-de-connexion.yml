@@ -1,0 +1,44 @@
+# <!-- Powered by BMAD™ Core -->
+schema: 1
+story: "2.6"
+story_title: "Blocage après tentatives échouées et historique de connexion"
+gate: PASS
+status_reason: "Les 6 AC sont prouvés, chacun par un test nommé et traçable. Le piège principal — le verrou persistant pour un numéro inconnu rouvre l'oracle d'énumération temporel fermé en 2.4 — est résolu par une empreinte HMAC déterministe qui permet de compter les tentatives par numéro sans les stocker en clair, et vérifié par un test qui compare la signature complète de deux réponses (compte connu / numéro inconnu) au seuil et après expiration de la fenêtre du limiteur. RM-18 est vérifié positivement : le blocage ne suspend jamais le compte et ne révoque aucune session active. Les deux portées cumulatives (compte, adresse) sont prouvées par les deux tests symétriques nommés dans l'AC 3. CI verte sur les six contrôles, y compris PHPUnit MySQL 8 et Playwright."
+reviewer: "Quinn (Test Architect)"
+updated: "2026-07-20T13:40:00+01:00"
+
+waiver: { active: false }
+
+top_issues: []
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 0 }
+  recommendations:
+    must_fix: []
+    monitor: []
+
+evidence:
+  tests_reviewed: 203
+  assertions: 2082
+  risks_identified: 0
+  local_run: "203 tests, 182 passés, 21 réservés au moteur MySQL de la CI (skip sous SQLite local), 2082 assertions — Pint et Larastan niveau 6 propres. PR #24 verte sur les six contrôles (Pint, Larastan, PHPUnit MySQL 8, Frontend Build & Budget, Playwright, CI Duration), run 29748895228."
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6]
+    ac_partial: []
+    note: "AC 1 est le mieux couvert : verrou après seuil configuré, remise à zéro au succès, journalisation du blocage et de l'expiration (constatée au prochain essai, pour un compte connu comme pour un numéro inconnu), et surtout le test de non-régression de l'oracle temporel de 2.4, qui compare deux réponses complètes avant et après expiration du limiteur par minute."
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "Empreinte HMAC déterministe à clef (APP_KEY) pour tout numéro tenté ne correspondant à aucun compte, y compris le cas d'un mot de passe saisi par erreur dans le champ numéro — testé explicitement, digest vérifié plutôt que supposé. Aucun mot de passe dans l'historique, l'audit ou les journaux. Écran d'historique réservé à direction par rôle et permission, 403 direct vérifié pour les cinq autres rôles."
+  performance:
+    status: PASS
+    notes: "Index dédiés sur les colonnes filtrées par l'écran et sur la clé interrogée à chaque tentative de connexion (empreinte, période)."
+  reliability:
+    status: PASS
+    notes: "Le blocage ne modifie jamais l'état du compte ni ne révoque de session — vérifié par un test qui garde une session ouverte fonctionnelle après épuisement du compteur depuis une autre origine, conformément à RM-18."
+  maintainability:
+    status: PASS
+    notes: "Seuil et durée centralisés dans LoginSecuritySettings, point de vérité unique nommé pour le remplacement par la table settings en story 3.4. Consigne GRANT UPDATE de 1.5 correctement encaissée pour la première table nouvelle depuis 2.2 (migration, runbook, parité CI)."
+
+recommended_status: "✓ Ready for Done"

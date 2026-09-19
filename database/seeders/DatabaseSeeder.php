@@ -14,6 +14,24 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Les données initiales seront ajoutées par les stories métier.
+        $this->call([
+            RolePermissionSeeder::class,
+            CompanySeeder::class,
+            SettingSeeder::class,
+            HolidaySeeder::class,
+            ExpenseCategorySeeder::class,
+            FinancialAccountSeeder::class,
+            FixedChargeSeeder::class,
+            CompanyPrioritySeeder::class,
+            ProjectSeeder::class,
+            ObjectiveSeeder::class,
+            TaskSeeder::class,
+            DeliverableSeeder::class,
+            DailyReportSeeder::class,
+            TaskRequestSeeder::class,
+            BlockerSeeder::class,
+            WeeklyReviewSeeder::class,
+            InternshipSeeder::class,
+        ]);
     }
 }

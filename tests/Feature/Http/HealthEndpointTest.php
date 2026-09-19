@@ -10,6 +10,19 @@ use Tests\TestCase;
 
 class HealthEndpointTest extends TestCase
 {
+    /**
+     * AC 4 de la story 1.1 — `/up` est public, complet et **assaini**.
+     *
+     * L'assertion d'origine interdisait toute occurrence du mot « backup » : à ce jalon, la
+     * sauvegarde n'existait pas et sa seule mention aurait été une fuite. La story 11.1 (AC 10)
+     * exige désormais que `/up` expose l'**âge** de la dernière sauvegarde, pour qu'une
+     * surveillance externe puisse alerter.
+     *
+     * Le critère d'origine n'est pas affaibli, il est rendu explicite : ce qui était interdit
+     * n'était pas le mot, c'était la **fuite**. Le test vérifie donc maintenant qu'aucun chemin,
+     * fournisseur, bucket ni phrase secrète n'apparaît — la liste ci-dessous est plus stricte que
+     * l'interdiction d'un seul mot.
+     */
     public function test_ac_4_health_endpoint_is_public_complete_and_sanitized(): void
     {
         $response = $this->getJson(route('health'));
@@ -27,14 +40,26 @@ class HealthEndpointTest extends TestCase
                     'database' => ['status'],
                     'cache' => ['status'],
                     'disk' => ['status', 'free_bytes'],
+                    // Story 11.1 AC 10 : l'âge de sauvegarde fait désormais partie du contrat.
+                    'backup' => ['status', 'state', 'age_hours', 'max_age_hours'],
                 ],
                 'timestamp',
             ]);
 
-        $payload = $response->getContent();
+        $payload = (string) $response->getContent();
         $this->assertStringNotContainsString(base_path(), $payload);
-        $this->assertStringNotContainsString('password', strtolower($payload));
-        $this->assertStringNotContainsString('backup', strtolower($payload));
+
+        // Aucune indication permettant de trouver ou d'ouvrir une archive, ni aucun secret.
+        foreach ([
+            'password', 'passphrase', 'secret', 'bucket', 'endpoint',
+            'access_key', 'storage/app', '.env',
+        ] as $forbidden) {
+            $this->assertStringNotContainsString(
+                $forbidden,
+                strtolower($payload),
+                "`/up` est public : « {$forbidden} » ne doit jamais y apparaître.",
+            );
+        }
         $timestamp = $response->json('timestamp');
         $this->assertIsString($timestamp);
         $this->assertStringEndsWith('+01:00', $timestamp);

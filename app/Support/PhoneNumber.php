@@ -30,4 +30,9 @@ final class PhoneNumber
 
         return $normalized;
     }
+
+    public static function forEvolutionApi(string $phoneNumber): string
+    {
+        return ltrim(self::normalize($phoneNumber), '+');
+    }
 }

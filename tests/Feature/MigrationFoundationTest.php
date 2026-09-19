@@ -27,6 +27,11 @@ class MigrationFoundationTest extends TestCase
         $this->assertTrue($this->migrationSchema()->hasTable('cache_locks'));
         $this->assertTrue($this->migrationSchema()->hasTable('people'));
         $this->assertTrue($this->migrationSchema()->hasTable('users'));
+        $this->assertTrue($this->migrationSchema()->hasTable('permissions'));
+        $this->assertTrue($this->migrationSchema()->hasTable('roles'));
+        $this->assertTrue($this->migrationSchema()->hasTable('model_has_permissions'));
+        $this->assertTrue($this->migrationSchema()->hasTable('model_has_roles'));
+        $this->assertTrue($this->migrationSchema()->hasTable('role_has_permissions'));
         $this->assertFalse($this->migrationSchema()->hasTable('password_reset_tokens'));
 
         $migrations = DB::connection($this->migrationConnectionName())
@@ -38,12 +43,15 @@ class MigrationFoundationTest extends TestCase
         $auditPosition = array_search('2026_07_19_052353_create_audit_logs_table', $migrations, true);
         $peoplePosition = array_search('2026_07_19_230525_create_people_table', $migrations, true);
         $usersPosition = array_search('2026_07_19_230526_create_users_table', $migrations, true);
+        $rbacPosition = array_search('2026_07_20_070505_create_permission_tables', $migrations, true);
 
         $this->assertIsInt($auditPosition);
         $this->assertIsInt($peoplePosition);
         $this->assertIsInt($usersPosition);
+        $this->assertIsInt($rbacPosition);
         $this->assertLessThan($peoplePosition, $auditPosition);
         $this->assertLessThan($usersPosition, $peoplePosition);
+        $this->assertLessThan($rbacPosition, $usersPosition);
     }
 
     public function test_ac_1_keeps_the_default_laravel_user_migration_removed(): void

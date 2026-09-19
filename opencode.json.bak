@@ -1,0 +1,52 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [],
+  "permission": {
+    "edit": "allow",
+    "bash": "allow",
+    "webfetch": "allow"
+  },
+  "model": "zai-coding-plan/glm-4.7",
+  "agent": {
+    "dev": {
+      "model": "zai-coding-plan/glm-4.7",
+      "reasoningEffort": "low"
+    },
+    "qa": {
+      "model": "zai-coding-plan/glm-5.2",
+      "reasoningEffort": "medium"
+    },
+    "architect": {
+      "model": "zai-coding-plan/glm-5.2",
+      "reasoningEffort": "high"
+    },
+    "pm": {
+      "model": "zai-coding-plan/glm-5.2",
+      "reasoningEffort": "high"
+    },
+    "po": {
+      "model": "zai-coding-plan/glm-5.2",
+      "reasoningEffort": "high"
+    },
+    "sm": {
+      "model": "zai-coding-plan/glm-5.2",
+      "reasoningEffort": "high"
+    },
+    "analyst": {
+      "model": "zai-coding-plan/glm-5.2",
+      "reasoningEffort": "high"
+    },
+    "ux-expert": {
+      "model": "zai-coding-plan/glm-5.2",
+      "reasoningEffort": "high"
+    },
+    "bmad-master": {
+      "model": "zai-coding-plan/glm-5.2",
+      "reasoningEffort": "high"
+    },
+    "bmad-orchestrator": {
+      "model": "zai-coding-plan/glm-5.2",
+      "reasoningEffort": "high"
+    }
+  }
+}

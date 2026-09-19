@@ -51,7 +51,10 @@ reviendrait à ne pas les tester.
 
 - **Aucune ressource tierce chargée à l'exécution** (NFR3) : ni CDN, ni police externe, ni script
   distant. Tout est servi par l'application. Cela interdit aussi toute bibliothèque de composants Vue.
-- **Aucune intégration externe en MVP** : ni banque, ni Mobile Money, ni SMS, ni WhatsApp, ni courriel.
+- **Une seule intégration externe en MVP : WhatsApp** (Evolution API 2.3.7, DEC-15), exclusivement
+  pour les notifications sortantes de FR34 — voir `external-apis.md` et
+  `9-sessions-scurit-des-comptes-et-notifications.md` § 9.4bis. Ni banque, ni Mobile Money, ni SMS,
+  ni courriel.
 - Pas de conteneurisation en production (Docker sert uniquement à la CI).
 - Pas de PWA, pas de service worker, pas de mode hors ligne (phase 2).
 

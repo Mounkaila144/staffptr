@@ -3,10 +3,22 @@
 namespace App\Models\Platform;
 
 use App\Support\Auditing\Immutable;
+use Carbon\CarbonImmutable;
 use Database\Factories\Platform\AuditLogFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int|null $actor_id
+ * @property string $actor_label
+ * @property CarbonImmutable $occurred_at
+ * @property string $auditable_type
+ * @property int|null $auditable_id
+ * @property string $action
+ * @property array<string, mixed>|null $old_values
+ * @property array<string, mixed>|null $new_values
+ * @property string|null $reason
+ */
 class AuditLog extends Model
 {
     /** @use HasFactory<AuditLogFactory> */

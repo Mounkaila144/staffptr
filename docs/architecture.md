@@ -50,7 +50,7 @@ en maintenance qu'ils n'apportent à cette échelle.
 | A-04 | Stockage des pièces jointes | Disque privé `storage/app/private`, servi par contrôleur + `X-Accel-Redirect` | [§ 11](#11-pièces-jointes-privées) |
 | A-05 | Immuabilité et versionnement | Triple barrière : privilèges SQL, déclencheurs base, trait applicatif | [§ 15](#15-immuabilité-historiques-et-annulations) |
 | A-06 | Séparation personne / compte | Tables `people` et `users` distinctes dès l'Étape 1 | [§ 6.2](#62-noyau-identité--a-06--contra-02) |
-| A-07 | Notifications | Système de notifications Laravel, canal `database` seul en MVP | [§ 9.4](#94-notifications-a-07) |
+| A-07 | Notifications | Système de notifications Laravel, deux canaux en MVP : `database` et **WhatsApp** (DEC-15) | [§ 9.4](#94-notifications-a-07) |
 
 ### 2.3 Décisions requérant votre accord — non définitives
 
@@ -69,8 +69,10 @@ en maintenance qu'ils n'apportent à cette échelle.
 | **DEC-07** | Suivi des erreurs (Sentry ou fichiers seuls) | Sentry auto-hébergé, ou fichiers seuls |
 | **DEC-08** | Q11 — types et taille des pièces jointes | PDF/JPEG/PNG/WebP/HEIC, 8 Mo |
 | **DEC-09** | Q6 — comptes financiers réels à initialiser | Liste à fournir |
-| **DEC-10** | Q9 — vérification d'identité à la réinitialisation | Procédure hors application à formaliser |
+| **DEC-10** | Q9 — vérification d'identité à la réinitialisation | ✅ **Tranché 20/07/2026** — code de confirmation envoyé sur le WhatsApp enregistré de la cible, saisi par l'auteur avant génération du mot de passe temporaire. Voir § 7.4 |
 | **DEC-11** | Q12 — conservation 10 ans | Confirme NFR26 et le dimensionnement disque |
+| **DEC-15** | Fournisseur du canal WhatsApp | ✅ **Tranché 20/07/2026** — Evolution API 2.3.7 (`WHATSAPP-BAILEYS`). Coûts détaillés au § 9.4bis |
+| **DEC-16** | Q18 — portée et consentement du canal WhatsApp | ✅ **Tranché 20/07/2026** — toutes les notifications de FR31 sont éligibles, sans mécanisme de refus ; chaque compte est garanti porteur d'un numéro WhatsApp actif |
 
 **Rappel PRD :** les contradictions CONTRA-01, 03, 04, 05 et 07 restent ouvertes. Aucune ne bloque
 l'Étape 1. CONTRA-01 (régularisation des parts à la clôture de contrat) et CONTRA-04 (employé
@@ -414,9 +416,24 @@ En MVP, la réinitialisation est effectuée par `direction` ou `super_admin` dep
 des comptes. Elle génère un nouveau mot de passe temporaire, lève `must_change_password`, **invalide
 toutes les sessions de la cible** (FR8) et écrit une entrée d'audit portant l'auteur et la cible.
 
-> **DEC-10.** L'application ne peut pas vérifier l'identité du demandeur : c'est une procédure
-> humaine. Elle doit être écrite et affichée à l'écran de réinitialisation, sans quoi le circuit
-> le plus simple pour prendre un compte reste l'appel téléphonique. À formaliser avec vous.
+> **DEC-10 — tranché le 20/07/2026 : vérification par code de confirmation WhatsApp.** Avant de
+> finaliser une réinitialisation, l'application génère un code, l'envoie sur le **numéro WhatsApp
+> enregistré de la cible** (canal DEC-15) et exige sa saisie par l'auteur (`direction` ou
+> `super_admin`) avant de générer le mot de passe temporaire. La personne qui a appelé pour demander
+> la réinitialisation lit le code reçu sur son WhatsApp à l'auteur, qui le confirme à l'écran — la
+> preuve de possession du numéro remplace l'absence de vérification d'identité automatisée.
+>
+> Postulat opérationnel de cette décision, à la charge de l'exploitant : **chaque compte dispose
+> d'un numéro WhatsApp actif**, sans exception. L'application n'a pas de repli si ce postulat cesse
+> d'être vrai pour un compte donné — voir `stories/2.8.story.md` pour le traitement de ce cas.
+>
+> ⛔ **Le mot de passe temporaire lui-même ne transite jamais par WhatsApp** — seul le code de
+> confirmation, à usage unique et sans valeur au-delà de la preuve de possession du numéro, y est
+> envoyé. Voir § 9.4bis, point 3, sur le risque de l'accès HTTP clair.
+>
+> ⛔ **Si Evolution API est indisponible, la réinitialisation est bloquée** jusqu'au rétablissement
+> du service : aucun contournement n'existe qui n'annulerait la vérification elle-même. C'est une
+> conséquence opérationnelle à surveiller (story 11.3), pas un défaut à corriger dans le code.
 
 ### 7.5 Blocage après échecs — FR10
 
@@ -533,16 +550,119 @@ utilisateurs, le coût est négligeable et la garantie est exacte. Le middleware
 
 ### 9.4 Notifications — A-07
 
-Système de notifications natif de Laravel, **canal `database` uniquement** en MVP (FR34). Le canal
-est le seul point d'extension : ajouter SMS ou WhatsApp en phase 2 consiste à écrire un canal et à
-l'ajouter au `via()` de notifications déjà écrites — **aucune refonte**, ce qui satisfait A-07.
+Système de notifications natif de Laravel, **deux canaux en MVP** : `database`, toujours actif, et
+**WhatsApp** (Evolution API, DEC-15), actif pour **toutes** les notifications de FR31 (FR34,
+DEC-16 — voir § 9.4bis). Le canal `database` reste la source de vérité : une notification y existe
+toujours, que l'envoi WhatsApp réussisse ou non — ce qui satisfait A-07 sans refonte, l'ajout de SMS
+en phase 2 suivant le même mécanisme.
 
 - Centre de notifications avec compteur de non-lues, exposé en prop Inertia partagée (§ 10.3).
 - Chaque notification porte une URL directe vers l'objet (FR32).
 - Les rappels J+1 / J+2 sur dépense en attente (FR33) et le rappel de rapport quotidien (FR31)
   sont des tâches planifiées, pas des déclencheurs à l'écriture.
 - **Les notifications sont mises en file**, jamais envoyées dans le cycle de la requête : une
-  notification lente ne doit pas ralentir une approbation de dépense.
+  notification lente ne doit pas ralentir une approbation de dépense. Ceci vaut *a fortiori* pour
+  WhatsApp, dont l'appel HTTP sortant est synchrone par nature côté fournisseur.
+
+### 9.4bis Canal WhatsApp — Evolution API (DEC-15)
+
+> **DEC-15 — tranché le 20/07/2026 : Evolution API 2.3.7** (intégration `WHATSAPP-BAILEYS`) comme
+> fournisseur du canal WhatsApp de FR34.
+>
+> **Ce que cette décision coûte, écrit pour ne pas être redécouvert plus tard :**
+>
+> 1. **Evolution API n'est pas l'API officielle WhatsApp Business.** L'intégration Baileys émule un
+>    client WhatsApp Web ; le numéro qui l'utilise s'expose au même risque de restriction ou de
+>    bannissement par Meta qu'un usage non conforme aux conditions d'utilisation de WhatsApp. Aucune
+>    volumétrie ni aucun contenu à risque ne doit être envoyée sans en avoir informé la direction.
+> 2. **La clé configurée est une clé administrateur globale** : au-delà de l'envoi de messages, elle
+>    permet de créer et de supprimer des instances Evolution. Une fuite compromet plus que le canal
+>    de notification — voir la confidentialité du secret ci-dessous.
+> 3. **L'accès actuel est en HTTP simple vers une adresse IP, sans TLS.** ⛔ C'est un écart bloquant
+>    pour la mise en service, pas une réserve de confort — voir « Prérequis de mise en service ».
+> 4. **Aucune garantie de livraison tierce.** Evolution API renvoie un succès HTTP (`201`) à l'appel,
+>    pas une confirmation de remise sur l'appareil du destinataire ; l'application ne peut pas savoir
+>    si le message a été lu, ni même reçu.
+> 5. **Dépendance à un service auto-hébergé unique**, sans redondance connue à ce jour. Une panne de
+>    l'instance Evolution prive le canal WhatsApp sans affecter le canal `database` (§ 9.4bis
+>    « Comportement en panne »).
+
+**Configuration** (`config/services.php`, clé `evolution`, lue par `config()` uniquement — SOC-11) :
+
+```
+EVOLUTION_API_URL=
+EVOLUTION_API_KEY=
+EVOLUTION_INSTANCE=
+```
+
+Aucune valeur, adresse IP ou clé réelle ne figure dans un fichier versionné.
+
+**Points d'API utilisés :**
+
+| Méthode | Point | Usage |
+|---|---|---|
+| `GET` | `/instance/connectionState/{instance}` | État de l'instance (`open`, `close`, `connecting`) |
+| `POST` | `/message/sendText/{instance}` | Envoi d'un message texte |
+
+Authentification par en-tête HTTP `apikey` — **jamais** `Authorization: Bearer`. Un envoi réussi
+renvoie `201` ; `401` signale une clé absente ou incorrecte. Si Evolution API expose une clé à
+portée d'instance plutôt que la clé d'administration globale, elle doit être **préférée** pour
+l'envoi courant ; la clé globale reste réservée aux opérations d'administration d'instance.
+
+**Format du numéro.** Le dépôt stocke la forme canonique `+227XXXXXXXX` (§ 7.1). Evolution API
+attend `227XXXXXXXX`, sans `+`. La conversion est une responsabilité de `App\Support\PhoneNumber`
+(nouvelle méthode dédiée), **jamais** un `preg_replace` recopié dans le client HTTP — le même motif
+que la normalisation à l'écriture.
+
+**Emplacement du code.** Le client Evolution API et le canal de notification associé appartiennent
+à `app/Services/Platform/` (structure modulaire par sous-dossiers, § 5) — jamais à `app/Services/`
+racine.
+
+**Comportement en panne.** Le canal `database` est écrit en premier et ne dépend d'aucun appel
+réseau : une notification métier existe donc **toujours**, indépendamment du sort de WhatsApp.
+L'envoi WhatsApp est un travail de file distinct (§ 9.4), avec la politique de nouvelle tentative
+standard de Laravel (`tries`, `backoff`) plutôt qu'une boucle maison ; un envoi qui échoue
+définitivement est un **travail échoué visible**, supervisé comme tout autre par `queue:monitor`
+(story 11.3) — jamais une notification métier silencieusement perdue.
+
+**Idempotence.** Une tâche planifiée qui émet une notification WhatsApp doit être idempotente comme
+toute tâche planifiée (§ 20, story 11.4) : rejouer une tâche ne duplique ni l'écriture `database` ni
+l'envoi WhatsApp. Avec un canal externe, une double exécution envoie un **second message réel** à un
+utilisateur réel — la contrainte n'est plus seulement une propreté de données.
+
+**Confidentialité et rotation de la clé.** La clé Evolution API suit les mêmes règles que les autres
+secrets du dépôt (§ 25.4, `docs/ops/secrets-rotation.md`) : `.env` uniquement, jamais journalisée,
+jamais renvoyée au frontend, jamais dans une trace d'erreur. Le filtre de rédaction des journaux
+(§ 22, `RedactSensitiveDataProcessor`) doit couvrir le nom de la clé de configuration au même titre
+que les autres secrets applicatifs. Sa rotation suit le modèle déjà écrit pour `DEPLOY_SSH_PRIVATE_KEY` :
+nouvelle clé générée côté Evolution, bascule, vérification d'un envoi de test, puis révocation de
+l'ancienne.
+
+**Aucune ressource tierce côté navigateur (NFR3), CSP inchangée (§ 9.5).** L'appel part
+exclusivement du backend, en tâche de file ; aucun élément du frontend ne connaît l'existence de
+l'API Evolution ni sa clé.
+
+⛔ **Prérequis de mise en service — bloquant.** L'accès actuel en HTTP simple vers une adresse IP,
+sans TLS, contredit NFR11 et le durcissement HTTP du § 9.5 : la clé et le contenu des messages
+circulent en clair sur le réseau. Avant toute mise en service utilisant ce canal :
+
+1. l'instance Evolution API doit être servie derrière un **domaine HTTPS** (certificat valide) ;
+2. le port d'accès direct par adresse IP doit être **fermé au public**.
+
+Si l'exploitation démarre malgré tout sans ces deux conditions, ce doit être une **décision datée et
+explicite** de la direction, consignée au même titre que DEC-14 (UFW), pas un oubli qui se découvre
+à l'audit.
+
+**Les deux questions posées à la direction sont tranchées le 20/07/2026 :**
+
+- **DEC-10 (Q9), réinitialisation de mot de passe.** Code de confirmation envoyé sur le WhatsApp
+  enregistré de la cible, saisi par l'auteur avant que le mot de passe temporaire ne soit généré —
+  détail au § 7.4. Le mot de passe temporaire lui-même ne transite jamais par WhatsApp.
+- **DEC-16 (Q18), portée et consentement.** **Toutes** les notifications éligibles de FR31 sont
+  relayées sur WhatsApp, sans distinction par type ni mécanisme de refus par l'utilisateur : chaque
+  compte est garanti porteur d'un numéro WhatsApp actif (postulat opérationnel de la direction, non
+  vérifiable par l'application). Aucun paramétrage d'éligibilité par type n'est donc nécessaire en
+  MVP — une simplification par rapport à l'hypothèse initiale de ce document.
 
 ### 9.5 Durcissement HTTP
 
@@ -1618,8 +1738,10 @@ appliqué selon la recommandation tant que vous n'en décidez pas autrement.
 | **DEC-07** | Suivi des erreurs | Sentry auto-hébergé, ou fichiers seuls | Étape 1 |
 | **DEC-08** | Q11 — pièces jointes | PDF, JPEG, PNG, WebP, HEIC — 8 Mo | Étape 1 — Story pièces jointes |
 | **DEC-09** | Q6 — comptes financiers réels | Liste attendue | **Jalon 4 — Story 8.1** |
-| **DEC-10** | Q9 — vérification d'identité | Procédure humaine à écrire | Jalon 1 — Story 2.8 |
+| **DEC-10** | Q9 — vérification d'identité | ✅ **Tranché 20/07/2026** — code de confirmation WhatsApp, § 7.4 | Jalon 1 — Story 2.8 |
 | **DEC-11** | Q12 — conservation 10 ans | Confirme NFR26 et le disque | Étape 4 |
+| **DEC-15** | Fournisseur du canal WhatsApp | ✅ **Tranché 20/07/2026** — Evolution API 2.3.7, coûts au § 9.4bis | Jalon 1 — Story 3.7 |
+| **DEC-16** | Q18 — portée et consentement WhatsApp | ✅ **Tranché 20/07/2026** — toutes les notifications de FR31, sans refus par l'utilisateur | Jalon 1 — Story 3.7 |
 
 **Contradictions PRD toujours ouvertes, rappelées ici parce qu'elles pèsent sur le modèle de
 données de l'Étape 4 :**
@@ -1684,3 +1806,5 @@ opérations de l'application seront les seules à ne pas être traçables.
 | 19/07/2026 | 1.2 | `audit_logs.occurred_at` passe de `TIMESTAMP(3)` à `DATETIME(3)` : plafond 2038 et conversion par fuseau de session, tous deux disqualifiants sur une table en rétention permanente (NFR23). Corrigé avant la première mise en production. | Quinn (QA) |
 | 19/07/2026 | 1.3 | DEC-05 tranché : préproduction et production sur le VPS existant, partagé avec d'autres projets. Coût nul, mais modèle de menace du § 14.1 affaibli et `log_bin_trust_function_creators` global assumé. Quatre mesures d'isolation rendues obligatoires. | John (PM) |
 | 19/07/2026 | 1.4 | Une paire de comptes MySQL **par environnement** (§ 25.4) : sur l'instance partagée retenue par DEC-05, `'utilisateur'@'hôte'` désigne un compte unique — deux comptes seuls ne pouvaient pas isoler préproduction et production. Nommage symétrique `ptrstaff_prod_*` / `ptrstaff_staging_*`. | Quinn (QA) |
+| 20/07/2026 | 1.5 | **Canal WhatsApp intégré au MVP** (DEC-15, Evolution API 2.3.7) : § 9.4 réécrit sur deux canaux, nouveau § 9.4bis (configuration, points d'API, format du numéro, emplacement du code, comportement en panne, idempotence, confidentialité et rotation de la clé, HTTPS posé comme prérequis bloquant de mise en service). A-07 (§ 2.2) actée honorée. DEC-16 ouverte (Q18, portée et consentement). | John (PM) |
+| 20/07/2026 | 1.6 | **DEC-10 et DEC-16 tranchés par la direction.** DEC-10 (§ 7.4) : code de confirmation WhatsApp envoyé au numéro enregistré de la cible, saisi par l'auteur avant génération du mot de passe temporaire ; le mot de passe temporaire ne transite jamais par ce canal. DEC-16 (§ 9.4bis) : toutes les notifications de FR31 sont éligibles, sans mécanisme de refus, chaque compte étant garanti porteur d'un numéro WhatsApp actif — le paramétrage d'éligibilité par type envisagé en 1.5 n'est plus nécessaire. | John (PM) |
