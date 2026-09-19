@@ -81,7 +81,11 @@ function resetFilters() {
                         <header class="flex min-w-0 flex-wrap items-start justify-between gap-3">
                             <div class="grid min-w-0 gap-1">
                                 <p class="break-words font-semibold">{{ entry.actor }}</p>
-                                <p class="break-words text-sm text-ink-secondary">{{ entry.occurred_at }} · {{ entry.object }}</p>
+                                <!-- `entry.object` porte un nom de classe pleinement qualifié, long et
+                                     sans espace : `break-words` n'y trouve aucune coupure et la page
+                                     déborde à 320 px. `break-all` coupe n'importe où, comme pour les
+                                     valeurs arbitraires des changements plus bas. -->
+                                <p class="break-all text-sm text-ink-secondary">{{ entry.occurred_at }} · {{ entry.object }}</p>
                             </div>
                             <StatusBadge status="audit" variant="avec contexte" :context="entry.action" />
                         </header>

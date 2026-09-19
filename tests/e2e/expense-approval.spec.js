@@ -15,7 +15,14 @@ test('AC 3 et 7 — de la notification à la confirmation en trois interactions 
     let interactions = 0;
 
     interactions += 1;
-    await page.getByRole('link', { name: 'Ouvrir l’élément concerné' }).first().click();
+    // La liste mêle désormais plusieurs natures de notification — validation de rapport
+    // quotidien comprise — donc la demande de dépense se désigne par son message, « a
+    // demandé », et non par son rang, qui dépend de ce que les autres parcours ont produit.
+    await page.getByRole('listitem')
+        .filter({ hasText: 'a demandé' })
+        .first()
+        .getByRole('link', { name: 'Ouvrir l’élément concerné' })
+        .click();
     await expect(page).toHaveURL(/\/depenses\/\d+\/decision$/);
     await expect(page.getByRole('heading', { name: 'Décider de la dépense', level: 1 })).toBeVisible();
     const firstContentfulPaint = await page.evaluate(() => performance.getEntriesByName('first-contentful-paint')[0]?.startTime ?? 0);

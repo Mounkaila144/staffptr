@@ -12,9 +12,11 @@ test('Story 5.1 AC 43 à 49 — le travail personnel reste priorisé et lisible 
 
     await expect(page.getByRole('heading', { name: 'En attente de mon approbation' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Mes objectifs du mois' })).toBeVisible();
-    await expect(page.getByText('Finaliser le socle du travail')).toBeVisible();
+    // Un même intitulé se répète d'un bloc à l'autre — « Prochaines échéances » reprend les
+    // objectifs — donc la vérification se fait dans le bloc qu'elle vise, pas sur la page entière.
+    await expect(page.getByLabel('Mes objectifs du mois').getByText('Finaliser le socle du travail')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Mes tâches du jour' })).toBeVisible();
-    await expect(page.getByText('Relire les priorités du jour')).toBeVisible();
+    await expect(page.getByLabel('Mes tâches du jour').getByText('Relire les priorités du jour')).toBeVisible();
 
     const firstContentfulPaint = await page.evaluate(() => performance.getEntriesByName('first-contentful-paint')[0]?.startTime);
     expect(firstContentfulPaint).toBeLessThan(3_000);
