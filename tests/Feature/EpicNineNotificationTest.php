@@ -18,10 +18,10 @@ use App\Services\Work\ObjectiveDeadlineReminderService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SettingSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Queue;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -32,7 +32,7 @@ use Tests\TestCase;
  */
 class EpicNineNotificationTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     protected function setUp(): void
     {

@@ -13,6 +13,7 @@ use App\Support\Auditing\AuditContext;
 use App\Support\Auditing\AuditLogger;
 use Closure;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,8 @@ use Throwable;
 class ExpenseApprovalConcurrencyDatabaseTest extends TestCase
 {
     use UsesSeparatedDatabaseConnections;
+
+    private bool $committedProofRan = false;
 
     #[Test]
     public function ac_8_two_simultaneous_approvals_from_same_account_count_only_once_under_database_lock(): void
@@ -183,9 +186,22 @@ class ExpenseApprovalConcurrencyDatabaseTest extends TestCase
         $this->markTestSkipped('PCNTL est requis pour la preuve de concurrence MySQL AC 8.');
     }
 
+    protected function tearDown(): void
+    {
+        // Les fixtures de cette preuve sont committées et son audit est indélébile :
+        // seule une remise à neuf du schéma rend la base au test suivant.
+        if ($this->committedProofRan) {
+            $this->restoreSchemaAfterCommittedProof();
+        }
+
+        parent::tearDown();
+    }
+
     private function requireMysqlOrMariaDbProof(): void
     {
         if (in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
+            $this->committedProofRan = true;
+
             return;
         }
 
@@ -310,6 +326,49 @@ class ExpenseApprovalConcurrencyDatabaseTest extends TestCase
      * @param  list<array<string, mixed>>  $existingDirectionAssignments
      * @param  list<array<string, mixed>>  $existingDirectAssignments
      */
+    /**
+     * Retire la dépense de la preuve de concurrence malgré l'interdiction de suppression.
+     *
+     * Cette preuve s'exécute hors transaction : sa dépense est committée, et un
+     * trigger `BEFORE DELETE` interdit de la retirer — c'est voulu, la suppression
+     * physique d'une écriture financière n'existe pas (blocage 7). Laisser la ligne
+     * en place polluerait en revanche tous les comptages de dépenses qui suivent.
+     *
+     * La garde est donc levée le temps du seul identifiant concerné, puis rétablie
+     * telle quelle. La définition est relue dans `information_schema` plutôt que
+     * recopiée ici, pour qu'elle ne puisse pas diverger de la migration qui la pose.
+     */
+    private function forgetConcurrencyExpense(ConnectionInterface $connection, int $expenseId): void
+    {
+        if (! in_array($connection->getDriverName(), ['mysql', 'mariadb'], true)) {
+            $connection->table('expenses')->where('id', $expenseId)->delete();
+
+            return;
+        }
+
+        $trigger = $connection->selectOne(
+            'SELECT TRIGGER_NAME, ACTION_TIMING, EVENT_MANIPULATION, ACTION_STATEMENT
+             FROM information_schema.TRIGGERS
+             WHERE TRIGGER_SCHEMA = ? AND EVENT_OBJECT_TABLE = ? AND EVENT_MANIPULATION = ?',
+            [$connection->getDatabaseName(), 'expenses', 'DELETE']
+        );
+
+        if ($trigger !== null) {
+            $connection->unprepared("DROP TRIGGER IF EXISTS `{$trigger->TRIGGER_NAME}`");
+        }
+
+        try {
+            $connection->table('expenses')->where('id', $expenseId)->delete();
+        } finally {
+            if ($trigger !== null) {
+                $connection->unprepared(
+                    "CREATE TRIGGER `{$trigger->TRIGGER_NAME}` {$trigger->ACTION_TIMING} {$trigger->EVENT_MANIPULATION}"
+                    ." ON `expenses` FOR EACH ROW {$trigger->ACTION_STATEMENT}"
+                );
+            }
+        }
+    }
+
     private function cleanupFixtures(
         int $expenseId,
         int $categoryId,
@@ -322,7 +381,7 @@ class ExpenseApprovalConcurrencyDatabaseTest extends TestCase
         $connection->table('model_has_roles')->whereIn('model_id', $userIds)->delete();
         $connection->table('model_has_permissions')->whereIn('model_id', $userIds)->delete();
         $connection->table('expense_approvals')->where('expense_id', $expenseId)->delete();
-        $connection->table('expenses')->where('id', $expenseId)->delete();
+        $this->forgetConcurrencyExpense($connection, $expenseId);
         $connection->table('expense_categories')->where('id', $categoryId)->delete();
         $connection->table('users')->whereIn('id', $userIds)->delete();
         $connection->table('people')->whereIn('id', $personIds)->delete();

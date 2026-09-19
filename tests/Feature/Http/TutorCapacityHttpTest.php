@@ -9,8 +9,8 @@ use App\Models\Identity\User;
 use App\Models\Work\Objective;
 use App\Services\Accountability\InternshipIntakeService;
 use Database\Seeders\SettingSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -18,7 +18,7 @@ use Tests\TestCase;
  */
 class TutorCapacityHttpTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     protected function setUp(): void
     {

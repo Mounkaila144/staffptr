@@ -10,8 +10,8 @@ use App\Models\Work\Objective;
 use App\Services\Accountability\ImprovementPlanService;
 use App\Services\Accountability\WeeklyReviewService;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -19,7 +19,7 @@ use Tests\TestCase;
  */
 class ImprovementPlanHttpTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     public function test_ac_9_a_plan_is_created_from_its_review(): void
     {

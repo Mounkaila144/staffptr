@@ -14,18 +14,18 @@ use App\Services\Accountability\DailyReportService;
 use App\Support\Auditing\AuditLogger;
 use Carbon\CarbonImmutable;
 use Database\Seeders\SettingSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class DailyReportSubmissionTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     protected function setUp(): void
     {

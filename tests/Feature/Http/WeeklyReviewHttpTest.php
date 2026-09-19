@@ -9,8 +9,8 @@ use App\Models\Identity\User;
 use App\Models\Work\Objective;
 use App\Services\Accountability\WeeklyReviewService;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -19,7 +19,7 @@ use Tests\TestCase;
  */
 class WeeklyReviewHttpTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     private const WEEK_START = '2026-08-10';
 

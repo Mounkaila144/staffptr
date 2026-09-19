@@ -8,8 +8,8 @@ use App\Models\Identity\User;
 use App\Services\Accountability\InternshipEvaluationService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\SettingSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -17,7 +17,7 @@ use Tests\TestCase;
  */
 class InternshipDossierHttpTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     protected function setUp(): void
     {

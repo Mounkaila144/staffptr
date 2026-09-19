@@ -18,8 +18,8 @@ use App\Services\Identity\AccountAdministrationService;
 use App\Services\Identity\IdentityService;
 use App\Services\Identity\InternActivationReadiness;
 use Database\Seeders\SettingSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -27,7 +27,7 @@ use Tests\TestCase;
  */
 class InternActivationTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     protected function setUp(): void
     {

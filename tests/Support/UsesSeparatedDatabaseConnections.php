@@ -3,6 +3,7 @@
 namespace Tests\Support;
 
 use Illuminate\Database\Schema\Builder;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -50,6 +51,35 @@ trait UsesSeparatedDatabaseConnections
         $connection->unprepared(
             "GRANT {$privilegeList} ON {$database}.{$quotedTable} TO '{$username}'@'{$host}'"
         );
+    }
+
+    /**
+     * Remet le schéma à neuf après une preuve qui committe ses fixtures.
+     *
+     * Les preuves de concurrence doivent committer pour que deux processus se voient
+     * réellement : elles ne peuvent donc pas compter sur le rollback habituel. Or
+     * leurs traces d'audit sont immuables — rien ne les efface, et il n'est pas
+     * question d'affaiblir cette garantie pour faire plaisir aux tests. La seule
+     * remise à zéro légitime est donc structurelle, et elle relève du compte de
+     * migration : l'application, elle, reste incapable de toucher à l'historique.
+     *
+     * Les privilèges accordés table par table survivent à un `DROP TABLE` sous MySQL,
+     * la matrice n'a donc pas à être rejouée ensuite.
+     */
+    protected function restoreSchemaAfterCommittedProof(): void
+    {
+        $connectionName = $this->migrationConnectionName();
+
+        if (DB::connection($connectionName)->getDriverName() === 'sqlite') {
+            return;
+        }
+
+        $exitCode = Artisan::call('migrate:fresh', [
+            '--database' => $connectionName,
+            '--force' => true,
+        ]);
+
+        $this->assertSame(0, $exitCode, Artisan::output());
     }
 
     protected function requireMysqlProof(): void

@@ -12,15 +12,15 @@ use App\Notifications\DailyReportDecisionNotification;
 use App\Services\Accountability\DailyReportReviewService;
 use Database\Seeders\SettingSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class DailyReportReviewTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     protected function setUp(): void
     {

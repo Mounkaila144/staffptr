@@ -11,7 +11,7 @@ use App\Models\Identity\User;
 use App\Services\Finance\AlertLevelService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RolePermissionSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -19,7 +19,7 @@ use Tests\TestCase;
  */
 class AlertLevelServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     private CarbonImmutable $month;
 

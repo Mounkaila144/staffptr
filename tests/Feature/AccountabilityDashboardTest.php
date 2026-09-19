@@ -10,12 +10,12 @@ use App\Services\Accountability\AccountabilityDashboardService;
 use App\Services\Platform\CalendarService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\SettingSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class AccountabilityDashboardTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     protected function setUp(): void
     {

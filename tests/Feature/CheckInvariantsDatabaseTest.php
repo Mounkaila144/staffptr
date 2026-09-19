@@ -6,13 +6,17 @@ use App\Models\Identity\User;
 use App\Services\Platform\Invariants\ApprovedExpenseHasTwoApprovalsInvariant;
 use App\Services\Platform\Invariants\AuditDeletePrivilegeInvariant;
 use App\Services\Platform\Invariants\AuditTriggersInvariant;
+use App\Services\Platform\Invariants\BackupFreshnessInvariant;
 use App\Services\Platform\Invariants\EnvironmentInvariant;
 use App\Services\Platform\Invariants\ExpenseApproverCountInvariant;
+use App\Services\Platform\Invariants\FinanceIntegrityInvariant;
+use App\Services\Platform\Invariants\PaidExpenseIntegrityInvariant;
 use App\Services\Platform\Invariants\QueuedNotificationFailureInvariant;
 use App\Services\Platform\Invariants\SuperAdminPermissionInvariant;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Tests\Support\UsesSeparatedDatabaseConnections;
 use Tests\TestCase;
 
@@ -27,6 +31,12 @@ class CheckInvariantsDatabaseTest extends TestCase
         $this->requireMysqlProof();
         config(['app.env' => 'testing', 'app.debug' => true]);
         $this->seed(RolePermissionSeeder::class);
+
+        // La fraîcheur de sauvegarde est devenue un contrôle effectif avec la story 11.1 :
+        // sans archive récente, l'ensemble est légitimement en écart. Une sauvegarde
+        // feinte replace l'installation dans l'état sain que cette preuve décrit.
+        Storage::fake('backups');
+        Storage::disk('backups')->put('staffptr/derniere-sauvegarde.zip', 'archive');
     }
 
     public function test_ac_11_and_12_healthy_mysql_server_returns_zero(): void
@@ -48,7 +58,10 @@ class CheckInvariantsDatabaseTest extends TestCase
                 app(AuditDeletePrivilegeInvariant::class),
                 app(ExpenseApproverCountInvariant::class),
                 app(ApprovedExpenseHasTwoApprovalsInvariant::class),
+                app(PaidExpenseIntegrityInvariant::class),
                 app(QueuedNotificationFailureInvariant::class),
+                app(FinanceIntegrityInvariant::class),
+                app(BackupFreshnessInvariant::class),
             ] as $invariant) {
                 $result = $invariant->check();
                 $this->assertTrue(
@@ -57,8 +70,10 @@ class CheckInvariantsDatabaseTest extends TestCase
                 );
             }
 
+            // L'ensemble s'est étoffé story après story : la commande annonce désormais le
+            // nombre de contrôles conformes plutôt qu'un total figé.
             $this->artisan('ptr:check-invariants')
-                ->expectsOutputToContain('Les sept invariants sont conformes.')
+                ->expectsOutputToContain('invariant(s) conforme(s).')
                 ->assertExitCode(Command::SUCCESS);
         } finally {
             $connection = DB::connection($this->migrationConnectionName());

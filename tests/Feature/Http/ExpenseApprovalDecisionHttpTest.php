@@ -9,18 +9,18 @@ use App\Models\Identity\User;
 use App\Models\Platform\Attachment;
 use App\Notifications\ExpenseRequestedNotification;
 use App\Services\Finance\ExpenseService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class ExpenseApprovalDecisionHttpTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     public function test_ac_3_direct_named_notification_link_opens_decision_and_marks_notification_read(): void
     {

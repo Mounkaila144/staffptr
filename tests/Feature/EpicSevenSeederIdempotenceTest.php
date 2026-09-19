@@ -16,7 +16,7 @@ use App\Services\Platform\SettingsService;
 use Database\Seeders\InternshipSeeder;
 use Database\Seeders\SettingSeeder;
 use Database\Seeders\WeeklyReviewSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -24,7 +24,7 @@ use Tests\TestCase;
  */
 class EpicSevenSeederIdempotenceTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     public function test_weekly_review_seeder_is_idempotent(): void
     {

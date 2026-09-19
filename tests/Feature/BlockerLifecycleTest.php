@@ -11,16 +11,16 @@ use App\Models\Work\Task;
 use App\Notifications\BlockerNotification;
 use App\Services\Accountability\BlockerService;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class BlockerLifecycleTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     protected function setUp(): void
     {

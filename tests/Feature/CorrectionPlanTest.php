@@ -14,10 +14,10 @@ use App\Services\Finance\CorrectionPlanReminderService;
 use App\Services\Finance\CorrectionPlanService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RolePermissionSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -25,7 +25,7 @@ use Tests\TestCase;
  */
 class CorrectionPlanTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     private CarbonImmutable $month;
 

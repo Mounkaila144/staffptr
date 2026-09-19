@@ -35,6 +35,8 @@ class TutorInternLimitConcurrencyDatabaseTest extends TestCase
 {
     use UsesSeparatedDatabaseConnections;
 
+    private bool $committedProofRan = false;
+
     #[Test]
     public function ac_26_two_simultaneous_assignments_cannot_exceed_the_tutor_limit_under_database_lock(): void
     {
@@ -229,9 +231,22 @@ class TutorInternLimitConcurrencyDatabaseTest extends TestCase
         $this->markTestSkipped('PCNTL est requis pour la preuve de concurrence MySQL AC 26.');
     }
 
+    protected function tearDown(): void
+    {
+        // Les fixtures de cette preuve sont committées et son audit est indélébile :
+        // seule une remise à neuf du schéma rend la base au test suivant.
+        if ($this->committedProofRan) {
+            $this->restoreSchemaAfterCommittedProof();
+        }
+
+        parent::tearDown();
+    }
+
     private function requireMysqlOrMariaDbProof(): void
     {
         if (in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
+            $this->committedProofRan = true;
+
             return;
         }
 
@@ -260,11 +275,24 @@ class TutorInternLimitConcurrencyDatabaseTest extends TestCase
      */
     private function cleanupFixtures(array $internshipIds): void
     {
-        DB::table('audit_logs')
-            ->where('auditable_type', Internship::class)
-            ->whereIn('auditable_id', $internshipIds)
-            ->delete();
-        DB::table('internships')->whereIn('id', $internshipIds)->delete();
+        // Cette preuve s'exécute hors transaction : ses fixtures sont committées et
+        // doivent être retirées explicitement. Le compte applicatif n'a pas `DELETE`
+        // — c'est la matrice de privilèges qui le veut — donc le ménage passe par la
+        // connexion de migration, seule à le détenir.
+        $connection = DB::connection($this->migrationConnectionName());
+
+        // Les entrées d'audit ne sont volontairement pas retirées : elles sont
+        // immuables, aucun `DELETE` ne les atteint — pas même sous le compte de
+        // migration — et lever cette garde irait contre la promesse la plus forte du
+        // schéma. Les traces laissées par cette preuve restent donc en base.
+        if ($connection->getDriverName() === 'sqlite') {
+            $connection->table('audit_logs')
+                ->where('auditable_type', Internship::class)
+                ->whereIn('auditable_id', $internshipIds)
+                ->delete();
+        }
+
+        $connection->table('internships')->whereIn('id', $internshipIds)->delete();
     }
 
     /**

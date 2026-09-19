@@ -11,13 +11,13 @@ use App\Models\Finance\Client;
 use App\Models\Finance\Contract;
 use App\Models\Finance\Invoice;
 use App\Models\Finance\Payment;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use LogicException;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class FinanceCoreModelTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     public function test_task_1_factories_create_the_financial_dependency_chain(): void
     {

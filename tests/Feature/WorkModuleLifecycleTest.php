@@ -24,14 +24,14 @@ use App\Services\Work\TaskService;
 use App\Services\Work\TodayTaskService;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class WorkModuleLifecycleTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     #[Test]
     public function ac_1_2_3_and_6_company_priorities_enforce_five_and_cancel_without_deletion(): void

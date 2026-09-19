@@ -25,7 +25,7 @@ use App\Services\Platform\DirectionDashboardService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SettingSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -37,7 +37,7 @@ use Tests\TestCase;
  */
 class EpicNineDashboardContentTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     private CarbonImmutable $month;
 

@@ -8,14 +8,14 @@ use App\Models\Finance\ExpenseCategory;
 use App\Models\Identity\User;
 use App\Services\Platform\Invariants\ApprovedExpenseHasTwoApprovalsInvariant;
 use App\Services\Platform\Invariants\ExpenseApproverCountInvariant;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class ExpenseApprovalInvariantsTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     #[Test]
     public function ac_10_exactly_two_expense_approver_accounts_are_required(): void

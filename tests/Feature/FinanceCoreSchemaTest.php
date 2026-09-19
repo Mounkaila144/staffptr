@@ -5,14 +5,14 @@ namespace Tests\Feature;
 use App\Models\Finance\Account;
 use App\Models\Finance\AccountMovement;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class FinanceCoreSchemaTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     public function test_ac_1_task_1_finance_tables_and_required_columns_exist(): void
     {

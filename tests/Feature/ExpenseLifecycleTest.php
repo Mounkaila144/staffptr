@@ -8,15 +8,15 @@ use App\Models\Finance\ExpenseCategory;
 use App\Models\Identity\User;
 use App\Notifications\ExpenseRequestedNotification;
 use App\Services\Finance\ExpenseService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class ExpenseLifecycleTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     private User $user;
 

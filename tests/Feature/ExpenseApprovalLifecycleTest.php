@@ -13,16 +13,16 @@ use App\Services\Identity\ExpenseApprovalReadiness;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class ExpenseApprovalLifecycleTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     private ExpenseApprovalService $service;
 

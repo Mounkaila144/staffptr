@@ -24,8 +24,8 @@ use App\Models\Accountability\WeeklyReviewObjective;
 use App\Models\Identity\User;
 use App\Models\Work\Objective;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use LogicException;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -34,7 +34,7 @@ use Tests\TestCase;
  */
 class InternshipAndReviewSchemaTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     public function test_a_person_has_at_most_one_review_per_week(): void
     {

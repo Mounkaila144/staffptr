@@ -8,16 +8,16 @@ use App\Models\Finance\ExpenseCategory;
 use App\Models\Identity\User;
 use App\Services\Finance\ExpenseApprovalService;
 use App\Services\Identity\ExpenseApprovalReadiness;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class ExpenseApprovalHttpTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     private User $firstDirection;
 

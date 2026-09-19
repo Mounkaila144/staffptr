@@ -9,17 +9,17 @@ use App\Models\Work\Project;
 use App\Models\Work\Task;
 use Database\Seeders\SettingSeeder;
 use Illuminate\Database\Events\QueryExecuted;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class WorkHttpTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     protected function setUp(): void
     {

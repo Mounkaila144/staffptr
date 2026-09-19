@@ -22,9 +22,9 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\ExpenseCategorySeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SettingSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -36,7 +36,7 @@ use Tests\TestCase;
  */
 class AlertLevelEffectsTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     private CarbonImmutable $month;
 

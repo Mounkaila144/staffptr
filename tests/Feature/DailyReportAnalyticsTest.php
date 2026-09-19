@@ -10,12 +10,12 @@ use App\Models\Identity\User;
 use App\Services\Accountability\DailyReportAnalyticsService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\SettingSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class DailyReportAnalyticsTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     protected function setUp(): void
     {

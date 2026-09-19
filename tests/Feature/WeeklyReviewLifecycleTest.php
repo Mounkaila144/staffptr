@@ -12,8 +12,8 @@ use App\Models\Work\Objective;
 use App\Models\Work\Task;
 use App\Services\Accountability\WeeklyReviewService;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -21,7 +21,7 @@ use Tests\TestCase;
  */
 class WeeklyReviewLifecycleTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     /** Lundi et vendredi de la semaine de référence, en dates civiles de Niamey. */
     private const WEEK_START = '2026-08-10';

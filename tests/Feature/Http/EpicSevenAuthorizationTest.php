@@ -13,8 +13,8 @@ use App\Services\Accountability\ImprovementPlanService;
 use App\Services\Accountability\WeeklyReviewService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\SettingSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -27,7 +27,7 @@ use Tests\TestCase;
  */
 class EpicSevenAuthorizationTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     /** Routes protégées introduites par la story 7.1. */
     private const EPIC_SEVEN_ROUTES = [

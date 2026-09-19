@@ -7,14 +7,14 @@ use App\Models\Accountability\DailyReport;
 use App\Models\Identity\User;
 use App\Notifications\GenericLinkedNotification;
 use App\Services\Accountability\TaskRequestService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Queue;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class TaskRequestLifecycleTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     protected function setUp(): void
     {

@@ -19,9 +19,9 @@ use App\Support\Auditing\AuditLogger;
 use Carbon\CarbonImmutable;
 use Database\Seeders\SettingSeeder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use RuntimeException;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -29,7 +29,7 @@ use Tests\TestCase;
  */
 class EpicSevenWriteDisciplineTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     /** Contrôleurs livrés par la story 7.1. */
     private const CONTROLLERS = [

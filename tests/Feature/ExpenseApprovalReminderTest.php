@@ -12,17 +12,17 @@ use App\Notifications\ExpenseApprovalReminderNotification;
 use App\Services\Finance\ExpenseApprovalReminderService;
 use App\Services\Platform\WhatsAppChannel;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class ExpenseApprovalReminderTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     private User $firstDirection;
 

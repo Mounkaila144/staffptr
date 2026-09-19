@@ -9,11 +9,11 @@ use App\Models\Identity\User;
 use App\Models\Platform\Attachment;
 use App\Services\Platform\AnonymizationService;
 use App\Services\Platform\EvolutionApiClient;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -21,7 +21,7 @@ use Tests\TestCase;
  */
 class AnonymizationTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     /**
      * AC 34 — **le test le plus important de ce fichier** : la commande refuse de s'exécuter en

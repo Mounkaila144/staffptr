@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Services\Platform\BackupStatus;
 use App\Services\Platform\Invariants\BackupFreshnessInvariant;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumAgeInDays;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -18,7 +18,7 @@ use Tests\TestCase;
  */
 class BackupConfigurationTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     /** AC 2 — l'archive contient les pièces jointes privées, pas le code source. */
     public function test_ac_2_the_archive_includes_private_attachments_only(): void

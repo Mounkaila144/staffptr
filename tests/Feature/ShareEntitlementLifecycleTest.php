@@ -45,9 +45,9 @@ class ShareEntitlementLifecycleTest extends IdentityTestCase
 
         $this->assertSame([50_000, 300_000, 150_000], $firstAmounts);
         $this->assertSame($firstAmounts, $secondAmounts);
-        $this->assertSame(1_000_000, ShareEntitlement::query()->sum('share_amount'));
-        $this->assertSame(100_000, ShareEntitlement::query()->where('beneficiary_id', $contributor->getKey())->sum('share_amount'));
-        $this->assertSame(300_000, ShareEntitlement::query()->where('beneficiary_id', $executor->getKey())->sum('share_amount'));
+        $this->assertSame(1_000_000, (int) ShareEntitlement::query()->sum('share_amount'));
+        $this->assertSame(100_000, (int) ShareEntitlement::query()->where('beneficiary_id', $contributor->getKey())->sum('share_amount'));
+        $this->assertSame(300_000, (int) ShareEntitlement::query()->where('beneficiary_id', $executor->getKey())->sum('share_amount'));
     }
 
     public function test_ac_46_abandoned_half_paid_contract_has_only_half_of_all_rights(): void
@@ -55,7 +55,7 @@ class ShareEntitlementLifecycleTest extends IdentityTestCase
         [$actor, $client, $contract, $invoice, $account] = $this->context();
         app(PaymentService::class)->record($this->payload($client, $contract, $invoice, $account, 500_000), $actor);
 
-        $this->assertSame(500_000, ShareEntitlement::query()->sum('share_amount'));
+        $this->assertSame(500_000, (int) ShareEntitlement::query()->sum('share_amount'));
         $this->assertSame(500_000, $invoice->refresh()->outstandingAmount());
     }
 

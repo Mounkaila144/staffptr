@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Services\Platform\RestoreLog;
 use App\Services\Platform\RestoreTestService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -20,7 +20,7 @@ use ZipArchive;
  */
 class RestoreTestCommandTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     protected function setUp(): void
     {

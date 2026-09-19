@@ -11,13 +11,13 @@ use App\Models\Accountability\DailyReportVersion;
 use App\Models\Identity\User;
 use App\Models\Work\Task;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use LogicException;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class AccountabilityModelTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     public function test_one_report_identity_exists_per_author_and_civil_date(): void
     {

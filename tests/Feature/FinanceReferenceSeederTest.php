@@ -7,12 +7,12 @@ use App\Models\Finance\Account;
 use App\Models\Finance\FixedCharge;
 use Database\Seeders\FinancialAccountSeeder;
 use Database\Seeders\FixedChargeSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 class FinanceReferenceSeederTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     public function test_ac_7_and_dec_09_seeders_are_exact_and_idempotent(): void
     {

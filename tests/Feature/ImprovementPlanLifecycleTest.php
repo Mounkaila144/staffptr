@@ -14,9 +14,9 @@ use App\Models\Work\Objective;
 use App\Services\Accountability\ImprovementPlanService;
 use App\Services\Accountability\WeeklyReviewService;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 
 /**
@@ -24,7 +24,7 @@ use Tests\TestCase;
  */
 class ImprovementPlanLifecycleTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     private const WEEK_START = '2026-08-10';
 

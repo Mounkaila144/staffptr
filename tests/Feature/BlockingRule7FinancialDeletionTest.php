@@ -7,10 +7,10 @@ use App\Models\Finance\Expense;
 use App\Models\Finance\Invoice;
 use App\Models\Finance\Payment;
 use App\Models\Identity\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use LogicException;
+use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
 use Throwable;
 
@@ -26,7 +26,7 @@ use Throwable;
  */
 class BlockingRule7FinancialDeletionTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshesSeparatedDatabase;
 
     /** Niveau 1 — le modèle refuse `delete()` sur chaque objet financier. */
     public function test_blocking_rule_7_no_financial_model_can_be_deleted_through_eloquent(): void
