@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import { usePermissions } from '../Composables/usePermissions';
 
 const props = defineProps({
@@ -22,7 +22,20 @@ function closeMore(event) {
     }
 }
 
+// La déconnexion est un POST — la route `logout` n'accepte rien d'autre, et c'est
+// volontaire : une adresse qu'un préchargement de navigateur peut visiter ne doit pas
+// pouvoir fermer une session. Elle ne peut donc pas être un lien, et se distingue ici.
+const LOGOUT_LABEL = 'Déconnexion';
+
+function logout() {
+    moreOpen.value = false;
+    router.post('/deconnexion');
+}
+
 function moreHref(item) {
+    if (item === 'Mon rapport du jour') return '/rapports/quotidiens/aujourdhui';
+    if (item === 'Mes blocages') return '/blocages';
+    if (item === 'Mes demandes' || item === 'Mes demandes de dépense') return '/depenses';
     if (item === 'Objectifs' || item === 'Mes objectifs') return '/objectifs';
     if (item === 'Tâches' || item === 'Mes tâches') return '/taches';
     if (item === 'Projets') return '/projets';
@@ -88,7 +101,10 @@ function moreHref(item) {
                 </li>
             </ul>
             <ul v-if="moreOpen" id="more-navigation" class="mt-2 max-h-[45vh] overflow-y-auto border-t border-separator pt-2">
-                <li v-for="item in moreNavigation" :key="item"><a :href="moreHref(item)" class="touch-target flex items-center rounded-lg px-3 text-sm text-ink-secondary">{{ item }}</a></li>
+                <li v-for="item in moreNavigation" :key="item">
+                    <button v-if="item === LOGOUT_LABEL" type="button" class="touch-target flex w-full items-center rounded-lg px-3 text-left text-sm text-ink-secondary" @click="logout">{{ item }}</button>
+                    <a v-else :href="moreHref(item)" class="touch-target flex items-center rounded-lg px-3 text-sm text-ink-secondary">{{ item }}</a>
+                </li>
             </ul>
         </nav>
 
@@ -111,7 +127,12 @@ function moreHref(item) {
             </ul>
             <div v-if="moreOpen" id="mobile-more-navigation" class="absolute inset-x-0 bottom-14 max-h-[60vh] overflow-y-auto border-t border-separator bg-surface p-3 shadow-xl">
                 <p class="mb-2 font-semibold">Plus</p>
-                <ul class="grid gap-2"><li v-for="item in moreNavigation" :key="item"><a :href="moreHref(item)" class="touch-target flex items-center rounded-lg px-3 text-ink-secondary">{{ item }}</a></li></ul>
+                <ul class="grid gap-2">
+                    <li v-for="item in moreNavigation" :key="item">
+                        <button v-if="item === LOGOUT_LABEL" type="button" class="touch-target flex w-full items-center rounded-lg px-3 text-left text-ink-secondary" @click="logout">{{ item }}</button>
+                        <a v-else :href="moreHref(item)" class="touch-target flex items-center rounded-lg px-3 text-ink-secondary">{{ item }}</a>
+                    </li>
+                </ul>
             </div>
         </nav>
     </div>
