@@ -156,8 +156,18 @@ if [ "${POST_DEPLOY_OK}" -eq 0 ]; then
 fi
 
 # ── 10. Rotation ──────────────────────────────────────────────────────────────────────────────
+#
+# À ce stade le déploiement est fait et vérifié : `current` sert la nouvelle release, la porte
+# post-déploiement est passée. Le ménage qui suit n'est que du confort de disque, et son échec
+# — un fichier qu'une intervention manuelle a laissé à un autre propriétaire, par exemple — ne
+# doit ni annuler ce qui fonctionne, ni empêcher la mise en production qui en dépend. On le
+# signale donc au lieu d'échouer, sous `set -e` qui ferait autrement tomber tout le script.
 log "Rotation des releases (${KEEP_RELEASES} conservées)"
 cd "${RELEASES_DIR}"
-ls -1dt */ 2>/dev/null | tail -n "+$((KEEP_RELEASES + 1))" | xargs -r rm -rf
+
+if ! ls -1dt */ 2>/dev/null | tail -n "+$((KEEP_RELEASES + 1))" | xargs -r rm -rf; then
+  echo "⚠ Rotation incomplète : d'anciennes releases n'ont pas pu être supprimées." >&2
+  echo "  Le déploiement reste valide. Vérifiez les propriétaires dans ${RELEASES_DIR}." >&2
+fi
 
 log "Déploiement ${RELEASE_NAME} terminé."
