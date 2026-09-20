@@ -23,11 +23,26 @@ use Tests\Support\IdentityTestCase;
 
 class UserHistoryTest extends IdentityTestCase
 {
+    private bool $committedProofRan = false;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->seedRbac();
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->committedProofRan) {
+            // La transaction du test est refermée d'abord : le `migrate:fresh` qui suit
+            // réclame un verrou de métadonnées exclusif, qu'une transaction encore ouverte
+            // sur la connexion applicative ferait attendre indéfiniment.
+            DB::connection()->rollBack();
+            $this->restoreSchemaAfterCommittedProof();
+        }
+
+        parent::tearDown();
     }
 
     public function test_ac_1_and_3_four_business_changes_create_readable_history_and_distinct_audit_entries(): void
@@ -204,12 +219,31 @@ class UserHistoryTest extends IdentityTestCase
     {
         $this->requireMysqlProof();
 
-        $entry = UserHistory::factory()->create(['old_value' => 'Déclencheur original']);
         $connection = DB::connection($this->migrationConnectionName());
+
+        // La ligne visée doit être committée. Créée par la connexion applicative, elle
+        // resterait enfermée dans la transaction du test : le compte privilégié, qui n'y
+        // participe pas, attendrait un verrou (1205) au lieu de se heurter au déclencheur
+        // (1644), et la preuve passerait à côté de son sujet. Ses parents doivent l'être
+        // aussi, sinon la contrainte de clé étrangère attend à son tour.
+        $this->committedProofRan = true;
+        $personId = $connection->table('people')->insertGetId(
+            Person::factory()->make()->getAttributes()
+        );
+        $userId = $connection->table('users')->insertGetId(
+            User::factory()->make(['person_id' => $personId])->getAttributes()
+        );
+        $entryId = $connection->table('user_history')->insertGetId(
+            UserHistory::factory()->make([
+                'user_id' => $userId,
+                'changed_by' => $userId,
+                'old_value' => 'Déclencheur original',
+            ])->getAttributes()
+        );
 
         foreach (['UPDATE', 'DELETE'] as $operation) {
             try {
-                $query = $connection->table('user_history')->where('id', $entry->getKey());
+                $query = $connection->table('user_history')->where('id', $entryId);
                 $operation === 'UPDATE'
                     ? $query->update(['old_value' => 'Altéré'])
                     : $query->delete();
@@ -218,10 +252,9 @@ class UserHistoryTest extends IdentityTestCase
                 $this->assertSame(1644, $exception->errorInfo[1] ?? null);
             }
 
-            $this->assertDatabaseHas('user_history', [
-                'id' => $entry->getKey(),
-                'old_value' => 'Déclencheur original',
-            ]);
+            $this->assertSame('Déclencheur original', $connection->table('user_history')
+                ->where('id', $entryId)
+                ->value('old_value'));
         }
     }
 
