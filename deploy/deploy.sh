@@ -65,8 +65,24 @@ ln -sf "${SHARED_DIR}/.env" "${RELEASE_DIR}/.env"
 # Les migrations tournent avec l'utilisateur **privilégié**, distinct de l'utilisateur applicatif
 # qui n'a pas le droit de modifier le schéma. Les identifiants ne sont injectés que le temps de
 # cette commande, jamais écrits dans un fichier de la release.
-log "migrate --force (utilisateur privilégié)"
-php artisan migrate --force --no-interaction
+#
+# La connexion est nommée explicitement : sans `--database`, Laravel migrerait sur la connexion
+# par défaut, celle du compte applicatif, qui n'a ni DDL ni `GRANT OPTION`. Les migrations qui
+# accordent `UPDATE` table par table — la matrice de `docs/ops/database-users.md` — échoueraient
+# alors, et le déploiement serait annulé juste après.
+MIGRATION_CONNECTION="${MIGRATION_CONNECTION:-mysql_migration}"
+
+# Vérification préalable : mieux vaut un message lisible ici qu'une trace PDO au milieu des
+# migrations, une fois la release à moitié appliquée.
+if ! php artisan db:show --database="${MIGRATION_CONNECTION}" >/dev/null 2>&1; then
+  echo "La connexion « ${MIGRATION_CONNECTION} » est injoignable." >&2
+  echo "Renseignez DB_MIGRATION_USERNAME et DB_MIGRATION_PASSWORD dans le .env partagé," >&2
+  echo "avec un compte détenant ALL PRIVILEGES ... WITH GRANT OPTION sur ce schéma." >&2
+  exit 1
+fi
+
+log "migrate --force (connexion ${MIGRATION_CONNECTION})"
+php artisan migrate --database="${MIGRATION_CONNECTION}" --force --no-interaction
 
 # ── 6. Caches ─────────────────────────────────────────────────────────────────────────────────
 #

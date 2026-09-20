@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { emulateDegradedConnection } from './support/network.js';
+import { expectNoHorizontalOverflow } from './support/layout.js';
 
 async function login(page, phone, password) {
     await page.goto('/connexion');
@@ -34,7 +35,7 @@ test('Story 6.1 AC 2 à 10 — le rapport est restauré après une coupure sous 
 
     const firstContentfulPaint = await page.evaluate(() => performance.getEntriesByName('first-contentful-paint')[0]?.startTime ?? 0);
     expect(firstContentfulPaint).toBeLessThan(3_000);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expectNoHorizontalOverflow(page);
     for (const target of await page.locator('.touch-target:visible').all()) {
         const box = await target.boundingBox();
         expect(box?.width).toBeGreaterThanOrEqual(44);
@@ -60,6 +61,6 @@ test('Story 6.1 AC 20 à 26 — la notification ouvre la validation en deux inte
     await expect(page.getByText('Rapport validé.')).toBeVisible();
 
     expect(interactions).toBeLessThanOrEqual(3);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expectNoHorizontalOverflow(page);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });

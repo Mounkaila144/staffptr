@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { emulateDegradedConnection } from './support/network.js';
+import { expectNoHorizontalOverflow } from './support/layout.js';
 
 test('Story 5.1 AC 43 à 49 — le travail personnel reste priorisé et lisible sous 3G à 320 px', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 });
@@ -20,7 +21,7 @@ test('Story 5.1 AC 43 à 49 — le travail personnel reste priorisé et lisible 
 
     const firstContentfulPaint = await page.evaluate(() => performance.getEntriesByName('first-contentful-paint')[0]?.startTime);
     expect(firstContentfulPaint).toBeLessThan(3_000);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expectNoHorizontalOverflow(page);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
 
@@ -36,5 +37,5 @@ test('Story 5.1 AC 7, 20 et 26 — la preuve attendue et les trois vues restent 
     await expect(page.getByLabel(/Preuve attendue/)).toBeVisible();
     await expect(page.getByRole('link', { name: 'Calendrier' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Synthèse mensuelle' })).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expectNoHorizontalOverflow(page);
 });

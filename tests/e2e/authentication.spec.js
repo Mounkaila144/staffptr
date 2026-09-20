@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { emulateDegradedConnection } from './support/network.js';
+import { expectNoHorizontalOverflow } from './support/layout.js';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -12,7 +13,7 @@ test('AC 4 et 7 — connexion puis changement de mot de passe imposé à 320 px'
     await expect(page.getByRole('heading', { name: 'Connexion' })).toBeVisible();
     const firstContentfulPaint = await page.evaluate(() => performance.getEntriesByName('first-contentful-paint')[0]?.startTime);
     expect(firstContentfulPaint).toBeLessThan(3_000);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expectNoHorizontalOverflow(page);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.waitForFunction(() => document.querySelector('#app')?.hasAttribute('data-v-app'));
 
@@ -28,7 +29,7 @@ test('AC 4 et 7 — connexion puis changement de mot de passe imposé à 320 px'
 
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByRole('heading', { name: 'Bienvenue dans PTR Staff' })).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expectNoHorizontalOverflow(page);
 });
 
 test('AC 5 — une erreur de connexion reste sous le numéro et reçoit le focus', async ({ page }) => {

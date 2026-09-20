@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { emulateDegradedConnection } from './support/network.js';
+import { expectNoHorizontalOverflow } from './support/layout.js';
 
 test('AC 72, 95 et 97 — encaissement vers parts et réserve au franc près sous 3G à 320 px', async ({ page }) => {
     test.setTimeout(90_000);
@@ -29,6 +30,6 @@ test('AC 72, 95 et 97 — encaissement vers parts et réserve au franc près sou
     await page.goto('/finances/reserve');
     await expect(page.getByText('200 000 FCFA').first()).toBeVisible();
 
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expectNoHorizontalOverflow(page);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });

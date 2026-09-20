@@ -96,7 +96,9 @@ jobs:
         with:
           php-version: '8.3'
           coverage: none
-          extensions: pdo_mysql
+          # `imagick` porte la conversion des pièces jointes HEIC : sans elle, la vérification
+          # de format refuse l'envoi et le contrat d'Epic 3 ne peut pas être éprouvé.
+          extensions: pdo_mysql, imagick
       - uses: actions/cache@v5
         with:
           path: ~/.cache/composer/files
@@ -146,6 +148,17 @@ jobs:
           FLUSH PRIVILEGES;"
       - name: Afficher le moteur applicatif restreint
         run: php artisan db:show --database=mysql
+
+      # La porte qualité MVP mesure le poids réel des bundles : elle lit
+      # `public/build/manifest.json` et refuse de conclure sur une estimation. Sans construction
+      # ici, elle échoue non pas parce que le budget est dépassé, mais faute de quoi mesurer.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
       - run: php artisan test
 
   frontend:

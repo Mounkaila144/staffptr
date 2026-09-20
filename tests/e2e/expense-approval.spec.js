@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { emulateDegradedConnection } from './support/network.js';
+import { expectNoHorizontalOverflow } from './support/layout.js';
 
 test('AC 3 et 7 — de la notification à la confirmation en trois interactions sous 3G à 320 px', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 });
@@ -37,7 +38,7 @@ test('AC 3 et 7 — de la notification à la confirmation en trois interactions 
     await expect(page.getByText('Votre approbation a été enregistrée.')).toBeVisible();
 
     expect(interactions).toBeLessThanOrEqual(3);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expectNoHorizontalOverflow(page);
     for (const target of await page.locator('.touch-target:visible').all()) {
         const box = await target.boundingBox();
         expect(box?.width).toBeGreaterThanOrEqual(44);

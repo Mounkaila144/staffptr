@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import { expectNoHorizontalOverflow } from './support/layout.js';
 
 const forbiddenVocabulary = /\b(Supprimer|Pointage|Présence|Performance|Score|Classement|Note|Sanction|Défaillant|Soumettre)\b|Erreur 403/i;
 
@@ -36,7 +37,7 @@ test('AC 1, 2, 3, 4 et 10 — la démonstration expose tous les états', async (
     await expect(page.getByText('Chargement en cours. La connexion semble lente.')).toBeVisible();
     await expect(page.getByText('Cent vingt-cinq mille francs CFA')).toBeVisible();
     expect(await page.locator('body').innerText()).not.toMatch(forbiddenVocabulary);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expectNoHorizontalOverflow(page);
     expect(observed.browserErrors).toEqual([]);
     expect(observed.externalRequests).toEqual([]);
 });
@@ -103,13 +104,13 @@ test('AC 7 — 320 px, clavier, cibles tactiles, niveaux de gris et axe', async 
     for (const status of await page.locator('[data-status]').all()) {
         await expect(status).not.toBeEmpty();
     }
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expectNoHorizontalOverflow(page);
 
     await page.setViewportSize({ width: 640, height: 700 });
     const session = await page.context().newCDPSession(page);
     await session.send('Emulation.setPageScaleFactor', { pageScaleFactor: 2 });
     await expect(page.getByRole('heading', { name: 'États transverses', level: 1 })).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expectNoHorizontalOverflow(page);
 });
 
 for (const errorPage of [
@@ -132,7 +133,7 @@ for (const errorPage of [
         await expect(page.getByRole('heading', { name: errorPage.heading })).toBeVisible();
         expect(await page.locator('body').innerText()).not.toContain(String(errorPage.status));
         expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-        expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+        await expectNoHorizontalOverflow(page);
         expect(browserErrors).toEqual([]);
     });
 }

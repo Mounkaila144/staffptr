@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import { expectNoHorizontalOverflow } from './support/layout.js';
 
 test('AC 4 et 5 — la direction consulte connexions et sessions à 320 px', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 });
@@ -18,7 +19,7 @@ test('AC 4 et 5 — la direction consulte connexions et sessions à 320 px', asy
     await expect(page.getByRole('heading', { name: 'Sessions ouvertes' })).toBeVisible();
     await expect(page.getByLabel('Personne')).toBeVisible();
     await expect(page.getByText('Réussie').first()).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expectNoHorizontalOverflow(page);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
 
@@ -51,6 +52,6 @@ test('Story 2.10 AC 1, 4 et 5 — la direction filtre et exporte le journal à 3
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/^journal-audit-\d{8}-\d{6}\.csv$/);
 
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expectNoHorizontalOverflow(page);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
