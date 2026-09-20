@@ -8,6 +8,7 @@ use App\Models\Platform\Attachment;
 use App\Services\Identity\RoleAssignmentService;
 use App\Services\Platform\AttachmentService;
 use App\Services\Platform\PrivateImageProcessor;
+use finfo;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -103,12 +104,27 @@ class PrivateAttachmentProcessingTest extends IdentityTestCase
             $this->markTestSkipped('Imagick avec libheif est requis pour la preuve HEIC.');
         }
 
-        Queue::fake();
-        $direction = $this->direction();
         $imagick = new Imagick;
         $imagick->newImage(20, 20, 'white');
         $imagick->setImageFormat('heic');
-        $heic = UploadedFile::fake()->createWithContent('photo.heic', $imagick->getImagesBlob());
+        $blob = $imagick->getImagesBlob();
+
+        // La requête tranche le type avec `finfo`, donc libmagic. Écrire du HEIC ne suffit pas :
+        // encore faut-il que la plateforme le reconnaisse comme tel, ce qui dépend de la version
+        // de libmagic installée. Sans cet accord, le test n'éprouverait plus la conversion mais
+        // la base de signatures du système — un échec qui ne dirait rien de l'application.
+        $probe = tempnam(sys_get_temp_dir(), 'heic');
+        file_put_contents($probe, $blob);
+        $detected = (new finfo(FILEINFO_MIME_TYPE))->file($probe);
+        unlink($probe);
+
+        if (! in_array($detected, ['image/heic', 'image/heif'], true)) {
+            $this->markTestSkipped("libmagic ne reconnaît pas ce HEIC (type détecté : {$detected}).");
+        }
+
+        Queue::fake();
+        $direction = $this->direction();
+        $heic = UploadedFile::fake()->createWithContent('photo.heic', $blob);
 
         $this->actingAs($direction)
             ->postJson(route('attachments.store'), [
