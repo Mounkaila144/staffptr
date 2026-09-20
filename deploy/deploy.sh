@@ -34,8 +34,24 @@ log "Préparation de la release ${RELEASE_NAME}"
 mkdir -p "${RELEASES_DIR}" "${SHARED_DIR}/storage" "${SHARED_DIR}/ops"
 
 # ── 1. Code ───────────────────────────────────────────────────────────────────────────────────
+#
+# `git clone --branch` n'accepte qu'une branche ou une étiquette. Or le workflow passe
+# `github.sha`, et c'est ce qu'il faut vouloir : déployer une branche, c'est déployer ce
+# qu'elle contient au moment du clone, donc pas nécessairement le commit qui a été validé par
+# l'intégration continue. Un `fetch` explicite accepte les deux formes et fige la release sur
+# la référence demandée.
 log "Récupération du code (${GIT_REF})"
-git clone --depth 1 --branch "${GIT_REF}" "${REPOSITORY}" "${RELEASE_DIR}"
+mkdir -p "${RELEASE_DIR}"
+git init -q "${RELEASE_DIR}"
+git -C "${RELEASE_DIR}" remote add origin "${REPOSITORY}"
+
+if ! git -C "${RELEASE_DIR}" fetch --depth 1 origin "${GIT_REF}"; then
+  echo "✗ Référence « ${GIT_REF} » introuvable dans ${REPOSITORY}." >&2
+  rm -rf "${RELEASE_DIR}"
+  exit 1
+fi
+
+git -C "${RELEASE_DIR}" checkout -q --detach FETCH_HEAD
 rm -rf "${RELEASE_DIR}/.git"
 
 # ── 2. Dépendances PHP ────────────────────────────────────────────────────────────────────────
