@@ -7,6 +7,7 @@ use App\Models\Finance\Expense;
 use App\Models\Finance\ExpenseApproval;
 use App\Models\Finance\ExpenseCategory;
 use App\Models\Identity\User;
+use App\Services\Finance\AlertLevelExpenseNotice;
 use App\Services\Finance\ExpenseApprovalService;
 use App\Services\Identity\ExpenseApprovalReadiness;
 use App\Support\Auditing\AuditContext;
@@ -240,7 +241,14 @@ class ExpenseApprovalConcurrencyDatabaseTest extends TestCase
                     $lockAcquiredPath,
                     $contenderStartedPath,
                 );
-                $service = new ExpenseApprovalService($logger, app(ExpenseApprovalReadiness::class));
+                // Seul le journal est substitué, pour tenir le verrou : les autres dépendances
+                // viennent du conteneur, afin que l'ajout d'une collaboratrice au service ne
+                // laisse plus ce processus fils échouer sur un ArgumentCountError.
+                $service = new ExpenseApprovalService(
+                    $logger,
+                    app(ExpenseApprovalReadiness::class),
+                    app(AlertLevelExpenseNotice::class),
+                );
                 $service->approve($expense, $approver);
             } else {
                 $this->waitForFile($lockAcquiredPath);
