@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Accountability\ActivateInternRequest;
 use App\Http\Requests\Accountability\DecideInternshipIntakeRequest;
 use App\Http\Requests\Accountability\StoreInternshipIntakeRequest;
+use App\Models\Accountability\Internship;
 use App\Models\Accountability\InternshipIntakeForm;
 use App\Models\Identity\User;
 use App\Services\Accountability\InternshipIntakeService;
@@ -51,6 +52,9 @@ class InternshipIntakeController extends Controller
             'permissions' => [
                 'submit' => $actor->can('submit', $internshipIntakeForm),
                 'decide' => $actor->can('decide', $internshipIntakeForm),
+                // Sans cette permission, l'écran énonçait les conditions d'activation sans
+                // jamais offrir de quoi activer : le compte restait « invité » indéfiniment.
+                'activate' => $actor->can('activate', Internship::class),
             ],
             'success' => fn (): ?string => $request->session()->get('success'),
         ]);

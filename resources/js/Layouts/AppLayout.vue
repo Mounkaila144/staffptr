@@ -48,7 +48,9 @@ function moreHref(item) {
     if (item === 'Comptes et rôles') return '/comptes';
     if (item === 'Paramètres') return '/parametres';
     if (item === 'Calendrier') return '/calendrier';
-    if (item === 'Mes stagiaires' || item === 'Mon stage') return '/stages';
+    if (item === 'Mes stagiaires' || item === 'Mon stage' || item === 'Stages') return '/stages';
+    if (item === "Fiches d'entrée") return '/stages/fiches-entree';
+    if (item === 'Capacité des tuteurs') return '/tuteurs/charge';
     if (item === 'Créneaux de suivi') return '/creneaux-suivi';
     if (item === 'Revues hebdomadaires' || item === 'Ma revue') return '/revues-hebdomadaires';
     if (item === "Journal d'audit") return '/journal-audit';

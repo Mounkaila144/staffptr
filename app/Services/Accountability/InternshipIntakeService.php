@@ -190,6 +190,8 @@ final class InternshipIntakeService
         return [
             'id' => $form->getKey(),
             'candidate' => $this->labelFor($form->candidate),
+            // L'activation vise le compte, pas la fiche : l'écran a besoin de son identifiant.
+            'candidate_id' => $form->candidate_user_id,
             'manager' => $this->labelFor($form->manager),
             'tutor' => $form->tutor instanceof User ? $this->labelFor($form->tutor) : null,
             'real_need' => $form->real_need,

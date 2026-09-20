@@ -174,3 +174,15 @@ test('AC 8 — useDraft exclut les pièces jointes et données financières vali
         nested: { note: 'reste local' },
     });
 });
+
+test('La direction dispose d’un chemin vers chaque écran du parcours de stage', () => {
+    // La direction détient `stagiaire.consulter` et `stagiaire.gerer`, et c’est elle seule que
+    // la politique autorise à activer un stagiaire. Sans entrée de menu, un compte créé restait
+    // « invité » sans que rien n’indique où remplir la fiche d’entrée ni désigner le tuteur :
+    // les droits existaient, le chemin non.
+    const menu = usePermissions(ref(['role:direction'])).moreNavigation.value;
+
+    for (const entree of ["Fiches d'entrée", 'Stages', 'Capacité des tuteurs']) {
+        assert.ok(menu.includes(entree), `La direction doit pouvoir atteindre « ${entree} ».`);
+    }
+});

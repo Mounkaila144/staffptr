@@ -12,6 +12,13 @@ const props = defineProps({
 
 const submitForm = useForm({});
 const decisionForm = useForm({ approved: true, decision_reason: '' });
+const activationForm = useForm({});
+
+// L'activation ne transporte aucune donnée : les conditions sont relues de l'état du système,
+// jamais envoyées par le formulaire. L'écran ne fait qu'ouvrir la porte quand elles sont réunies.
+function activateIntern() {
+    activationForm.post(`/stages/stagiaires/${props.form.candidate_id}/activer`, { preserveScroll: true });
+}
 
 function submitIntake() {
     submitForm.patch(`/stages/fiches-entree/${props.form.id}/soumettre`, { preserveScroll: true });
@@ -80,7 +87,14 @@ function decide(approved) {
                 <p v-if="!readiness.satisfied" class="text-ink-secondary">
                     Activation impossible pour l’instant : {{ readiness.missing.join(', ') }}.
                 </p>
-                <p v-else class="text-ink-secondary">Les trois conditions sont réunies.</p>
+                <template v-else>
+                    <p class="text-ink-secondary">Les conditions sont réunies.</p>
+                    <form v-if="permissions.activate" @submit.prevent="activateIntern">
+                        <AppButton type="submit" :disabled="activationForm.processing">
+                            Activer le compte du stagiaire
+                        </AppButton>
+                    </form>
+                </template>
             </section>
 
             <section v-if="form.decided_at" class="grid min-w-0 gap-1 rounded-xl border border-separator bg-surface p-4">

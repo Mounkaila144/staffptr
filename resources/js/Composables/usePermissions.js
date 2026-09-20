@@ -38,7 +38,10 @@ const navigationByRole = {
             ['Équipe', 'team', '♙', 'compte.consulter'],
             ['Argent', 'finance', '¤', 'finance.ecriture.consulter'],
         ],
-        more: ['Tableau de bord direction', 'Mon rapport du jour', 'Mes objectifs', 'Tâches', 'Projets', 'Livrables', 'Absences', 'Organisation', 'Comptes et rôles', 'Paramètres', 'Calendrier', "Journal d'audit", 'Connexions', 'Réserve', 'Rapport mensuel', 'Plans correctifs', 'Recherche', 'Listes et exports', 'Documents', 'Profil', 'Déconnexion'],
+        // La direction détient `stagiaire.consulter` et `stagiaire.gerer`, mais aucune entrée ne
+        // menait au parcours de stage : un compte de stagiaire restait « invité » sans que rien
+        // n'indique où remplir la fiche d'entrée, désigner le tuteur, puis activer le compte.
+        more: ['Tableau de bord direction', 'Mon rapport du jour', 'Mes objectifs', 'Tâches', 'Projets', 'Livrables', 'Absences', "Fiches d'entrée", 'Stages', 'Capacité des tuteurs', 'Organisation', 'Comptes et rôles', 'Paramètres', 'Calendrier', "Journal d'audit", 'Connexions', 'Réserve', 'Rapport mensuel', 'Plans correctifs', 'Recherche', 'Listes et exports', 'Documents', 'Profil', 'Déconnexion'],
     },
     finance: {
         primary: [
