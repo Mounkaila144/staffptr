@@ -117,7 +117,7 @@ php artisan down --render="errors::503" --retry=60
 - [ ] **Le retour arrière a réussi en conditions réelles**, pas seulement dans ce document (AC 58).
 - [ ] Une restauration complète chronométrée valide le RTO de 4 h (AC 49).
 - [ ] `ptr:check-invariants` est vert en préproduction puis en production (AC 50).
-- [ ] La décision est datée et consignée dans `docs/ops/go-live-decisions.md` (AC 53).
+- [ ] La décision est datée et consignée dans [`go-live-decisions.md`](go-live-decisions.md) (AC 53).
 
 ## 7. Contact d'astreinte
 
