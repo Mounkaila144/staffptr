@@ -233,7 +233,23 @@ class InternshipIntakeHttpTest extends TestCase
                 ->where('readiness.satisfied', false)
                 ->where('permissions.activate', true));
 
-        Objective::factory()->count(3)->create(['user_id' => $candidate->getKey()]);
+        // Les objectifs passent par l'écran, pas par la factory : c'est la validation HTTP qui
+        // refusait de désigner un compte encore invité, et une fixture posée en base masquait
+        // exactement le blocage que ce parcours doit prouver.
+        for ($rank = 1; $rank <= 3; $rank++) {
+            $this->actingAs($direction)->post('/objectifs', [
+                'user_id' => (int) $candidate->getKey(),
+                'title' => "Résultat attendu {$rank}",
+                'description' => 'Objectif du stage, convenu avec le tuteur.',
+                'indicator' => 'Avancement constaté en revue',
+                'target_value' => '100 %',
+                'expected_evidence' => 'Livrable déposé et relu.',
+                'due_date' => now()->addDays(20 + $rank)->format('Y-m-d'),
+                'priority' => 'normale',
+            ])->assertSessionHasNoErrors();
+        }
+
+        $this->assertSame(3, Objective::query()->where('user_id', $candidate->getKey())->count());
 
         $this->actingAs($direction)->get(route('internship-intakes.show', $form))
             ->assertInertia(fn (Assert $page) => $page->where('readiness.satisfied', true));
