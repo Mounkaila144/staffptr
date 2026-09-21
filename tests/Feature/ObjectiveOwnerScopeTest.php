@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\UserState;
 use App\Models\Identity\User;
 use App\Models\Work\Objective;
 use App\Support\Work\AssignableOwners;
@@ -90,6 +91,41 @@ class ObjectiveOwnerScopeTest extends IdentityTestCase
         $this->actingAs($direction)
             ->post('/objectifs', $this->payload((int) $anyone->getKey()))
             ->assertSessionHasNoErrors();
+    }
+
+    /**
+     * Un compte encore « invité » doit pouvoir porter un objectif.
+     *
+     * L'activation d'un stagiaire exige trois objectifs enregistrés à son nom, et son compte
+     * n'est actif qu'*après* cette activation. Filtrer sur le seul état « actif » refermait le
+     * parcours sur lui-même : la liste ne proposait personne et la validation refusait tout.
+     */
+    public function test_direction_may_assign_to_an_invited_account_awaiting_activation(): void
+    {
+        $direction = User::factory()->active()->withRole('direction')->create();
+        $intern = User::factory()->withRole('stagiaire')->create(['state' => UserState::Invite]);
+
+        $this->assertContains((int) $intern->getKey(), AssignableOwners::idsFor($direction));
+        $this->assertContains((int) $intern->getKey(), array_column(AssignableOwners::optionsFor($direction), 'id'));
+
+        $this->actingAs($direction)
+            ->post('/objectifs', $this->payload((int) $intern->getKey()))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, Objective::query()->where('user_id', $intern->getKey())->count());
+    }
+
+    /** Un compte suspendu, lui, reste hors périmètre : rien ne s'inscrit plus à son nom. */
+    public function test_a_suspended_account_can_no_longer_be_designated(): void
+    {
+        $direction = User::factory()->active()->withRole('direction')->create();
+        $suspended = User::factory()->suspended()->withRole('employe')->create();
+
+        $this->assertNotContains((int) $suspended->getKey(), AssignableOwners::idsFor($direction));
+
+        $this->actingAs($direction)
+            ->post('/objectifs', $this->payload((int) $suspended->getKey()))
+            ->assertSessionHasErrors('user_id');
     }
 
     /**

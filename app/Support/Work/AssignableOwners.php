@@ -2,6 +2,7 @@
 
 namespace App\Support\Work;
 
+use App\Enums\UserState;
 use App\Models\Identity\User;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -51,7 +52,12 @@ class AssignableOwners
     /** @return Builder<User> */
     private static function query(User $actor): Builder
     {
-        $query = User::query()->select(['id', 'person_id'])->where('state', 'actif');
+        // Les comptes « invités » comptent, et c'est indispensable : l'activation d'un stagiaire
+        // exige trois objectifs enregistrés **à son nom**, alors que son compte est encore invité.
+        // Les exclure fermait le parcours sur lui-même — aucun objectif n'était assignable, donc
+        // aucune activation n'était possible. Suspendus, terminés et archivés restent dehors.
+        $query = User::query()->select(['id', 'person_id'])
+            ->whereIn('state', [UserState::Actif->value, UserState::Invite->value]);
 
         if ($actor->hasRole('direction')) {
             return $query;
