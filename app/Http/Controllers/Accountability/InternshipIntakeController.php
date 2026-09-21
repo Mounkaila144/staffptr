@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Accountability;
 
+use App\Enums\UserState;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Accountability\ActivateInternRequest;
 use App\Http\Requests\Accountability\DecideInternshipIntakeRequest;
@@ -12,6 +13,7 @@ use App\Models\Identity\User;
 use App\Services\Accountability\InternshipIntakeService;
 use App\Services\Accountability\InternshipService;
 use App\Services\Identity\InternActivationReadiness;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -30,12 +32,18 @@ class InternshipIntakeController extends Controller
     {
         $actor = $this->actor($request);
         Gate::authorize('viewAny', InternshipIntakeForm::class);
+        $canCreate = $actor->can('create', InternshipIntakeForm::class);
 
         return Inertia::render('Accountability/Internships/Intakes/Index', [
             'forms' => $this->intakes->visibleFor($actor)->through(
                 fn (InternshipIntakeForm $form): array => $this->intakes->payload($form),
             ),
-            'canCreate' => $actor->can('create', InternshipIntakeForm::class),
+            'canCreate' => $canCreate,
+            // Les trois listes ne partent qu'à qui peut rédiger : un tuteur qui ne fait que
+            // consulter n'a pas à recevoir l'annuaire des comptes dans ses props.
+            'candidates' => $canCreate ? $this->candidateOptions() : [],
+            'managers' => $canCreate ? $this->roleOptions(['direction', 'finance', 'tuteur', 'employe']) : [],
+            'tutors' => $canCreate ? $this->roleOptions(['tuteur', 'direction']) : [],
             'success' => fn (): ?string => $request->session()->get('success'),
         ]);
     }
@@ -105,6 +113,51 @@ class InternshipIntakeController extends Controller
 
         return to_route('internship-intakes.show', $internship->internship_intake_form_id)
             ->with('success', 'Stagiaire activé, checklist d’intégration générée.');
+    }
+
+    /**
+     * Comptes de stagiaire à qui une fiche peut être rédigée.
+     *
+     * Un compte « invité » est précisément celui qui attend sa fiche ; un compte déjà actif y
+     * figure aussi, car une seconde fiche reste possible après un premier stage. L'état est écrit
+     * dans le libellé plutôt que porté par une couleur.
+     *
+     * @return list<array{value: int, label: string}>
+     */
+    private function candidateOptions(): array
+    {
+        return User::query()
+            ->whereIn('state', [UserState::Invite->value, UserState::Actif->value])
+            ->whereHas('roles', fn (Builder $roles): Builder => $roles->where('name', 'stagiaire'))
+            ->with('person:id,full_name')
+            ->get()
+            ->map(fn (User $user): array => [
+                'value' => (int) $user->getKey(),
+                'label' => $user->person->full_name.' — '.$user->state->label(),
+            ])
+            ->sortBy('label', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $roles
+     * @return list<array{value: int, label: string}>
+     */
+    private function roleOptions(array $roles): array
+    {
+        return User::query()
+            ->where('state', UserState::Actif->value)
+            ->whereHas('roles', fn (Builder $query): Builder => $query->whereIn('name', $roles))
+            ->with('person:id,full_name')
+            ->get()
+            ->map(fn (User $user): array => [
+                'value' => (int) $user->getKey(),
+                'label' => $user->person->full_name,
+            ])
+            ->sortBy('label', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values()
+            ->all();
     }
 
     private function actor(Request $request): User
