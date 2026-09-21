@@ -163,6 +163,85 @@ class InternshipIntakeHttpTest extends TestCase
         $this->actingAs($candidate)->get(route('internship-intakes.show', $form))->assertOk();
     }
 
+    /**
+     * La route `store` existait et passait ses tests serveur, mais aucun écran ne l'appelait :
+     * le parcours s'arrêtait avant même de commencer. L'écran des fiches doit donc porter les
+     * trois listes nécessaires à la rédaction.
+     */
+    public function test_the_intake_screen_carries_the_lists_needed_to_draft_a_form(): void
+    {
+        [$direction, $tutor, $candidate] = $this->actors();
+
+        $this->actingAs($direction)->get(route('internship-intakes.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Accountability/Internships/Intakes/Index')
+                ->where('canCreate', true)
+                ->has('candidates', 1)
+                // L'état du compte est écrit dans le libellé : la direction voit d'un coup d'œil
+                // lequel de ses stagiaires attend encore son activation.
+                ->where('candidates.0.value', (int) $candidate->getKey())
+                ->where('candidates.0.label', $candidate->person->full_name.' — Invité')
+                ->has('tutors')
+                ->has('managers'));
+
+        $tutorIds = array_column(
+            $this->actingAs($direction)->get(route('internship-intakes.index'))->inertiaPage()['props']['tutors'],
+            'value',
+        );
+        $this->assertContains((int) $tutor->getKey(), $tutorIds);
+        $this->assertContains((int) $direction->getKey(), $tutorIds);
+    }
+
+    /** Un compte qui ne fait que consulter ne reçoit pas l'annuaire dans ses props. */
+    public function test_a_reader_without_the_management_permission_receives_no_directory(): void
+    {
+        [$direction, $tutor, $candidate] = $this->actors();
+        $this->approvedForm($direction, $tutor, $candidate);
+        $candidate->forceFill(['state' => UserState::Actif, 'must_change_password' => false])->save();
+
+        $this->flushSession();
+        $this->actingAs($candidate)->get(route('internship-intakes.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('canCreate', false)
+                ->has('candidates', 0)
+                ->has('managers', 0)
+                ->has('tutors', 0));
+    }
+
+    /** Le parcours complet, de la rédaction à l'activation, sans passer par le service. */
+    public function test_the_whole_path_runs_from_the_screen_up_to_the_activation(): void
+    {
+        [$direction, $tutor, $candidate] = $this->actors();
+
+        $this->actingAs($direction)
+            ->post(route('internship-intakes.store'), $this->payload($candidate, $tutor, $direction))
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $form = InternshipIntakeForm::query()->firstOrFail();
+        $this->actingAs($direction)->patch(route('internship-intakes.submit', $form))->assertRedirect();
+        $this->actingAs($direction)->patch(route('internship-intakes.decide', $form), [
+            'approved' => true,
+            'decision_reason' => 'Besoin réel confirmé.',
+        ])->assertRedirect();
+
+        // Tant que les trois objectifs manquent, l'écran refuse d'ouvrir la porte.
+        $this->actingAs($direction)->get(route('internship-intakes.show', $form))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('readiness.satisfied', false)
+                ->where('permissions.activate', true));
+
+        Objective::factory()->count(3)->create(['user_id' => $candidate->getKey()]);
+
+        $this->actingAs($direction)->get(route('internship-intakes.show', $form))
+            ->assertInertia(fn (Assert $page) => $page->where('readiness.satisfied', true));
+        $this->actingAs($direction)->post(route('interns.activate', $candidate))->assertRedirect();
+
+        $this->assertSame(UserState::Actif, $candidate->refresh()->state);
+    }
+
     /** @return array{0: User, 1: User, 2: User} */
     private function actors(): array
     {
