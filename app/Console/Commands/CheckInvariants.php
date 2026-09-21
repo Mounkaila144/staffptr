@@ -6,6 +6,7 @@ use App\Services\Platform\Invariants\ApprovedExpenseHasTwoApprovalsInvariant;
 use App\Services\Platform\Invariants\AuditDeletePrivilegeInvariant;
 use App\Services\Platform\Invariants\AuditTriggersInvariant;
 use App\Services\Platform\Invariants\BackupFreshnessInvariant;
+use App\Services\Platform\Invariants\ContributionShareIntegrityInvariant;
 use App\Services\Platform\Invariants\EnvironmentInvariant;
 use App\Services\Platform\Invariants\ExpenseApproverCountInvariant;
 use App\Services\Platform\Invariants\FinanceIntegrityInvariant;
@@ -31,6 +32,7 @@ class CheckInvariants extends Command
         private readonly PaidExpenseIntegrityInvariant $paidExpenseIntegrityInvariant,
         private readonly QueuedNotificationFailureInvariant $queuedNotificationFailureInvariant,
         private readonly FinanceIntegrityInvariant $financeIntegrityInvariant,
+        private readonly ContributionShareIntegrityInvariant $contributionShareIntegrityInvariant,
         private readonly BackupFreshnessInvariant $backupFreshnessInvariant,
     ) {
         parent::__construct();
@@ -102,6 +104,7 @@ class CheckInvariants extends Command
             $this->paidExpenseIntegrityInvariant,
             $this->queuedNotificationFailureInvariant,
             $this->financeIntegrityInvariant,
+            $this->contributionShareIntegrityInvariant,
             // Story 10.1 AC 20 : la fraîcheur de sauvegarde complète l'ensemble cumulé. Son
             // contrat appartient à 11.1 ; tant qu'il manque, le contrôle se déclare en attente.
             $this->backupFreshnessInvariant,

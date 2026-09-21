@@ -66,6 +66,9 @@ $roles = [
         'connexion.consulter',
         'part.consulter',
         'part.gerer',
+        // Registre des parts de contribution — propriété de l'entreprise, direction uniquement.
+        'part_contribution.consulter',
+        'part_contribution.gerer',
         'budget_financier.consulter',
         'budget_financier.gerer',
         'rapprochement.consulter',

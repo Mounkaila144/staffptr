@@ -13,6 +13,7 @@ use App\Http\Controllers\Accountability\TutorSupportSlotController;
 use App\Http\Controllers\Accountability\WeeklyReviewController;
 use App\Http\Controllers\Finance\ClientController;
 use App\Http\Controllers\Finance\ContractController;
+use App\Http\Controllers\Finance\ContributionShareController;
 use App\Http\Controllers\Finance\CorrectionPlanController;
 use App\Http\Controllers\Finance\ExpenseApprovalController;
 use App\Http\Controllers\Finance\ExpenseCategoryController;
@@ -412,6 +413,17 @@ Route::middleware(['auth', 'account.active', 'password.changed'])->group(functio
         Route::get('/finances/parts', [ShareEntitlementController::class, 'index'])->name('shares.index');
         Route::get('/finances/parts/{shareEntitlement}', [ShareEntitlementController::class, 'show'])->name('shares.show');
         Route::post('/finances/parts/{shareEntitlement}/demander-versement', [ShareEntitlementController::class, 'requestPayment'])->name('shares.request-payment');
+    });
+
+    // Registre des parts de contribution — réservé aux directeurs (story 12.1, AC 18).
+    Route::middleware('permission:part_contribution.consulter')->group(function (): void {
+        Route::get('/finances/parts-de-contribution', [ContributionShareController::class, 'index'])->name('contribution-shares.index');
+        Route::post('/finances/parts-de-contribution/apports', [ContributionShareController::class, 'storeCapitalContribution'])
+            ->middleware('permission:part_contribution.gerer')->name('capital-contributions.store');
+        Route::patch('/finances/parts-de-contribution/apports/{capitalContribution}/approuver', [ContributionShareController::class, 'approveCapitalContribution'])
+            ->middleware('permission:part_contribution.gerer')->name('capital-contributions.approve');
+        Route::patch('/finances/parts-de-contribution/apports/{capitalContribution}/refuser', [ContributionShareController::class, 'refuseCapitalContribution'])
+            ->middleware('permission:part_contribution.gerer')->name('capital-contributions.refuse');
     });
 
     Route::middleware('permission:reserve.consulter')->group(function (): void {

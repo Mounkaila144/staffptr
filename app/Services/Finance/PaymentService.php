@@ -29,6 +29,7 @@ final readonly class PaymentService
         private InvoiceService $invoices,
         private ShareEntitlementService $shares,
         private ReserveService $reserve,
+        private ContributionShareService $contributionShares,
     ) {}
 
     /** @return list<array<string, mixed>> */
@@ -170,6 +171,7 @@ final readonly class PaymentService
                     $locked->forceFill(['state' => PaymentState::Cancelled->value, 'cancellation_reason' => $reversal->cancellation_reason])->saveOrFail();
                     $this->movement($reversal, $account, FinancialMovementDirection::Debit, $actor, $locked);
                     $this->shares->reverseForPayment($locked, $reversal);
+                    $this->contributionShares->reverseForPayment($locked, $reversal, $actor);
                     $this->reserve->reverseForPayment($locked, $reversal, $actor);
                     if ($invoice !== null) {
                         $this->invoices->refreshDerivedState($invoice);
@@ -230,11 +232,16 @@ final readonly class PaymentService
                 if ($correctionOf !== null && $oldAccount !== null) {
                     $this->movement($payment, $oldAccount, FinancialMovementDirection::Debit, $actor, $correctionOf);
                     $this->shares->reverseForPayment($correctionOf, $payment);
+                    $this->contributionShares->reverseForPayment($correctionOf, $payment, $actor);
                     $this->reserve->reverseForPayment($correctionOf, $payment, $actor);
                 }
                 $this->movement($payment, $account, FinancialMovementDirection::Credit, $actor);
                 if ($contract !== null) {
                     $this->shares->createForPayment($payment, $contract);
+                    // Le registre des parts observe le partage sans le réécrire : il lit la part
+                    // `ptr_niger` qui vient d'être écrite et en dérive les parts du directeur
+                    // apporteur (story 12.1). Un contrat sans apporteur directeur n'émet rien.
+                    $this->contributionShares->issueForPayment($payment, $contract, $actor);
                     $this->reserve->allocateFrom($payment, $contract, $actor);
                 }
                 if ($invoice !== null) {

@@ -11,8 +11,10 @@ use App\Models\Accountability\InternshipIntakeForm;
 use App\Models\Accountability\TaskRequest;
 use App\Models\Accountability\WeeklyReview;
 use App\Models\Finance\Account as FinancialAccount;
+use App\Models\Finance\CapitalContribution;
 use App\Models\Finance\Client;
 use App\Models\Finance\Contract;
+use App\Models\Finance\ContributionShare;
 use App\Models\Finance\Expense;
 use App\Models\Finance\ExpenseCategory;
 use App\Models\Finance\FixedCharge;
@@ -53,8 +55,10 @@ use App\Policies\Accountability\InternshipPolicy;
 use App\Policies\Accountability\TaskRequestPolicy;
 use App\Policies\Accountability\WeeklyReviewPolicy;
 use App\Policies\Finance\AccountPolicy as FinancialAccountPolicy;
+use App\Policies\Finance\CapitalContributionPolicy;
 use App\Policies\Finance\ClientPolicy;
 use App\Policies\Finance\ContractPolicy;
+use App\Policies\Finance\ContributionSharePolicy;
 use App\Policies\Finance\ExpenseCategoryPolicy;
 use App\Policies\Finance\ExpensePolicy;
 use App\Policies\Finance\FixedChargePolicy;
@@ -87,6 +91,7 @@ use App\Policies\Work\TaskPolicy;
 use App\Services\Identity\AttemptedPhoneFingerprint;
 use App\Services\Identity\LoginSecuritySettings;
 use App\Support\Auditing\AuditContext;
+use App\Support\VintageCoefficient;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -101,6 +106,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(AuditContext::class);
+        // Le barème de millésime se lit dans la configuration, jamais depuis `env()`.
+        $this->app->bind(VintageCoefficient::class, static fn (): VintageCoefficient => VintageCoefficient::fromConfiguration());
     }
 
     /**
@@ -143,6 +150,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(ReserveMovement::class, ReserveMovementPolicy::class);
         Gate::policy(Reconciliation::class, ReconciliationPolicy::class);
         Gate::policy(ShareEntitlement::class, ShareEntitlementPolicy::class);
+        Gate::policy(ContributionShare::class, ContributionSharePolicy::class);
+        Gate::policy(CapitalContribution::class, CapitalContributionPolicy::class);
         Gate::policy(CompanyPriority::class, CompanyPriorityPolicy::class);
         Gate::policy(Objective::class, ObjectivePolicy::class);
         Gate::policy(Project::class, ProjectPolicy::class);

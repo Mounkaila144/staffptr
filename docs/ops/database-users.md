@@ -68,6 +68,8 @@ nommée.** Le niveau schéma ne porte que `SELECT, INSERT`.
 | `roles`, `permissions`, `role_has_permissions` | hérité du schéma | hérité du schéma | **explicite** | **refusé** |
 | `model_has_roles`, `model_has_permissions` | hérité du schéma | hérité du schéma | **explicite** | **accordé par exception RBAC** |
 | `login_attempts` | hérité du schéma | hérité du schéma | **explicite** | **refusé** |
+| `capital_contributions` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
+| `contribution_shares` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
 | toute table créée ultérieurement | **hérité d'office** | **hérité d'office** | **absent tant qu'il n'est pas accordé** | **refusé par défaut** |
 
 Une migration qui crée une table métier n'a donc rien à faire pour la lecture et l'insertion, mais
@@ -98,6 +100,14 @@ restent refusés parce qu'ils ne sont accordés à **aucun** niveau — ni sché
 La migration de `user_history` reprend volontairement le même `GRANT SELECT, INSERT` explicite et
 les mêmes limites. Ce registre permanent est alimenté uniquement par insertion : aucun `GRANT
 UPDATE` ni `DELETE` ne doit lui être ajouté, même lors d'une intervention corrective.
+
+La migration du registre des parts de contribution (story 12.1) accorde `UPDATE` sur
+`capital_contributions` et `contribution_shares`. Sur la seconde, ce privilège n'autorise rien :
+un déclencheur `BEFORE UPDATE` refuse toute modification d'une part émise. Il est accordé pour la
+même raison que sur `reserve_movements` — `SELECT ... FOR UPDATE` l'exige — et le déclencheur reste
+la garde réelle. Sur `capital_contributions`, l'`UPDATE` sert aux seules transitions d'état d'un
+apport en attente ; un apport approuvé ou refusé est figé par déclencheur. Aucun `DELETE` n'est
+accordé sur l'une ni sur l'autre.
 
 ## Modèle SQL idempotent
 

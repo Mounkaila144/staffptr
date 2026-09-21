@@ -55,6 +55,7 @@ function moreHref(item) {
     if (item === 'Revues hebdomadaires' || item === 'Ma revue') return '/revues-hebdomadaires';
     if (item === "Journal d'audit") return '/journal-audit';
     if (item === 'Réserve') return '/finances/reserve';
+    if (item === 'Parts de contribution') return '/finances/parts-de-contribution';
     if (item === 'Rapport mensuel') return '/finances/rapports-mensuels';
     if (item === 'Rapprochement') return '/finances/rapprochements';
     if (item === 'Budgets et charges') return '/finances/budgets-mensuels';

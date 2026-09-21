@@ -577,6 +577,31 @@ return [
             'permission' => 'part.consulter',
             'statuses' => $statuses(['direction', 'finance', 'employe']),
         ],
+        // Registre des parts de contribution : la direction, et elle seule. Ni finance ni
+        // super_admin n'y accèdent — ce registre décrit la propriété de l'entreprise.
+        'contribution-shares.index' => [
+            'path' => '/finances/parts-de-contribution',
+            'permission' => 'part_contribution.consulter',
+            'statuses' => $statuses(['direction']),
+        ],
+        'capital-contributions.store' => [
+            'method' => 'POST',
+            'path' => '/finances/parts-de-contribution/apports',
+            'permission' => 'part_contribution.gerer',
+            'statuses' => $statuses(['direction']),
+        ],
+        'capital-contributions.approve' => [
+            'method' => 'PATCH',
+            'path' => '/finances/parts-de-contribution/apports/{capitalContribution}/approuver',
+            'permission' => 'part_contribution.gerer',
+            'statuses' => $statuses(['direction']),
+        ],
+        'capital-contributions.refuse' => [
+            'method' => 'PATCH',
+            'path' => '/finances/parts-de-contribution/apports/{capitalContribution}/refuser',
+            'permission' => 'part_contribution.gerer',
+            'statuses' => $statuses(['direction']),
+        ],
         'reserve.index' => [
             'path' => '/finances/reserve',
             'permission' => 'reserve.consulter',
