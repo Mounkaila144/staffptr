@@ -8,7 +8,9 @@ use App\Http\Requests\Work\StoreDeliverableRequest;
 use App\Http\Requests\Work\UpdateDeliverableStatusRequest;
 use App\Models\Identity\User;
 use App\Models\Work\Deliverable;
+use App\Models\Work\Project;
 use App\Services\Work\DeliverableService;
+use App\Support\Work\AssignablePeople;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -24,7 +26,7 @@ class DeliverableController extends Controller
         Gate::authorize('viewAny', Deliverable::class);
         $items = Deliverable::query()->select(['id', 'project_id', 'owner_id', 'title', 'planned_date', 'actual_date', 'status'])->with(['project:id,name,manager_id', 'owner.person'])->orderBy('planned_date')->paginate(25);
 
-        return Inertia::render('Work/Deliverables/Index', ['deliverables' => $items->through(fn (Deliverable $d): array => $this->serialize($d))->toArray(), 'statuses' => $this->options(DeliverableStatus::cases())]);
+        return Inertia::render('Work/Deliverables/Index', ['deliverables' => $items->through(fn (Deliverable $d): array => $this->serialize($d))->toArray(), 'statuses' => $this->options(DeliverableStatus::cases()), 'assignablePeople' => AssignablePeople::options(), 'projects' => $this->projectOptions($this->actor($request))]);
     }
 
     public function store(StoreDeliverableRequest $request): RedirectResponse
@@ -39,6 +41,18 @@ class DeliverableController extends Controller
         $this->service->transition($deliverable, $request->status(), (string) $request->validated('reason'), $this->actor($request));
 
         return back()->with('success', 'Le statut du livrable a été mis à jour.');
+    }
+
+    /**
+     * Projets rattachables, dans le périmètre de lecture de l'acteur.
+     *
+     * @return list<array{id: int, name: string}>
+     */
+    private function projectOptions(User $actor): array
+    {
+        return Project::query()->visibleTo($actor)->select(['id', 'name'])->orderBy('name')->get()
+            ->map(static fn (Project $project): array => ['id' => (int) $project->getKey(), 'name' => $project->name])
+            ->all();
     }
 
     /** @return array<string, mixed> */

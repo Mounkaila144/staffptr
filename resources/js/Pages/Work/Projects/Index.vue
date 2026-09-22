@@ -10,6 +10,7 @@ const props = defineProps({
     filtersActive: Boolean,
     statuses: Array,
     canCreate: Boolean,
+    assignablePeople: { type: Array, default: () => [] },
     emptyMessage: String,
     attachment: Object,
 });
@@ -53,11 +54,20 @@ const form = useForm({
                         v-model="form.client_name"
                         class="touch-target min-w-0 rounded-lg border border-separator px-3" /></label
                 ><label class="grid gap-1"
-                    >Responsable (identifiant)<input
+                    >Responsable<select
                         v-model="form.manager_id"
                         required
-                        inputmode="numeric"
-                        class="touch-target min-w-0 rounded-lg border border-separator px-3" /></label
+                        class="touch-target min-w-0 rounded-lg border border-separator bg-surface px-3"
+                    >
+                        <option value="" disabled>Choisir une personne</option>
+                        <option
+                            v-for="person in assignablePeople"
+                            :key="person.id"
+                            :value="person.id"
+                        >
+                            {{ person.name }}
+                        </option>
+                    </select></label
                 ><label class="grid gap-1"
                     >Statut<select
                         v-model="form.status"

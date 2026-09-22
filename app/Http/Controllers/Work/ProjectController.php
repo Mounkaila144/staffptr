@@ -20,6 +20,7 @@ use App\Models\Work\WorkComment;
 use App\Models\Work\WorkLink;
 use App\Services\Platform\SettingsService;
 use App\Services\Work\ProjectService;
+use App\Support\Work\AssignablePeople;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,7 +38,7 @@ class ProjectController extends Controller
         $filters = $request->validated();
         $projects = Project::query()->select(['id', 'name', 'client_name', 'manager_id', 'start_date', 'end_date', 'status'])->with(['manager:id,person_id', 'manager.person:id,full_name', 'memberships.user.person', 'deliverables'])->when(isset($filters['status']), fn (Builder $query): Builder => $query->where('status', $filters['status']))->orderBy('start_date')->paginate(20)->withQueryString();
 
-        return Inertia::render('Work/Projects/Index', ['projects' => $projects->through(fn (Project $project): array => $this->serialize($project, false))->toArray(), 'filters' => $filters, 'filtersActive' => count($filters) > 0, 'statuses' => $this->options(ProjectStatus::cases()), 'canCreate' => $actor->can('create', Project::class), 'emptyMessage' => 'Aucun projet actif.', 'attachment' => $this->attachmentConfig($actor)]);
+        return Inertia::render('Work/Projects/Index', ['projects' => $projects->through(fn (Project $project): array => $this->serialize($project, false))->toArray(), 'filters' => $filters, 'filtersActive' => count($filters) > 0, 'statuses' => $this->options(ProjectStatus::cases()), 'canCreate' => $actor->can('create', Project::class), 'assignablePeople' => AssignablePeople::options(), 'emptyMessage' => 'Aucun projet actif.', 'attachment' => $this->attachmentConfig($actor)]);
     }
 
     public function show(Request $request, Project $project): Response
@@ -46,7 +47,7 @@ class ProjectController extends Controller
         Gate::authorize('view', $project);
         $project->load(['manager.person', 'memberships.user.person', 'statusHistory.actor.person', 'deliverables.owner.person', 'comments.author.person', 'links', 'attachments']);
 
-        return Inertia::render('Work/Projects/Show', ['project' => $this->serialize($project, $actor->can('viewBudget', $project)), 'canManage' => $actor->can('update', $project), 'attachment' => $this->attachmentConfig($actor)]);
+        return Inertia::render('Work/Projects/Show', ['project' => $this->serialize($project, $actor->can('viewBudget', $project)), 'canManage' => $actor->can('update', $project), 'assignablePeople' => AssignablePeople::options(), 'attachment' => $this->attachmentConfig($actor)]);
     }
 
     public function budget(Request $request, Project $project): Response

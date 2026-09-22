@@ -3,7 +3,7 @@ import { Head, Link, useForm } from "@inertiajs/vue3";
 import AppButton from "../../../Components/AppButton.vue";
 import AttachmentUploader from "../../../Components/AttachmentUploader.vue";
 import AppLayout from "../../../Layouts/AppLayout.vue";
-defineProps({ project: Object, canManage: Boolean, attachment: Object });
+defineProps({ project: Object, canManage: Boolean, assignablePeople: { type: Array, default: () => [] }, attachment: Object });
 const status = useForm({ status: "", reason: "" });
 const member = useForm({ action: "add", user_id: "", date: "" });
 const comment = useForm({ body: "" });
@@ -123,13 +123,18 @@ const file = useForm({ attachment_ulid: "" });
                     <option value="remove">
                         Retirer en conservant l’historique
                     </option></select
+                ><label class="grid gap-1"
+                    >Membre<select
+                        v-model="member.user_id"
+                        required
+                        class="touch-target min-w-0 rounded-lg border border-separator bg-surface px-3"
+                    >
+                        <option value="" disabled>Choisir une personne</option>
+                        <option v-for="person in assignablePeople" :key="person.id" :value="person.id">
+                            {{ person.name }}
+                        </option>
+                    </select></label
                 ><input
-                    v-model="member.user_id"
-                    required
-                    inputmode="numeric"
-                    placeholder="Identifiant du membre"
-                    class="touch-target min-w-0 rounded-lg border border-separator px-3"
-                /><input
                     v-model="member.date"
                     required
                     type="date"
