@@ -101,8 +101,13 @@ class EpicNineDashboardContentTest extends TestCase
     /** AC 19 — les créances échues ne retiennent que les factures impayées et dépassées. */
     public function test_ac_19_overdue_receivables_only_count_unpaid_and_past_due_invoices(): void
     {
+        // L'échéance non dépassée se compte **à partir d'aujourd'hui**, pas du début du mois :
+        // `startOfMonth()->addDays(20)` tombe le 21, donc dans le passé dès le 21 du mois. Le test
+        // réussissait vingt jours sur trente et échouait les dix autres sans que rien ne change
+        // dans le code — constaté le 2026-09-22.
+        $notDueYet = CarbonImmutable::now('Africa/Niamey')->addDays(20);
         $this->invoice(dueOn: $this->month->subDays(10), state: InvoiceState::Impayee, amount: 400_000);
-        $this->invoice(dueOn: $this->month->addDays(20), state: InvoiceState::Impayee, amount: 900_000);
+        $this->invoice(dueOn: $notDueYet, state: InvoiceState::Impayee, amount: 900_000);
         $this->invoice(dueOn: $this->month->subDays(10), state: InvoiceState::Payee, amount: 700_000);
         $this->invoice(dueOn: $this->month->subDays(10), state: InvoiceState::Annulee, amount: 600_000);
 
