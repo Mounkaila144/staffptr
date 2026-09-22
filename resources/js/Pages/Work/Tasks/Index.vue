@@ -11,6 +11,10 @@ const props = defineProps({
     statuses: Array,
     priorities: Array,
     canCreate: Boolean,
+    assignablePeople: { type: Array, default: () => [] },
+    projects: { type: Array, default: () => [] },
+    objectives: { type: Array, default: () => [] },
+    parentTasks: { type: Array, default: () => [] },
     attachment: Object,
 });
 const form = useForm({
@@ -46,10 +50,10 @@ const filter = useForm({
             </header>
             <form class="grid min-w-0 gap-3 rounded-xl border border-separator p-4 sm:grid-cols-4" @submit.prevent="filter.get('/taches', { preserveState: true, replace: true })">
                 <h2 class="text-section-title sm:col-span-4">Filtrer les tâches</h2>
-                <label class="grid gap-1">Responsable<input v-model="filter.assignee_id" inputmode="numeric" class="touch-target min-w-0 rounded-lg border border-separator px-3"></label>
+                <label class="grid gap-1">Responsable<select v-model="filter.assignee_id" class="touch-target min-w-0 rounded-lg border border-separator bg-surface px-3"><option value="">Tous</option><option v-for="person in assignablePeople" :key="person.id" :value="person.id">{{ person.name }}</option></select></label>
                 <label class="grid gap-1">Échéance<input v-model="filter.due_date" type="date" class="touch-target min-w-0 rounded-lg border border-separator px-3"></label>
                 <label class="grid gap-1">Statut<select v-model="filter.status" class="touch-target min-w-0 rounded-lg border border-separator px-3"><option value="">Tous</option><option v-for="item in statuses" :key="item.value" :value="item.value">{{ item.label }}</option></select></label>
-                <label class="grid gap-1">Projet<input v-model="filter.project_id" inputmode="numeric" class="touch-target min-w-0 rounded-lg border border-separator px-3"></label>
+                <label class="grid gap-1">Projet<select v-model="filter.project_id" class="touch-target min-w-0 rounded-lg border border-separator bg-surface px-3"><option value="">Tous</option><option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option></select></label>
                 <div class="flex flex-wrap gap-2 sm:col-span-4"><AppButton type="submit">Appliquer</AppButton><Link v-if="filtersActive" href="/taches" class="touch-target px-3 font-semibold text-primary">Réinitialiser les filtres</Link></div>
             </form>
             <form
@@ -66,11 +70,16 @@ const filter = useForm({
                         required
                         class="touch-target min-w-0 rounded-lg border border-separator px-3" /></label
                 ><label class="grid gap-1"
-                    >Responsable (identifiant)<input
+                    >Responsable<select
                         v-model="form.assignee_id"
                         required
-                        inputmode="numeric"
-                        class="touch-target min-w-0 rounded-lg border border-separator px-3" /></label
+                        class="touch-target min-w-0 rounded-lg border border-separator bg-surface px-3"
+                    >
+                        <option value="" disabled>Choisir une personne</option>
+                        <option v-for="person in assignablePeople" :key="person.id" :value="person.id">
+                            {{ person.name }}
+                        </option>
+                    </select></label
                 ><label class="grid gap-1"
                     >Échéance<input
                         v-model="form.due_date"
@@ -91,21 +100,35 @@ const filter = useForm({
                         </option>
                     </select></label
                 ><label class="grid gap-1"
-                    >Projet optionnel<input
+                    >Projet optionnel<select
                         v-model="form.project_id"
-                        inputmode="numeric"
-                        class="touch-target min-w-0 rounded-lg border border-separator px-3" /></label
+                        class="touch-target min-w-0 rounded-lg border border-separator bg-surface px-3"
+                    >
+                        <option value="">Aucun projet</option>
+                        <option v-for="project in projects" :key="project.id" :value="project.id">
+                            {{ project.name }}
+                        </option>
+                    </select></label
                 ><label class="grid gap-1"
-                    >Objectif optionnel<input
+                    >Objectif optionnel<select
                         v-model="form.objective_id"
-                        inputmode="numeric"
-                        class="touch-target min-w-0 rounded-lg border border-separator px-3" /></label
+                        class="touch-target min-w-0 rounded-lg border border-separator bg-surface px-3"
+                    >
+                        <option value="">Aucun objectif</option>
+                        <option v-for="objective in objectives" :key="objective.id" :value="objective.id">
+                            {{ objective.name }}
+                        </option>
+                    </select></label
                 ><label class="grid gap-1 sm:col-span-2"
-                    >Tâche parente optionnelle — un seul niveau<input
+                    >Tâche parente optionnelle — un seul niveau<select
                         v-model="form.parent_id"
-                        inputmode="numeric"
-                        class="touch-target min-w-0 rounded-lg border border-separator px-3"
-                    /><span v-if="form.errors.parent_id" class="text-danger">{{
+                        class="touch-target min-w-0 rounded-lg border border-separator bg-surface px-3"
+                    >
+                        <option value="">Aucune tâche parente</option>
+                        <option v-for="task in parentTasks" :key="task.id" :value="task.id">
+                            {{ task.name }}
+                        </option>
+                    </select><span v-if="form.errors.parent_id" class="text-danger">{{
                         form.errors.parent_id
                     }}</span></label
                 ><label class="grid gap-1">Libellé du lien optionnel<input v-model="form.link_label" class="touch-target min-w-0 rounded-lg border border-separator px-3"></label>

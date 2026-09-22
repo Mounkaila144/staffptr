@@ -12,6 +12,7 @@ use App\Http\Requests\Work\UpdateCompanyPriorityRequest;
 use App\Models\Identity\User;
 use App\Models\Work\CompanyPriority;
 use App\Services\Work\CompanyPriorityService;
+use App\Support\Work\AssignablePeople;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,7 +30,7 @@ class CompanyPriorityController extends Controller
         $month = $this->month($request->validated('month'));
         $items = CompanyPriority::query()->select(['id', 'month', 'title', 'description', 'owner_id', 'indicator', 'target', 'due_date', 'priority', 'state', 'cancellation_reason'])->with('owner:id,person_id')->with('owner.person:id,full_name')->forMonth($month)->orderByDesc('priority')->orderBy('due_date')->get();
 
-        return Inertia::render('Work/CompanyPriorities/Index', ['month' => $month->format('Y-m'), 'monthLabel' => $month->locale('fr')->isoFormat('MMMM YYYY'), 'priorities' => $items->map(fn (CompanyPriority $item): array => $this->serialize($item))->all(), 'canManage' => $request->user()?->can('create', CompanyPriority::class) ?? false, 'emptyMessage' => 'Aucune priorité définie pour '.$month->locale('fr')->isoFormat('MMMM').'.', 'priorityOptions' => $this->options(WorkPriority::cases())]);
+        return Inertia::render('Work/CompanyPriorities/Index', ['month' => $month->format('Y-m'), 'monthLabel' => $month->locale('fr')->isoFormat('MMMM YYYY'), 'priorities' => $items->map(fn (CompanyPriority $item): array => $this->serialize($item))->all(), 'canManage' => $request->user()?->can('create', CompanyPriority::class) ?? false, 'emptyMessage' => 'Aucune priorité définie pour '.$month->locale('fr')->isoFormat('MMMM').'.', 'priorityOptions' => $this->options(WorkPriority::cases()), 'assignablePeople' => AssignablePeople::options()]);
     }
 
     public function store(StoreCompanyPriorityRequest $request): RedirectResponse

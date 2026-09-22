@@ -4,7 +4,7 @@ import { Head, router, useForm } from "@inertiajs/vue3";
 import AppButton from "../../../Components/AppButton.vue";
 import EmptyState from "../../../Components/EmptyState.vue";
 import AppLayout from "../../../Layouts/AppLayout.vue";
-const props = defineProps({ deliverables: Object, statuses: Array });
+const props = defineProps({ deliverables: Object, statuses: Array, assignablePeople: { type: Array, default: () => [] }, projects: { type: Array, default: () => [] } });
 const form = useForm({
     project_id: "",
     owner_id: "",
@@ -37,19 +37,29 @@ const transition = (item) => router.patch(`/livrables/${item.id}/etat`, transiti
                     required
                     placeholder="Titre"
                     class="touch-target min-w-0 rounded-lg border border-separator px-3"
-                /><input
-                    v-model="form.project_id"
-                    required
-                    inputmode="numeric"
-                    placeholder="Identifiant du projet"
-                    class="touch-target min-w-0 rounded-lg border border-separator px-3"
-                /><input
-                    v-model="form.owner_id"
-                    required
-                    inputmode="numeric"
-                    placeholder="Identifiant du responsable"
-                    class="touch-target min-w-0 rounded-lg border border-separator px-3"
-                /><input
+                /><label class="grid gap-1"
+                    >Projet<select
+                        v-model="form.project_id"
+                        required
+                        class="touch-target min-w-0 rounded-lg border border-separator bg-surface px-3"
+                    >
+                        <option value="" disabled>Choisir un projet</option>
+                        <option v-for="project in projects" :key="project.id" :value="project.id">
+                            {{ project.name }}
+                        </option>
+                    </select></label
+                ><label class="grid gap-1"
+                    >Responsable<select
+                        v-model="form.owner_id"
+                        required
+                        class="touch-target min-w-0 rounded-lg border border-separator bg-surface px-3"
+                    >
+                        <option value="" disabled>Choisir une personne</option>
+                        <option v-for="person in assignablePeople" :key="person.id" :value="person.id">
+                            {{ person.name }}
+                        </option>
+                    </select></label
+                ><input
                     v-model="form.planned_date"
                     required
                     type="date"
