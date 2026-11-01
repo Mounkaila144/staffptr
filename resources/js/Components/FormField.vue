@@ -76,7 +76,7 @@ function update(event) {
 </script>
 
 <template>
-    <div class="grid gap-2">
+    <div class="grid grid-cols-[minmax(0,1fr)] gap-2">
         <label :for="id" class="text-field-label font-semibold">
             {{ label }}
             <span v-if="required" aria-hidden="true" class="text-danger">✱</span

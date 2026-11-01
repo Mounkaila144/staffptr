@@ -28,14 +28,14 @@
                             </span>
                         </a>
                     </header>
-                    <section class="w-full rounded-2xl border border-separator bg-surface p-6 shadow-raised sm:p-8" aria-labelledby="login-title">
+                    <section class="w-full min-w-0 rounded-2xl border border-separator bg-surface p-5 shadow-raised sm:p-8" aria-labelledby="login-title">
                         <div class="mb-6 grid gap-2">
                             <h1 id="login-title" class="text-screen-title">Connexion</h1>
                             <p class="text-ink-secondary">Entrez votre numéro du Niger et votre mot de passe.</p>
                         </div>
-                        <form class="grid gap-5" method="POST" action="{{ route('login.store') }}">
+                        <form class="grid grid-cols-[minmax(0,1fr)] gap-5" method="POST" action="{{ route('login.store') }}">
                             @csrf
-                            <div class="grid gap-2">
+                            <div class="grid grid-cols-[minmax(0,1fr)] gap-2">
                                 <label for="phone" class="text-field-label font-semibold">Numéro de téléphone <span aria-hidden="true" class="text-danger">✱</span><span class="sr-only"> obligatoire</span></label>
                                 <div class="flex min-h-12 items-center rounded-lg border bg-surface transition-shadow {{ $errors->has('phone') ? 'border-2 border-danger' : 'border-separator-strong focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/15' }}">
                                     <span class="border-r border-separator py-1 pl-3 pr-3 text-ink-secondary">+227</span>
@@ -43,7 +43,7 @@
                                 </div>
                                 @error('phone')<p id="phone-error" class="text-sm font-semibold text-danger">⚠ {{ $message }}</p>@enderror
                             </div>
-                            <div class="grid gap-2">
+                            <div class="grid grid-cols-[minmax(0,1fr)] gap-2">
                                 <label for="password" class="text-field-label font-semibold">Mot de passe <span aria-hidden="true" class="text-danger">✱</span><span class="sr-only"> obligatoire</span></label>
                                 <div class="flex min-h-12 items-center rounded-lg border border-separator-strong bg-surface transition-shadow focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/15">
                                     <input id="password" name="password" type="password" autocomplete="current-password" required class="min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-3 text-base outline-none">
