@@ -43,6 +43,17 @@ class SettingsService
             'rules' => ['required', 'integer', 'min:1', 'max:100'],
             'unit' => 'stagiaires',
         ],
+        'intern_arrival_time' => [
+            'type' => 'time',
+            'label' => 'Heure d’arrivée attendue des stagiaires',
+            'rules' => ['required', 'date_format:H:i'],
+        ],
+        'intern_arrival_tolerance_minutes' => [
+            'type' => 'integer',
+            'label' => 'Tolérance avant retard',
+            'rules' => ['required', 'integer', 'min:0', 'max:240'],
+            'unit' => 'minutes',
+        ],
         'reserve_percentage' => [
             'type' => 'percentage',
             'label' => 'Pourcentage de réserve',
@@ -136,6 +147,16 @@ class SettingsService
     public function internLimitPerTutor(): int
     {
         return $this->integerValue('intern_limit_per_tutor');
+    }
+
+    public function internArrivalTime(): string
+    {
+        return $this->stringValue('intern_arrival_time');
+    }
+
+    public function internArrivalToleranceMinutes(): int
+    {
+        return $this->integerValue('intern_arrival_tolerance_minutes');
     }
 
     public function reservePercentage(): int

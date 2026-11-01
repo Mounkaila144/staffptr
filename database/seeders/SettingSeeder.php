@@ -23,6 +23,8 @@ class SettingSeeder extends Seeder
             'report_deadline_time' => ['17:45', 'time'],
             'report_reminder_minutes' => [60, 'integer'],
             'intern_limit_per_tutor' => [3, 'integer'],
+            'intern_arrival_time' => ['08:00', 'time'],
+            'intern_arrival_tolerance_minutes' => [10, 'integer'],
             'reserve_percentage' => [20, 'percentage'],
             'reserve_target_months' => [3, 'integer'],
             'attachment_allowed_types' => [['pdf', 'jpeg', 'png', 'webp', 'heic'], 'array'],

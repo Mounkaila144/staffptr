@@ -25,9 +25,46 @@ class PasswordResetService
     public function reset(User $actor, User $target, string $confirmationCode): array
     {
         $this->verificationService->consume($actor, $target, $confirmationCode);
+
+        return $this->apply(
+            $actor,
+            $target,
+            action: 'password_reset_by_administrator',
+            verification: 'Code WhatsApp confirmé sur le numéro enregistré.',
+            reason: static fn (string $targetLabel, string $actorLabel): string => "Mot de passe de {$targetLabel} réinitialisé par {$actorLabel} après confirmation du code WhatsApp.",
+        );
+    }
+
+    /**
+     * Réinitialisation sans code WhatsApp (décision du propriétaire du 2026-11-01) : tant que
+     * WhatsApp est indisponible, la direction doit pouvoir débloquer un compte. La vérification
+     * d'identité est faite hors application (en personne ou par appel) ; le motif l'atteste et
+     * reste dans le journal d'audit.
+     *
+     * @return array{user: User, temporary_password: string}
+     */
+    public function resetWithoutWhatsApp(User $actor, User $target, string $reason): array
+    {
+        $reason = trim($reason);
+
+        return $this->apply(
+            $actor,
+            $target,
+            action: 'password_reset_without_whatsapp',
+            verification: "Sans code WhatsApp — identité vérifiée hors application : {$reason}",
+            reason: static fn (string $targetLabel, string $actorLabel): string => "Mot de passe de {$targetLabel} réinitialisé par {$actorLabel} sans code WhatsApp. Motif : {$reason}",
+        );
+    }
+
+    /**
+     * @param  \Closure(string, string): string  $reason
+     * @return array{user: User, temporary_password: string}
+     */
+    private function apply(User $actor, User $target, string $action, string $verification, \Closure $reason): array
+    {
         $temporaryPassword = $this->temporaryPasswordGenerator->generate();
 
-        return DB::connection($target->getConnectionName())->transaction(function () use ($actor, $target, $temporaryPassword): array {
+        return DB::connection($target->getConnectionName())->transaction(function () use ($actor, $target, $temporaryPassword, $action, $verification, $reason): array {
             $actorLabel = $this->label($actor);
             $targetLabel = $this->label($target);
             $lockedTarget = $this->loginAttemptService->clearPersistentLockForPasswordReset(
@@ -48,14 +85,14 @@ class PasswordResetService
                 },
                 actorId: (int) $actor->getKey(),
                 actorLabel: $actorLabel,
-                action: 'password_reset_by_administrator',
+                action: $action,
                 oldValues: ['must_change_password' => (bool) $target->must_change_password, 'target_label' => $targetLabel],
                 newValues: [
                     'must_change_password' => true,
                     'target_label' => $targetLabel,
-                    'identity_verification' => 'Code WhatsApp confirmé sur le numéro enregistré.',
+                    'identity_verification' => $verification,
                 ],
-                reason: "Mot de passe de {$targetLabel} réinitialisé par {$actorLabel} après confirmation du code WhatsApp.",
+                reason: $reason($targetLabel, $actorLabel),
             );
 
             return ['user' => $lockedTarget, 'temporary_password' => $temporaryPassword];

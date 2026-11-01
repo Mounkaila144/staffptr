@@ -23,7 +23,7 @@ class ChangePasswordRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'password' => ['required', 'confirmed', Password::min(12), 'max:255'],
+            'password' => ['required', 'confirmed', Password::min(8), 'max:255'],
         ];
     }
 
@@ -33,7 +33,7 @@ class ChangePasswordRequest extends FormRequest
         return [
             'password.required' => 'Choisissez un nouveau mot de passe.',
             'password.confirmed' => 'Les deux mots de passe ne correspondent pas.',
-            'password.min' => 'Le mot de passe doit contenir au moins 12 caractères.',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères (des chiffres seuls suffisent).',
         ];
     }
 }

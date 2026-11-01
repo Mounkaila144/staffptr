@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppButton from '../../../Components/AppButton.vue';
+import AppModal from '../../../Components/AppModal.vue';
 import EmptyState from '../../../Components/EmptyState.vue';
 import FormField from '../../../Components/FormField.vue';
 import StatusBadge from '../../../Components/StatusBadge.vue';
@@ -117,10 +118,10 @@ function formatAmount(amount) {
                 <div><p class="text-sm text-ink-secondary">Objectif de réserve actuel</p><p class="break-words text-xl font-bold">{{ formatAmount(reserveObjectiveAmount) }}</p></div>
             </section>
 
-            <form v-if="formOpen" class="grid min-w-0 gap-4 rounded-xl border border-primary bg-surface p-4" @submit.prevent="requestPreview">
-                <h2 class="text-section-title">{{ editingId ? 'Modifier la charge' : 'Nouvelle charge fixe' }}</h2>
+            <AppModal :open="formOpen" size="lg" :title="editingId ? 'Modifier la charge' : 'Nouvelle charge fixe'" @update:open="(open) => !open && closeForm()">
+                <form class="grid min-w-0 gap-4" @submit.prevent="requestPreview">
                 <FormField ref="labelField" id="fixed-charge-label" v-model="form.label" label="Libellé" required :error="form.errors.label" />
-                <FormField id="fixed-charge-amount" v-model="form.monthly_amount" label="Montant mensuel en XOF" type="number" min="0" required :error="form.errors.monthly_amount" />
+                <FormField id="fixed-charge-amount" v-model="form.monthly_amount" label="Montant mensuel (francs CFA)" variant="money" required :error="form.errors.monthly_amount" />
                 <label class="touch-target flex min-w-0 items-center gap-3 rounded-lg border border-separator px-3">
                     <input v-model="form.is_active" type="checkbox">
                     Charge active et incluse dans l’assiette
@@ -140,6 +141,7 @@ function formatAmount(amount) {
                     <AppButton type="button" variant="secondaire" @click="closeForm">Annuler</AppButton>
                 </div>
             </form>
+            </AppModal>
 
             <EmptyState
                 v-if="charges.length === 0"

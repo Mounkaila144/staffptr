@@ -1,6 +1,6 @@
 <script setup>
 import { nextTick, reactive, ref } from 'vue';
-import { Link, router, useForm } from '@inertiajs/vue3';
+import { router, useForm } from '@inertiajs/vue3';
 import AppButton from '../../../../Components/AppButton.vue';
 import AttachmentUploader from '../../../../Components/AttachmentUploader.vue';
 import EmptyState from '../../../../Components/EmptyState.vue';
@@ -51,24 +51,26 @@ function attachmentUploaded(attachment) {
     deposit();
 }
 
-function openArchive(document) {
-    activeArchiveId.value = document.id;
-    archiveReasons[document.id] = archiveReasons[document.id] ?? '';
-    archiveErrors[document.id] = '';
-    nextTick(() => document.getElementById(`archive-reason-${document.id}`)?.focus());
+// Le paramètre ne s'appelle pas `document` : il masquerait l'objet global du navigateur, et
+// `document.getElementById` lèverait une erreur au lieu de placer le curseur dans le motif.
+function openArchive(item) {
+    activeArchiveId.value = item.id;
+    archiveReasons[item.id] = archiveReasons[item.id] ?? '';
+    archiveErrors[item.id] = '';
+    nextTick(() => document.getElementById(`archive-reason-${item.id}`)?.focus());
 }
 
-function archive(document) {
-    archivingId.value = document.id;
-    archiveErrors[document.id] = '';
+function archive(item) {
+    archivingId.value = item.id;
+    archiveErrors[item.id] = '';
     router.patch(
-        `/personnes/${props.person.id}/documents/${document.id}/archiver`,
-        { archive_reason: archiveReasons[document.id] ?? '' },
+        `/personnes/${props.person.id}/documents/${item.id}/archiver`,
+        { archive_reason: archiveReasons[item.id] ?? '' },
         {
             preserveScroll: true,
             onError: (errors) => {
-                archiveErrors[document.id] = errors.archive_reason ?? "Le document n'a pas pu être archivé.";
-                nextTick(() => document.getElementById(`archive-reason-${document.id}`)?.focus());
+                archiveErrors[item.id] = errors.archive_reason ?? "Le document n'a pas pu être archivé.";
+                nextTick(() => document.getElementById(`archive-reason-${item.id}`)?.focus());
             },
             onFinish: () => { archivingId.value = null; },
         },
@@ -139,9 +141,10 @@ function archive(document) {
                         </div>
 
                         <div class="flex flex-wrap gap-3">
-                            <Link :href="`/personnes/${person.id}/documents/${document.id}`" class="touch-target inline-flex items-center justify-center rounded-lg bg-primary px-4 font-semibold text-white">
+                            <!-- Lien classique et non `Link` : la réponse est un fichier, qu'Inertia ne sait pas afficher. -->
+                            <a :href="`/personnes/${person.id}/documents/${document.id}`" class="touch-target inline-flex items-center justify-center rounded-lg bg-primary px-4 font-semibold text-white">
                                 Consulter le document
-                            </Link>
+                            </a>
                             <AppButton v-if="canDeposit && !document.archived" variant="destructeur" @click="openArchive(document)">Archiver</AppButton>
                         </div>
 

@@ -21,4 +21,10 @@ class TransitionBlockerRequest extends FormRequest
     {
         return ['state' => ['required', Rule::enum(BlockerState::class)], 'closure_reason' => ['nullable', 'required_if:state,ferme_sans_solution', 'string', 'max:2000']];
     }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return ['closure_reason.required_if' => 'Indiquez pourquoi le blocage est fermé sans solution.'];
+    }
 }

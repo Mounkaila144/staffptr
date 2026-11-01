@@ -27,6 +27,15 @@ class StoreClientRequest extends FormRequest
         ];
     }
 
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'phone.regex' => 'Saisissez les 8 chiffres du numéro après +227, par exemple 96 11 22 33.',
+            'phone.unique' => 'Un client utilise déjà ce numéro de téléphone.',
+        ];
+    }
+
     protected function prepareForValidation(): void
     {
         try {

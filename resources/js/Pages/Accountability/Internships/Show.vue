@@ -1,7 +1,9 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import AppButton from '../../../Components/AppButton.vue';
+import AppModal from '../../../Components/AppModal.vue';
 
 const props = defineProps({
     internship: { type: Object, required: true },
@@ -25,6 +27,14 @@ const evaluationForm = useForm({
 });
 
 const exitForm = useForm({});
+const confirmingExit = ref(false);
+// Les refus qui ne visent pas un champ (évaluation déjà validée, stage déjà terminé) arrivent
+// dans les erreurs de page : sans cet affichage, le clic restait sans effet visible.
+const pageErrors = computed(() => usePage().props.errors ?? {});
+const generalError = computed(() => pageErrors.value.internship
+    || (evaluationForm.errors.evaluation ? '' : pageErrors.value.evaluation)
+    || pageErrors.value.checklist
+    || '');
 
 function savePlan() {
     planForm.put(`/stages/${props.internship.id}/plan`, { preserveScroll: true });
@@ -41,8 +51,15 @@ function validateEvaluation(id) {
     useForm({}).patch(`/stages/${props.internship.id}/evaluations/${id}/valider`, { preserveScroll: true });
 }
 
+function completeItem(item) {
+    useForm({}).patch(`/stages/${props.internship.id}/checklist/${item.id}/fait`, { preserveScroll: true });
+}
+
 function endInternship() {
-    exitForm.patch(`/stages/${props.internship.id}/sortie`, { preserveScroll: true });
+    exitForm.patch(`/stages/${props.internship.id}/sortie`, {
+        preserveScroll: true,
+        onFinish: () => { confirmingExit.value = false; },
+    });
 }
 </script>
 
@@ -58,8 +75,16 @@ function endInternship() {
                 </p>
             </header>
 
+            <p v-if="internship.intern_access_closed" class="rounded-lg border border-neutral bg-neutral-soft p-3 text-ink-secondary" role="note">
+                Stage terminé : l’accès de {{ internship.intern }} à l’application est fermé (compte à l’état « Terminé », sessions révoquées). Ses données restent consultables.
+            </p>
+
             <p v-if="success" class="rounded-lg border border-success bg-success-soft p-3 text-success" role="status">
                 {{ success }}
+            </p>
+
+            <p v-if="generalError" class="rounded-lg border border-danger bg-danger-soft p-3 text-danger" role="alert">
+                ⚠ {{ generalError }}
             </p>
 
             <section class="grid min-w-0 gap-3 rounded-xl border border-separator bg-surface p-4">
@@ -83,22 +108,28 @@ function endInternship() {
                     </div>
                 </template>
                 <p v-else class="text-ink-secondary">
-                    Le plan de stage n’est pas encore rédigé. Votre tuteur l’enregistrera au démarrage.
+                    {{ permissions.manage
+                        ? 'Le plan de stage n’est pas encore rédigé : remplissez-le ci-dessous.'
+                        : 'Le plan de stage n’est pas encore rédigé. Votre tuteur l’enregistrera au démarrage.' }}
                 </p>
 
                 <form v-if="permissions.manage" class="grid gap-2 border-t border-separator pt-3" @submit.prevent="savePlan">
                     <label class="grid gap-1 font-semibold" for="skills">Compétences à apprendre
                         <textarea id="skills" v-model="planForm.skills_to_learn" rows="2" required class="rounded-lg border border-separator p-3" />
                     </label>
+                    <p v-if="planForm.errors.skills_to_learn" class="text-sm text-danger" role="alert">⚠ {{ planForm.errors.skills_to_learn }}</p>
                     <label class="grid gap-1 font-semibold" for="objectives">Objectifs
                         <textarea id="objectives" v-model="planForm.objectives" rows="2" required class="rounded-lg border border-separator p-3" />
                     </label>
+                    <p v-if="planForm.errors.objectives" class="text-sm text-danger" role="alert">⚠ {{ planForm.errors.objectives }}</p>
                     <label class="grid gap-1 font-semibold" for="weekly-tasks">Tâches hebdomadaires
                         <textarea id="weekly-tasks" v-model="planForm.weekly_tasks" rows="2" required class="rounded-lg border border-separator p-3" />
                     </label>
+                    <p v-if="planForm.errors.weekly_tasks" class="text-sm text-danger" role="alert">⚠ {{ planForm.errors.weekly_tasks }}</p>
                     <label class="grid gap-1 font-semibold" for="expected-evidence">Preuves attendues
                         <textarea id="expected-evidence" v-model="planForm.expected_evidence" rows="2" required class="rounded-lg border border-separator p-3" />
                     </label>
+                    <p v-if="planForm.errors.expected_evidence" class="text-sm text-danger" role="alert">⚠ {{ planForm.errors.expected_evidence }}</p>
                     <AppButton type="submit" :disabled="planForm.processing">Enregistrer le plan</AppButton>
                 </form>
             </section>
@@ -141,8 +172,10 @@ function endInternship() {
                         </select>
                     </label>
                     <label v-if="evaluationForm.type === 'hebdomadaire'" class="grid gap-1 font-semibold" for="week-start">Semaine évaluée
-                        <input id="week-start" v-model="evaluationForm.week_start_date" type="date" class="touch-target rounded-lg border border-separator px-3" />
+                        <input id="week-start" v-model="evaluationForm.week_start_date" type="date" required class="touch-target rounded-lg border border-separator px-3" />
                     </label>
+                    <p v-if="evaluationForm.errors.week_start_date" class="text-sm text-danger" role="alert">⚠ {{ evaluationForm.errors.week_start_date }}</p>
+                    <p v-if="evaluationForm.errors.evaluation" class="text-sm text-danger" role="alert">⚠ {{ evaluationForm.errors.evaluation }}</p>
                     <label class="grid gap-1 font-semibold" for="observed-progress">Progrès constatés
                         <textarea
                             id="observed-progress"
@@ -184,18 +217,28 @@ function endInternship() {
                 class="grid min-w-0 gap-2 rounded-xl border border-separator bg-surface p-4"
             >
                 <h2 class="text-section-title">{{ type === 'integration' ? 'Checklist d’intégration' : 'Checklist de sortie' }}</h2>
-                <ul class="grid gap-1">
-                    <li v-for="item in items" :key="item.id" class="text-ink-secondary">
-                        {{ item.label }} — {{ item.completed ? 'fait' : 'à faire' }}
+                <ul class="grid gap-2">
+                    <li v-for="item in items" :key="item.id" class="flex flex-wrap items-center justify-between gap-2 text-ink-secondary">
+                        <span>{{ item.label }} — {{ item.completed ? `✓ fait${item.completed_at ? ` le ${item.completed_at}` : ''}` : 'à faire' }}</span>
+                        <AppButton v-if="permissions.manage && !item.completed" variant="secondaire" @click="completeItem(item)">Marquer comme fait</AppButton>
                     </li>
                 </ul>
             </section>
 
-            <form v-if="permissions.manage && internship.state === 'actif'" @submit.prevent="endInternship">
-                <AppButton type="submit" variant="secondaire" :disabled="exitForm.processing">
+            <div v-if="permissions.manage && internship.state === 'actif'">
+                <AppButton variant="secondaire" @click="confirmingExit = true">
                     Terminer le stage et générer la checklist de sortie
                 </AppButton>
-            </form>
+            </div>
+
+            <!-- Terminer un stage ne se défait pas : un clic isolé ne doit pas suffire. -->
+            <AppModal v-model:open="confirmingExit" title="Terminer le stage ?" :description="`Le stage de ${internship.intern} passera à l’état terminé et la checklist de sortie sera générée. S’il n’a que le rôle stagiaire, son accès à l’application sera fermé. Cette action ne peut pas être annulée.`">
+                <p class="text-ink-secondary">Pensez à enregistrer l’évaluation finale (le bilan) avant de terminer le stage.</p>
+                <template #footer>
+                    <AppButton @click="confirmingExit = false">Annuler</AppButton>
+                    <AppButton variant="danger" :busy="exitForm.processing" @click="endInternship">Terminer le stage</AppButton>
+                </template>
+            </AppModal>
         </div>
     </AppLayout>
 </template>

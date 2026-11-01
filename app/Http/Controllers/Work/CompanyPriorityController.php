@@ -63,7 +63,7 @@ class CompanyPriorityController extends Controller
     /** @return array<string, mixed> */
     private function serialize(CompanyPriority $item): array
     {
-        return ['id' => $item->getKey(), 'title' => $item->title, 'description' => $item->description, 'owner' => $item->owner->person->full_name, 'indicator' => $item->indicator, 'target' => $item->target, 'due_date' => $item->due_date->format('d/m/Y'), 'priority' => $item->priority->value, 'priority_label' => $item->priority->label(), 'state' => $item->state->value, 'state_label' => $item->state->label()];
+        return ['id' => $item->getKey(), 'title' => $item->title, 'description' => $item->description, 'owner' => $item->owner->person->full_name, 'owner_id' => (int) $item->owner_id, 'indicator' => $item->indicator, 'target' => $item->target, 'due_date' => $item->due_date->format('d/m/Y'), 'due_date_value' => $item->due_date->format('Y-m-d'), 'cancellation_reason' => $item->cancellation_reason, 'priority' => $item->priority->value, 'priority_label' => $item->priority->label(), 'state' => $item->state->value, 'state_label' => $item->state->label()];
     }
 
     /**

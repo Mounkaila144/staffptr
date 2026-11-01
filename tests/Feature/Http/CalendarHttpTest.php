@@ -50,6 +50,27 @@ class CalendarHttpTest extends IdentityTestCase
         ]);
     }
 
+    public function test_each_calendar_change_confirms_its_outcome_with_a_success_message(): void
+    {
+        $direction = $this->userWithRole('direction');
+
+        $this->actingAs($direction)
+            ->post('/calendrier/jours-feries', ['label' => 'Fermeture confirmée', 'date' => '2026-11-20'])
+            ->assertSessionHas('success', 'Jour férié ajouté.');
+
+        $holiday = Holiday::query()->where('date', '2026-11-20')->sole();
+
+        $this->actingAs($direction)
+            ->patch("/calendrier/jours-feries/{$holiday->getKey()}", ['label' => 'Fermeture renommée', 'date' => '2026-11-20'])
+            ->assertSessionHas('success', 'Jour férié modifié.');
+        $this->actingAs($direction)
+            ->patch("/calendrier/jours-feries/{$holiday->getKey()}/desactiver")
+            ->assertSessionHas('success', 'Jour férié désactivé : la journée redevient travaillée.');
+        $this->actingAs($direction)
+            ->patch("/calendrier/jours-feries/{$holiday->getKey()}/reactiver")
+            ->assertSessionHas('success', 'Jour férié réactivé.');
+    }
+
     public function test_ac_5_calendar_changes_are_audited_and_physical_deletion_is_impossible(): void
     {
         $direction = $this->userWithRole('direction');

@@ -45,7 +45,17 @@ async function prepareDeactivation(account) {
     deactivatingId.value = account.id;
     deactivationForm.reset();
     await nextTick();
-    reasonField.value?.focus();
+    focusReason();
+}
+
+// `ref` posé dans un `v-for` : Vue fournit un tableau d’éléments, pas un élément seul.
+function focusReason() {
+    const field = Array.isArray(reasonField.value) ? reasonField.value[0] : reasonField.value;
+    field?.focus?.();
+}
+
+function frenchDate(iso) {
+    return iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '';
 }
 
 function cancelDeactivation() {
@@ -57,7 +67,7 @@ function deactivate(account) {
     deactivationForm.patch(`/finances/comptes/${account.id}/desactiver`, {
         preserveScroll: true,
         onSuccess: cancelDeactivation,
-        onError: () => nextTick(() => reasonField.value?.focus()),
+        onError: () => nextTick(focusReason),
     });
 }
 
@@ -87,8 +97,8 @@ function typeLabel(value, types) {
                 </label>
                 <p v-if="creationForm.errors.type" class="text-sm font-semibold text-danger">⚠ {{ creationForm.errors.type }}</p>
                 <FormField ref="labelField" id="financial-account-label" v-model="creationForm.label" label="Libellé" required :error="creationForm.errors.label" />
-                <FormField id="financial-account-opening-balance" v-model="creationForm.opening_balance_amount" label="Solde initial en XOF" type="number" min="0" required :error="creationForm.errors.opening_balance_amount" />
-                <FormField id="financial-account-opening-date" v-model="creationForm.opening_balance_date" label="Date du solde initial" type="date" required :error="creationForm.errors.opening_balance_date" />
+                <FormField id="financial-account-opening-balance" v-model="creationForm.opening_balance_amount" label="Solde initial en XOF" variant="money" required :error="creationForm.errors.opening_balance_amount" />
+                <FormField id="financial-account-opening-date" v-model="creationForm.opening_balance_date" label="Date du solde initial" variant="date" required :error="creationForm.errors.opening_balance_date" />
                 <div class="flex flex-wrap gap-2">
                     <AppButton type="submit" variant="principal" :busy="creationForm.processing" busy-label="Création en cours">Créer</AppButton>
                     <AppButton type="button" variant="secondaire" @click="creationOpen = false">Annuler</AppButton>
@@ -119,7 +129,7 @@ function typeLabel(value, types) {
                         </div>
                         <div>
                             <dt class="text-sm text-ink-secondary">Solde initial</dt>
-                            <dd class="font-semibold">{{ account.opening_balance_amount.toLocaleString('fr-FR') }} FCFA au {{ account.opening_balance_date }}</dd>
+                            <dd class="font-semibold">{{ account.opening_balance_amount.toLocaleString('fr-FR') }} FCFA au {{ frenchDate(account.opening_balance_date) }}</dd>
                         </div>
                     </dl>
                     <p v-if="account.deactivation_reason" class="rounded-lg bg-neutral-soft p-3 text-sm"><strong>Motif de désactivation :</strong> {{ account.deactivation_reason }}</p>

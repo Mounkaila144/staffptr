@@ -31,4 +31,14 @@ class StoreContractRequest extends FormRequest
             'ends_on' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:starts_on'],
         ];
     }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'forecast_profit_amount.lte' => 'Le bénéfice prévisionnel ne peut pas dépasser le montant total prévu du contrat.',
+            'reference.unique' => 'Un contrat porte déjà cette référence.',
+            'ends_on.after_or_equal' => 'La fin prévue doit être égale ou postérieure au début.',
+        ];
+    }
 }

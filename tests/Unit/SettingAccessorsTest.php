@@ -15,6 +15,8 @@ class SettingAccessorsTest extends TestCase
             'report_deadline_time',
             'report_reminder_minutes',
             'intern_limit_per_tutor',
+            'intern_arrival_time',
+            'intern_arrival_tolerance_minutes',
             'reserve_percentage',
             'reserve_target_months',
             'attachment_allowed_types',
@@ -25,6 +27,7 @@ class SettingAccessorsTest extends TestCase
         ], SettingsService::keys());
         $this->assertSame('array', SettingsService::type('working_days'));
         $this->assertSame('time', SettingsService::type('report_deadline_time'));
+        $this->assertSame('time', SettingsService::type('intern_arrival_time'));
         $this->assertSame('percentage', SettingsService::type('reserve_percentage'));
         $this->assertContains('integer', SettingsService::valueRules('login_max_failed_attempts'));
         $this->assertContains('distinct', SettingsService::itemRules('attachment_allowed_types'));

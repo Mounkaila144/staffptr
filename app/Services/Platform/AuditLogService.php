@@ -8,9 +8,32 @@ use App\Enums\DocumentType;
 use App\Enums\PersonOperationalStatus;
 use App\Enums\RelationType;
 use App\Enums\UserState;
+use App\Models\Accountability\AttendanceRecord;
+use App\Models\Accountability\Blocker;
+use App\Models\Accountability\DailyReport;
+use App\Models\Accountability\DailyReportComment;
+use App\Models\Accountability\DailyReportDecision;
+use App\Models\Accountability\DailyReportVersion;
+use App\Models\Accountability\ImprovementPlan;
+use App\Models\Accountability\ImprovementPlanAction;
+use App\Models\Accountability\Internship;
+use App\Models\Accountability\InternshipChecklistItem;
+use App\Models\Accountability\InternshipEvaluation;
+use App\Models\Accountability\InternshipIntakeForm;
+use App\Models\Accountability\InternshipIntakeOutcome;
+use App\Models\Accountability\InternshipPlan;
+use App\Models\Accountability\TaskRequest;
+use App\Models\Accountability\TutorSupportSlot;
+use App\Models\Accountability\WeeklyReview;
+use App\Models\Accountability\WeeklyReviewObjective;
 use App\Models\Finance\Account;
+use App\Models\Finance\AccountMovement;
+use App\Models\Finance\CapitalContribution;
 use App\Models\Finance\Client;
 use App\Models\Finance\Contract;
+use App\Models\Finance\ContractExecutor;
+use App\Models\Finance\ContributionShare;
+use App\Models\Finance\CorrectionPlan;
 use App\Models\Finance\Expense;
 use App\Models\Finance\ExpenseCategory;
 use App\Models\Finance\FixedCharge;
@@ -36,6 +59,11 @@ use App\Models\Platform\InternalDocument;
 use App\Models\Platform\InternalDocumentAcknowledgement;
 use App\Models\Platform\InternalDocumentVersion;
 use App\Models\Platform\Setting;
+use App\Models\Work\CompanyPriority;
+use App\Models\Work\Deliverable;
+use App\Models\Work\Objective;
+use App\Models\Work\Project;
+use App\Models\Work\Task;
 use App\Support\Auditing\AuditLogger;
 use App\Support\DateTimeFormatter;
 use Carbon\CarbonImmutable;
@@ -46,6 +74,317 @@ use LogicException;
 
 final class AuditLogService
 {
+    /** Libellés des objets apparus après le premier lot (rapports, stages, travail, finances avancées). */
+    private const OBJECT_LABELS = [
+        AttendanceRecord::class => 'Pointage de présence',
+        Blocker::class => 'Blocage',
+        DailyReport::class => 'Rapport du jour',
+        DailyReportComment::class => 'Commentaire de rapport du jour',
+        DailyReportDecision::class => 'Décision sur un rapport du jour',
+        DailyReportVersion::class => 'Version de rapport du jour',
+        ImprovementPlan::class => 'Plan d\'amélioration',
+        ImprovementPlanAction::class => 'Action du plan d\'amélioration',
+        Internship::class => 'Stage',
+        InternshipChecklistItem::class => 'Étape de la liste de stage',
+        InternshipEvaluation::class => 'Évaluation de stage',
+        InternshipIntakeForm::class => 'Fiche d\'entrée de stagiaire',
+        InternshipIntakeOutcome::class => 'Décision sur une fiche d\'entrée',
+        InternshipPlan::class => 'Plan de stage',
+        TaskRequest::class => 'Demande de tâche',
+        TutorSupportSlot::class => 'Créneau de suivi du tuteur',
+        WeeklyReview::class => 'Revue hebdomadaire',
+        WeeklyReviewObjective::class => 'Objectif de revue hebdomadaire',
+        AccountMovement::class => 'Mouvement de compte financier',
+        CapitalContribution::class => 'Apport en capital',
+        ContractExecutor::class => 'Exécutant du contrat',
+        ContributionShare::class => 'Part de contribution',
+        CorrectionPlan::class => 'Plan correctif',
+        CompanyPriority::class => 'Priorité de l\'entreprise',
+        Deliverable::class => 'Livrable',
+        Objective::class => 'Objectif',
+        Project::class => 'Projet',
+        Task::class => 'Tâche',
+    ];
+
+    /** Libellés des actions apparues après le premier lot. */
+    private const ACTION_LABELS = [
+        'attendance_arrival_recorded' => 'Pointage d\'arrivée',
+        'attendance_departure_recorded' => 'Pointage de départ',
+        'blocker_created' => 'Signalement d\'un blocage',
+        'blocker_transitioned' => 'Changement d\'état du blocage',
+        'capital_contribution_approved' => 'Approbation de l\'apport en capital',
+        'capital_contribution_recorded' => 'Enregistrement de l\'apport en capital',
+        'capital_contribution_refused' => 'Refus de l\'apport en capital',
+        'company_priority_created' => 'Création de la priorité',
+        'company_priority_updated' => 'Modification de la priorité',
+        'contribution_shares_issued_from_capital' => 'Émission de parts sur un apport en capital',
+        'contribution_shares_issued_from_payment' => 'Émission de parts sur un encaissement',
+        'correction_plan_created' => 'Création du plan correctif',
+        'correction_plan_revised' => 'Révision du plan correctif',
+        'correction_plan_validated' => 'Validation du plan correctif',
+        'daily_report_corrected' => 'Correction du rapport du jour',
+        'daily_report_returned' => 'Retour du rapport du jour pour correction',
+        'daily_report_submitted' => 'Envoi du rapport du jour',
+        'daily_report_validated' => 'Validation du rapport du jour',
+        'deliverable_created' => 'Création du livrable',
+        'deliverable_status_changed' => 'Changement d\'état du livrable',
+        'improvement_plan_closed' => 'Clôture du plan d\'amélioration',
+        'improvement_plan_created' => 'Création du plan d\'amélioration',
+        'intern_access_closed' => 'Fermeture de l\'accès du stagiaire',
+        'internship_activated' => 'Activation du stage',
+        'internship_checklist_item_completed' => 'Étape de stage accomplie',
+        'internship_ended' => 'Fin du stage',
+        'internship_evaluation_recorded' => 'Enregistrement d\'une évaluation de stage',
+        'internship_evaluation_validated' => 'Validation d\'une évaluation de stage',
+        'internship_final_evaluation_recorded' => 'Enregistrement de l\'évaluation finale du stage',
+        'internship_intake_approved' => 'Approbation de la fiche d\'entrée',
+        'internship_intake_drafted' => 'Rédaction de la fiche d\'entrée',
+        'internship_intake_refused' => 'Refus de la fiche d\'entrée',
+        'internship_intake_submitted' => 'Envoi de la fiche d\'entrée',
+        'internship_plan_created' => 'Création du plan de stage',
+        'objective_commented' => 'Commentaire sur l\'objectif',
+        'objective_proposed' => 'Proposition d\'objectif',
+        'objective_state_changed' => 'Changement d\'état de l\'objectif',
+        'objective_updated' => 'Modification de l\'objectif',
+        'objective_validated' => 'Validation de l\'objectif',
+        'project_commented' => 'Commentaire sur le projet',
+        'project_created' => 'Création du projet',
+        'project_link_added' => 'Ajout d\'un lien au projet',
+        'project_member_added' => 'Ajout d\'un membre au projet',
+        'project_status_changed' => 'Changement d\'état du projet',
+        'task_request_created' => 'Demande de tâche',
+        'task_request_processed' => 'Traitement de la demande de tâche',
+        'weekly_review_commented' => 'Commentaire sur la revue hebdomadaire',
+        'weekly_review_objective_recorded' => 'Enregistrement d\'un objectif de revue',
+        'weekly_review_opened' => 'Ouverture de la revue hebdomadaire',
+        'weekly_review_submitted' => 'Envoi de la revue hebdomadaire',
+        'weekly_review_validated_by_reviewee' => 'Validation de la revue par la personne évaluée',
+        'weekly_review_validated_by_reviewer' => 'Validation de la revue par le relecteur',
+        'work_task_commented' => 'Commentaire sur la tâche',
+        'work_task_created' => 'Création de la tâche',
+        'work_task_link_added' => 'Ajout d\'un lien à la tâche',
+        'work_task_status_changed' => 'Changement d\'état de la tâche',
+    ];
+
+    /** Libellés des champs apparus après le premier lot. */
+    private const FIELD_LABELS = [
+        'full_name' => 'Nom complet',
+        'first_seen_at' => 'Première date connue',
+        'updated_at' => 'Date de modification',
+        'created_at' => 'Date de création',
+        'id' => 'Identifiant',
+        'contributor_id' => 'Apporteur',
+        'contribution_amount' => 'Montant de l\'apport',
+        'declared_on' => 'Date de déclaration',
+        'purpose' => 'Objet',
+        'idempotency_key' => 'Clé anti-doublon',
+        'capital_contribution_id' => 'Apport en capital',
+        'holder_id' => 'Détenteur',
+        'origin' => 'Origine',
+        'entry_type' => 'Type d\'écriture',
+        'base_amount' => 'Montant de base',
+        'vintage_year' => 'Année d\'émission',
+        'coefficient_basis_points' => 'Coefficient (points de base)',
+        'issued_shares' => 'Parts émises',
+        'occurred_on' => 'Date',
+        'created_by' => 'Créé par',
+        'approved_by' => 'Approuvé par',
+        'approved_at' => 'Date d\'approbation',
+        'refused_by' => 'Refusé par',
+        'refused_at' => 'Date du refus',
+        'refusal_reason' => 'Motif du refus',
+        'project_id' => 'Projet',
+        'objective_id' => 'Objectif',
+        'parent_id' => 'Élément parent',
+        'assignee_id' => 'Responsable',
+        'due_date' => 'Échéance',
+        'priority' => 'Priorité',
+        'status' => 'État',
+        'requester_id' => 'Demandeur',
+        'category_id' => 'Catégorie',
+        'beneficiary' => 'Bénéficiaire',
+        'expected_result' => 'Résultat attendu',
+        'project_or_contract_note' => 'Projet ou contrat concerné',
+        'candidate_user_id' => 'Candidat',
+        'tutor_id' => 'Tuteur',
+        'real_need' => 'Besoin réel',
+        'mission' => 'Mission',
+        'duration_weeks' => 'Durée en semaines',
+        'tools' => 'Outils',
+        'internship_intake_form_id' => 'Fiche d\'entrée',
+        'position' => 'Position',
+        'description' => 'Description',
+        'submitted_at' => 'Date d\'envoi',
+        'company_priority_id' => 'Priorité de l\'entreprise',
+        'indicator' => 'Indicateur',
+        'target_value' => 'Valeur cible',
+        'expected_evidence' => 'Preuve attendue',
+        'required_means' => 'Moyens nécessaires',
+        'progress' => 'Avancement',
+        'internship_id' => 'Stage',
+        'checklist_type' => 'Type de liste',
+        'author_id' => 'Auteur',
+        'report_date' => 'Date du rapport',
+        'daily_report_id' => 'Rapport du jour',
+        'planned_task' => 'Tâche prévue',
+        'achieved_result' => 'Résultat obtenu',
+        'evidence_link' => 'Lien vers la preuve',
+        'blocker_present' => 'Blocage signalé',
+        'blocker_details' => 'Détail du blocage',
+        'next_action' => 'Prochaine action',
+        'help_requested' => 'Aide demandée',
+        'help_details' => 'Détail de l\'aide demandée',
+        'correction_reason' => 'Motif de la correction',
+        'lateness_explanation' => 'Explication du retard',
+        'work_date' => 'Jour de travail',
+        'arrived_at' => 'Heure d\'arrivée',
+        'late_minutes' => 'Minutes de retard',
+        'opening_balance_amount' => 'Solde d\'ouverture',
+        'opening_balance_date' => 'Date du solde d\'ouverture',
+        'deactivation_reason' => 'Motif de désactivation',
+        'deactivated_at' => 'Date de désactivation',
+        'contact' => 'Contact',
+        'notes' => 'Notes',
+        'client_id' => 'Client',
+        'reference' => 'Référence',
+        'has_execution' => 'Comporte une exécution',
+        'starts_on' => 'Date de début',
+        'ends_on' => 'Date de fin',
+        'executor_ids' => 'Exécutants',
+        'contract_id' => 'Contrat',
+        'number' => 'Numéro',
+        'total_amount' => 'Montant total',
+        'issued_on' => 'Date d\'émission',
+        'due_on' => 'Échéance',
+        'cancellation_reason' => 'Motif d\'annulation',
+        'cancelled_at' => 'Date d\'annulation',
+        'account_id' => 'Compte financier',
+        'direction' => 'Sens du mouvement',
+        'effective_on' => 'Date d\'effet',
+        'source_type' => 'Type d\'origine',
+        'source_id' => 'Origine',
+        'reversal_of_id' => 'Contre-écriture de',
+        'validated_at' => 'Date de validation',
+        'payment_id' => 'Encaissement',
+        'beneficiary_id' => 'Bénéficiaire',
+        'beneficiary_key' => 'Bénéficiaire (clé)',
+        'share_type' => 'Type de part',
+        'rate_basis_points' => 'Taux (points de base)',
+        'rate_divisor' => 'Diviseur du taux',
+        'share_amount' => 'Montant de la part',
+        'paid_amount' => 'Montant versé',
+        'calculation_method' => 'Méthode de calcul',
+        'period_start' => 'Début de période',
+        'period_end' => 'Fin de période',
+        'source_received_on' => 'Date d\'encaissement d\'origine',
+        'receipt_sequence_id' => 'Séquence de reçu',
+        'receipt_number' => 'Numéro de reçu',
+        'invoice_id' => 'Facture',
+        'received_on' => 'Date d\'encaissement',
+        'received_at' => 'Heure d\'encaissement',
+        'payment_mode' => 'Mode de paiement',
+        'correction_of_id' => 'Correction de',
+        'late_recording' => 'Saisie tardive',
+        'post_reopening' => 'Après réouverture du mois',
+        'reversed_at' => 'Date de contre-écriture',
+        'reversal_payment_id' => 'Encaissement de contre-écriture',
+        'month' => 'Mois',
+        'owner_id' => 'Responsable',
+        'target' => 'Cible',
+        'origin_type' => 'Type d\'origine',
+        'origin_id' => 'Origine',
+        'solicited_user_id' => 'Personne sollicitée',
+        'problem' => 'Problème',
+        'urgency' => 'Urgence',
+        'reported_on' => 'Date du signalement',
+        'deadline_impact' => 'Impact sur l\'échéance',
+        'attempted_action' => 'Action déjà tentée',
+        'comment_id' => 'Commentaire',
+        'body' => 'Texte',
+        'login_attempt_id' => 'Tentative de connexion',
+        'reviewer_id' => 'Relecteur',
+        'decision' => 'Décision',
+        'difference_direction' => 'Sens de l\'écart',
+        'responsible_id' => 'Responsable',
+        'previous_id' => 'Version précédente',
+        'skills_to_learn' => 'Compétences à acquérir',
+        'objectives' => 'Objectifs',
+        'weekly_tasks' => 'Tâches hebdomadaires',
+        'evaluator_id' => 'Évaluateur',
+        'week_start_date' => 'Début de semaine',
+        'observed_progress' => 'Progrès constatés',
+        'evidence' => 'Preuves',
+        'next_steps' => 'Prochaines étapes',
+        'cancel_reason' => 'Motif d\'annulation',
+        'paid_on' => 'Date de paiement',
+        'payment_reference' => 'Référence du paiement',
+        'paid_by' => 'Payé par',
+        'paid_at' => 'Date du paiement',
+        'beneficiary_user_id' => 'Bénéficiaire',
+        'share_entitlement_id' => 'Droit à part',
+        'payment_attachment_id' => 'Justificatif de paiement',
+        'original_attachment_id' => 'Pièce jointe d’origine',
+        'is_advance_reimbursement' => 'Remboursement d\'avance',
+        'counter_entry_of_id' => 'Contre-écriture de',
+        'payment_idempotency_key' => 'Clé anti-doublon du paiement',
+        'payment_cancellation_reason' => 'Motif d\'annulation du paiement',
+        'certificate_conditions_met' => 'Conditions de l\'attestation remplies',
+        'link_id' => 'Lien',
+        'url' => 'Adresse du lien',
+        'version' => 'Version',
+        'lines' => 'Lignes',
+        'completed_by' => 'Accompli par',
+        'completed_at' => 'Date d\'accomplissement',
+        'ended_at' => 'Date de fin',
+        'controlled_at' => 'Date du contrôle',
+        'alert_level' => 'Niveau d\'alerte',
+        'alert_source_date' => 'Date de référence de l\'alerte',
+        'monthly_report_id' => 'Rapport financier mensuel',
+        'closed_at' => 'Date de clôture',
+        'frozen_alert_level' => 'Niveau d\'alerte figé',
+        'resolved_at' => 'Date de résolution',
+        'closure_reason' => 'Motif de clôture',
+        'reopened_at' => 'Date de réouverture',
+        'requested_by' => 'Demandé par',
+        'is_urgent' => 'Urgent',
+        'client_name' => 'Nom du client',
+        'planned_budget_xof' => 'Budget prévu (F CFA)',
+        'spent_budget_xof' => 'Budget consommé (F CFA)',
+        'joined_on' => 'Date d\'arrivée',
+        'treated_by' => 'Traité par',
+        'treated_at' => 'Date de traitement',
+        'finding' => 'Constat',
+        'actions' => 'Actions',
+        'responsibles' => 'Responsables',
+        'plan_id' => 'Plan',
+        'revision_reason' => 'Motif de la révision',
+        'subject_user_id' => 'Personne concernée',
+        'scheduled_on' => 'Date prévue',
+        'weekly_review_id' => 'Revue hebdomadaire',
+        'result' => 'Résultat',
+        'gap_cause' => 'Cause de l\'écart',
+        'reviewer_comment' => 'Commentaire du relecteur',
+        'requested_at' => 'Date de la demande',
+        'reviewee_comment' => 'Commentaire de la personne évaluée',
+        'reviewee_validated_by' => 'Validé par la personne évaluée',
+        'reviewee_validated_at' => 'Date de validation par la personne évaluée',
+        'left_at' => 'Heure de départ',
+        'reviewer_validated_by' => 'Validé par le relecteur',
+        'reviewer_validated_at' => 'Date de validation par le relecteur',
+        'support_provided' => 'Soutien apporté',
+        'improvement_plan_id' => 'Plan d\'amélioration',
+        'expense_id' => 'Dépense',
+        'first_approved_by' => 'Première approbation par',
+        'second_approved_by' => 'Deuxième approbation par',
+        'weekday' => 'Jour de la semaine',
+        'start_time' => 'Heure de début',
+        'planned_date' => 'Date prévue',
+        'actual_date' => 'Date réelle',
+        'target_label' => 'Compte concerné',
+        'identity_verification' => 'Vérification d\'identité',
+        'observed_result' => 'Résultat observé',
+    ];
+
     public function __construct(private readonly AuditLogger $auditLogger) {}
 
     /**
@@ -352,7 +691,7 @@ final class AuditLogService
             'reopen_reason' => 'Motif de réouverture',
             'approver_id' => 'Compte de direction ayant décidé',
             'approval_decision' => "Décision d'approbation",
-            default => "{$field} (nom technique)",
+            default => self::FIELD_LABELS[$field] ?? "{$field} (nom technique)",
         };
     }
 
@@ -394,6 +733,13 @@ final class AuditLogService
 
         if (is_bool($value)) {
             return $value ? 'Oui' : 'Non';
+        }
+
+        // Une date calendaire seule s'affiche au format du pays, jamais en ISO brut.
+        if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1) {
+            $date = CarbonImmutable::createFromFormat('!Y-m-d', $value);
+
+            return $date instanceof CarbonImmutable ? $date->format('d/m/Y') : $value;
         }
 
         if (is_array($value)) {
@@ -460,7 +806,7 @@ final class AuditLogService
             Reconciliation::class => 'Rapprochement',
             MonthlyReport::class => 'Rapport financier mensuel',
             MonthClosure::class => 'Clôture mensuelle',
-            default => "{$type} (nom technique)",
+            default => self::OBJECT_LABELS[$type] ?? "{$type} (nom technique)",
         };
 
         return $identifier === null ? $label : "{$label} #{$identifier}";
@@ -489,6 +835,7 @@ final class AuditLogService
             'user_role_removed' => 'Retrait de rôle',
             'password_changed' => 'Changement de mot de passe',
             'password_reset_by_administrator' => 'Réinitialisation du mot de passe',
+            'password_reset_without_whatsapp' => 'Réinitialisation du mot de passe sans code WhatsApp',
             'login_lock_started' => 'Blocage de connexion',
             'login_lock_expired', 'login_lock_cleared_by_password_reset' => 'Fin du blocage de connexion',
             'audit_log_exported' => "Export du journal d'audit",
@@ -537,6 +884,7 @@ final class AuditLogService
             'payment_cancelled_by_counter_entry' => 'Annulation de l’encaissement par contre-écriture',
             'expense_paid' => 'Paiement de la dépense',
             'expense_payment_cancelled_by_counter_entry' => 'Annulation du paiement par contre-écriture',
+            'expense_payment_proof_attached' => 'Ajout du justificatif de paiement',
             'share_payment_requested' => 'Demande de versement de part',
             'monthly_budget_created' => 'Création du budget mensuel',
             'monthly_budget_updated' => 'Modification du budget mensuel',
@@ -551,7 +899,7 @@ final class AuditLogService
             'monthly_report_validated' => 'Validation du rapport financier',
             'month_closed' => 'Clôture du mois',
             'month_reopened' => 'Réouverture du mois',
-            default => "{$action} (nom technique)",
+            default => self::ACTION_LABELS[$action] ?? "{$action} (nom technique)",
         };
     }
 

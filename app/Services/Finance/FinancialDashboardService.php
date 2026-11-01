@@ -60,6 +60,12 @@ final readonly class FinancialDashboardService
             $blocks[$key] = $this->cached($viewer, $key, $definition['build']);
         }
 
+        // La file d'approbation est réservée à la direction : pour un compte qui ne décide pas
+        // (finance), « Voir le détail » menait à un 403. Il ouvre alors le registre filtré.
+        if (isset($blocks['pending_expenses']) && ! $viewer->can('depense.approuver')) {
+            $blocks['pending_expenses']['url'] = route('expenses.index', ['state' => ExpenseState::Demandee->value], absolute: false);
+        }
+
         return $blocks;
     }
 
@@ -171,7 +177,13 @@ final readonly class FinancialDashboardService
         $month = CarbonImmutable::now(self::TIMEZONE)->startOfMonth();
         $query = Payment::query()
             ->where('state', PaymentState::Validated->value)
-            ->whereBetween('received_on', [$month->toDateString(), $month->endOfMonth()->toDateString()]);
+            // Une contre-écriture est un reçu « validé » qui annule un encaissement : elle ne
+            // compte pas comme une rentrée d'argent (l'original passe à « annulé »).
+            ->whereNull('reversal_of_id')
+            // `whereDate` et non `whereBetween` : sur SQLite la date est stockée avec son heure
+            // (« 2026-10-31 00:00:00 ») et le dernier jour du mois serait sinon exclu.
+            ->whereDate('received_on', '>=', $month->toDateString())
+            ->whereDate('received_on', '<=', $month->endOfMonth()->toDateString());
 
         return [
             'title' => 'Encaissements du mois',

@@ -47,6 +47,20 @@ class ShareEntitlementHttpTest extends IdentityTestCase
         $this->assertDatabaseHas('expenses', ['share_entitlement_id' => $own->getKey(), 'beneficiary_user_id' => $employee->getKey()]);
     }
 
+    /** Une demande en cours retire le bouton : le second clic était refusé sans explication. */
+    public function test_a_pending_payment_request_hides_the_request_button_and_says_so(): void
+    {
+        $employee = $this->roleUser('employe');
+        $own = $this->share($employee);
+
+        $this->actingAs($employee)->post(route('shares.request-payment', $own))->assertRedirect();
+        $this->actingAs($employee)->get(route('shares.index'))->assertInertia(
+            fn (AssertableInertia $page): AssertableInertia => $page
+                ->where('shares.0.can_request_payment', false)
+                ->where('shares.0.payment_requested', true),
+        );
+    }
+
     public function test_share_register_roles_follow_global_or_own_scope(): void
     {
         foreach (['direction', 'finance', 'employe'] as $role) {

@@ -5,34 +5,51 @@
 @source '../js/**/*.vue';
 
 @theme {
-    --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    /* Polices du système uniquement : aucune police externe n'est téléchargée (NFR3). */
+    --font-sans: 'Inter', 'SF Pro Text', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
+    /* Le bleu de marque reste celui du cahier d'interface ; ses contrastes sont déjà éprouvés. */
     --color-primary: #1b5faf;
-    --color-ink: #1a1a19;
-    --color-ink-secondary: #54534f;
-    --color-ink-muted: #6b6a66;
+    --color-primary-strong: #154b8c;
+    --color-primary-soft: #eaf1fb;
+    --color-ink: #0f172a;
+    --color-ink-secondary: #475569;
+    --color-ink-muted: #5b6b80;
     --color-success: #0b6b34;
     --color-warning: #8a5200;
     --color-danger: #b3261e;
-    --color-neutral: #4a4a48;
+    --color-neutral: #475569;
     --color-surface: #ffffff;
-    --color-canvas: #f7f7f5;
-    --color-separator: #e3e2de;
-    --color-success-soft: #e6f4ea;
-    --color-warning-soft: #fdf1dc;
-    --color-danger-soft: #fbe9e7;
-    --color-neutral-soft: #efefed;
-    --color-primary-soft: #e4eefa;
+    --color-canvas: #f4f6f9;
+    --color-separator: #e2e8f0;
+    --color-separator-strong: #cbd5e1;
+    --color-success-soft: #e7f5ec;
+    --color-warning-soft: #fdf3e1;
+    --color-danger-soft: #fcebe9;
+    --color-neutral-soft: #f1f5f9;
 
-    --text-screen-title: 1.25rem;
+    /* Barre latérale : une encre profonde qui sépare la navigation du contenu sans décor. */
+    --color-rail: #0c1a30;
+    --color-rail-hover: #16294a;
+    --color-rail-active: #1f3a66;
+    --color-rail-ink: #c3cede;
+    --color-rail-muted: #8293ad;
+
+    --text-page-title: 1.625rem;
+    --text-page-title--line-height: 1.25;
+    --text-page-title--font-weight: 700;
+    --text-page-title--letter-spacing: -0.02em;
+    --text-screen-title: 1.375rem;
     --text-screen-title--line-height: 1.3;
-    --text-screen-title--font-weight: 600;
-    --text-section-title: 1.0625rem;
+    --text-screen-title--font-weight: 700;
+    --text-screen-title--letter-spacing: -0.015em;
+    --text-section-title: 1.125rem;
     --text-section-title--line-height: 1.35;
-    --text-section-title--font-weight: 600;
-    --text-card-title: 0.9375rem;
+    --text-section-title--font-weight: 650;
+    --text-section-title--letter-spacing: -0.01em;
+    --text-card-title: 1rem;
     --text-card-title--line-height: 1.4;
-    --text-card-title--font-weight: 600;
+    --text-card-title--font-weight: 650;
     --text-body: 1rem;
     --text-body--line-height: 1.55;
     --text-field-label: 0.9375rem;
@@ -47,8 +64,11 @@
     --text-tile--line-height: 1.2;
     --text-tile--font-weight: 700;
 
+    --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 3px rgb(15 23 42 / 0.06);
+    --shadow-raised: 0 4px 6px -1px rgb(15 23 42 / 0.07), 0 10px 24px -6px rgb(15 23 42 / 0.12);
+
     --spacing: 0.25rem;
-    --container-content: 45rem;
+    --container-content: 60rem;
 }
 
 @layer base {
@@ -56,6 +76,9 @@
         background: var(--color-canvas);
         color: var(--color-ink);
         font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
     }
 
     body {
@@ -70,12 +93,97 @@
         outline: 2px solid var(--color-primary);
         outline-offset: 2px;
     }
+
+    /* Les montants se comparent d'une ligne à l'autre : chiffres à chasse fixe partout. */
+    main {
+        font-variant-numeric: tabular-nums;
+    }
+
+    main a:not([class]) {
+        color: var(--color-primary);
+        font-weight: 600;
+        text-underline-offset: 3px;
+    }
+
+    main a:not([class]):hover {
+        text-decoration: underline;
+    }
+
+    /*
+     * Champs de saisie écrits à la main dans les pages (sans `FormField`) : même fond, même
+     * bordure et même anneau de focus que le composant, pour qu'aucun formulaire ne détonne.
+     */
+    :where(input, select, textarea)[class~='border'] {
+        background-color: var(--color-surface);
+        border-color: var(--color-separator-strong);
+        transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    :where(input, select, textarea)[class~='border']:hover {
+        border-color: var(--color-ink-muted);
+    }
+
+    :where(input, select, textarea)[class~='border']:focus-visible {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 4px rgb(27 95 175 / 0.15);
+    }
+
+    input[type='checkbox'],
+    input[type='radio'] {
+        accent-color: var(--color-primary);
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+
+    ::placeholder {
+        color: var(--color-ink-muted);
+        opacity: 1;
+    }
+
+    /* Tableaux : en-têtes discrets, lignes séparées par un filet, jamais de grille lourde. */
+    main table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    main th {
+        border-bottom: 1px solid var(--color-separator);
+        padding: 0.625rem 0.75rem;
+        color: var(--color-ink-secondary);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    main td {
+        border-bottom: 1px solid var(--color-separator);
+        padding: 0.75rem;
+        vertical-align: top;
+    }
+
+    main tbody tr:hover {
+        background: var(--color-neutral-soft);
+    }
 }
 
 @layer components {
     .touch-target {
         min-width: 2.75rem;
         min-height: 2.75rem;
+    }
+
+    /*
+     * Cartes : les pages déclarent `rounded-xl border` ; l'élévation et le fond leur sont donnés
+     * ici, une seule fois, plutôt que recopiés dans chacune des cent pages.
+     */
+    main .rounded-xl.border {
+        box-shadow: var(--shadow-card);
+    }
+
+    main .rounded-xl.border:not([class*='bg-']) {
+        background-color: var(--color-surface);
     }
 
     .skip-link {
@@ -97,5 +205,76 @@
 
     .grayscale-proof {
         filter: grayscale(1);
+    }
+
+    /* Défilement discret de la barre latérale : visible au besoin, jamais envahissant. */
+    .rail-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-rail-active) transparent;
+    }
+
+    .rail-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .rail-scroll::-webkit-scrollbar-thumb {
+        border-radius: 9999px;
+        background: var(--color-rail-active);
+    }
+}
+
+@layer components {
+    /* Fenêtre modale : voile sombre et légère apparition, coupée si l'utilisateur la refuse. */
+    .modal::backdrop {
+        background: rgb(12 26 48 / 0.55);
+        backdrop-filter: blur(2px);
+    }
+
+    .modal[open] {
+        animation: modal-in 160ms ease-out;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .modal[open] {
+            animation: none;
+        }
+    }
+}
+
+@keyframes modal-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@layer base {
+    /* Barres de progression natives, habillées aux couleurs de la charte. */
+    progress {
+        appearance: none;
+        overflow: hidden;
+        border: 0;
+        border-radius: 9999px;
+        background: var(--color-neutral-soft);
+        accent-color: var(--color-primary);
+    }
+
+    progress::-webkit-progress-bar {
+        background: var(--color-neutral-soft);
+    }
+
+    progress::-webkit-progress-value {
+        border-radius: 9999px;
+        background: var(--color-primary);
+    }
+
+    progress::-moz-progress-bar {
+        border-radius: 9999px;
+        background: var(--color-primary);
     }
 }

@@ -70,6 +70,7 @@ nommée.** Le niveau schéma ne porte que `SELECT, INSERT`.
 | `login_attempts` | hérité du schéma | hérité du schéma | **explicite** | **refusé** |
 | `capital_contributions` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
 | `contribution_shares` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
+| `attendance_records` | hérité du schéma | hérité du schéma | **explicite, par table** | **refusé** |
 | toute table créée ultérieurement | **hérité d'office** | **hérité d'office** | **absent tant qu'il n'est pas accordé** | **refusé par défaut** |
 
 Une migration qui crée une table métier n'a donc rien à faire pour la lecture et l'insertion, mais

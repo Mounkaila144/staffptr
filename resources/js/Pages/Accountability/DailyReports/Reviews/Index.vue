@@ -8,6 +8,9 @@ const returnId = ref(null);
 const commentId = ref(null);
 const decisionForm = useForm({ reason: '' });
 const commentForm = useForm({ body: '' });
+const processForm = useForm({});
+const awaitingDecision = (report) => ['envoye', 'en_retard'].includes(report.state);
+function processTaskRequest(taskRequest) { processForm.patch(`/demandes-tache/${taskRequest.id}/traiter`, { preserveScroll: true }); }
 function validateReport(report) { decisionForm.patch(`/rapports/${report.id}/valider`, { preserveScroll: true }); }
 function returnReport(report) { decisionForm.patch(`/rapports/${report.id}/retourner`, { preserveScroll: true, onSuccess: () => { returnId.value = null; decisionForm.reset(); } }); }
 function comment(report) { commentForm.post(`/rapports/${report.id}/commentaires`, { preserveScroll: true, onSuccess: () => { commentId.value = null; commentForm.reset(); } }); }
@@ -33,9 +36,21 @@ function comment(report) { commentForm.post(`/rapports/${report.id}/commentaires
                     </dl>
                     <details v-if="report.versions.length > 1" class="rounded-lg border border-separator p-3"><summary class="touch-target cursor-pointer font-semibold">Comparer les {{ report.versions.length }} versions</summary><ol class="grid gap-3 pt-3"><li v-for="version in report.versions" :key="version.number" class="rounded-lg bg-neutral-soft p-3"><strong>Version {{ version.number }} · {{ version.created_at }}</strong><p v-if="version.correction_reason">Motif : {{ version.correction_reason }}</p><p>{{ version.achieved_result }}</p></li></ol></details>
                     <ul v-if="report.comments.length" class="grid gap-2"><li v-for="item in report.comments" :key="item.id" class="rounded-lg bg-neutral-soft p-3"><strong>{{ item.author }}</strong> · {{ item.created_at }}<p>{{ item.body }}</p></li></ul>
-                    <div class="grid gap-3 sm:flex sm:flex-wrap"><button class="touch-target rounded-lg bg-primary px-4 font-bold text-white" :disabled="decisionForm.processing" @click="validateReport(report)">Valider</button><button class="touch-target rounded-lg border border-danger px-4 font-semibold text-danger" @click="returnId = report.id">Retourner avec un motif</button><button class="touch-target rounded-lg border border-primary px-4 font-semibold text-primary" @click="commentId = report.id">Commenter</button></div>
+                    <section v-if="report.task_requests?.length" class="grid gap-2 rounded-lg border border-separator p-3" :aria-label="`Demandes de tâche de ${report.author}`">
+                        <h3 class="font-semibold">Demandes de nouvelle tâche</h3>
+                        <ul class="grid gap-2">
+                            <li v-for="taskRequest in report.task_requests" :key="taskRequest.id" class="grid gap-2 rounded-lg bg-neutral-soft p-3 sm:flex sm:items-center sm:justify-between">
+                                <p class="break-words"><strong v-if="taskRequest.is_urgent">Urgent · </strong>{{ taskRequest.description }}</p>
+                                <button v-if="taskRequest.is_open" type="button" class="touch-target rounded-lg border border-primary px-4 font-semibold text-primary" :disabled="processForm.processing" @click="processTaskRequest(taskRequest)">Marquer comme traitée</button>
+                                <span v-else class="font-semibold">Traitée</span>
+                            </li>
+                        </ul>
+                        <p v-for="(message, key) in processForm.errors" :key="key" class="text-danger" role="alert">{{ message }}</p>
+                    </section>
+                    <p v-for="(message, key) in decisionForm.errors" v-show="key !== 'reason'" :key="key" class="text-danger" role="alert">{{ message }}</p>
+                    <div class="grid gap-3 sm:flex sm:flex-wrap"><template v-if="awaitingDecision(report)"><button class="touch-target rounded-lg bg-primary px-4 font-bold text-white" :disabled="decisionForm.processing" @click="validateReport(report)">Valider</button><button class="touch-target rounded-lg border border-danger px-4 font-semibold text-danger" @click="returnId = report.id">Retourner avec un motif</button></template><button class="touch-target rounded-lg border border-primary px-4 font-semibold text-primary" @click="commentId = report.id">Commenter</button></div>
                     <form v-if="returnId === report.id" class="grid gap-2 rounded-lg border border-danger p-3" @submit.prevent="returnReport(report)"><label class="font-semibold">Motif du retour<textarea v-model="decisionForm.reason" rows="3" required class="mt-2 min-w-0 w-full rounded-lg border border-separator p-3" /></label><p v-if="decisionForm.errors.reason" class="text-danger" role="alert">{{ decisionForm.errors.reason }}</p><button class="touch-target rounded-lg bg-danger px-4 font-bold text-white">Confirmer le retour</button></form>
-                    <form v-if="commentId === report.id" class="grid gap-2 rounded-lg border border-separator p-3" @submit.prevent="comment(report)"><label class="font-semibold">Commentaire<textarea v-model="commentForm.body" rows="3" required class="mt-2 min-w-0 w-full rounded-lg border border-separator p-3" /></label><button class="touch-target rounded-lg bg-primary px-4 font-bold text-white">Ajouter le commentaire</button></form>
+                    <form v-if="commentId === report.id" class="grid gap-2 rounded-lg border border-separator p-3" @submit.prevent="comment(report)"><label class="font-semibold">Commentaire<textarea v-model="commentForm.body" rows="3" required class="mt-2 min-w-0 w-full rounded-lg border border-separator p-3" /></label><p v-for="(message, key) in commentForm.errors" :key="key" class="text-danger" role="alert">{{ message }}</p><button class="touch-target rounded-lg bg-primary px-4 font-bold text-white">Ajouter le commentaire</button></form>
                 </li>
             </ul>
             <Link href="/" class="touch-target inline-flex w-fit items-center font-semibold text-primary">Retour à l’accueil</Link>

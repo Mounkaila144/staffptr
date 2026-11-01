@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { expectNoHorizontalOverflow } from './support/layout.js';
+import { openNavigationLink } from './support/navigation.js';
 
 test('AC 2, 6 et 7 — création et cartes de comptes restent utilisables à 320 px', async ({ page }) => {
     const suffix = String(Date.now()).slice(-6);
@@ -10,8 +11,7 @@ test('AC 2, 6 et 7 — création et cartes de comptes restent utilisables à 320
     await page.getByLabel('Mot de passe').fill('Direction-E2E-2026');
     await page.getByRole('button', { name: 'Se connecter' }).click();
 
-    await page.getByRole('button', { name: 'Plus' }).click();
-    await page.getByRole('link', { name: 'Comptes et rôles', exact: true }).click();
+    await openNavigationLink(page, 'Comptes et rôles');
     await expect(page).toHaveURL(/\/comptes$/);
     await expect(page.getByRole('heading', { name: 'Administration des comptes' })).toBeVisible();
     await expect(page.getByText('Les dépenses ne sont pas encore approuvables', { exact: false })).toHaveCount(0);
@@ -24,7 +24,7 @@ test('AC 2, 6 et 7 — création et cartes de comptes restent utilisables à 320
 
     await expect(page.getByRole('heading', { name: 'Mot de passe temporaire — affiché une seule fois' })).toBeVisible();
     const credential = page.locator('dd.font-mono');
-    await expect(credential).toHaveText(/^[a-f0-9]{32}$/);
+    await expect(credential).toHaveText(/^[0-9]{8}$/);
     await expect(page.locator('article')).not.toHaveCount(0);
     await expectNoHorizontalOverflow(page);
 

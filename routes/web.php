@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Accountability\AttendanceController;
 use App\Http\Controllers\Accountability\BlockerController;
 use App\Http\Controllers\Accountability\DailyReportAnalyticsController;
 use App\Http\Controllers\Accountability\DailyReportController;
@@ -119,6 +120,11 @@ Route::middleware(['auth', 'account.active', 'password.changed'])->group(functio
         Route::get('/plans-accompagnement', [ImprovementPlanController::class, 'index'])->name('improvement-plans.index');
         Route::get('/plans-accompagnement/{improvementPlan}', [ImprovementPlanController::class, 'show'])->name('improvement-plans.show');
     });
+    // Arrivées et départs des stagiaires : consultation pour le stagiaire, son tuteur et la
+    // direction ; enregistrement depuis le poste de la direction seulement (story 13.1).
+    Route::get('/arrivees-departs', [AttendanceController::class, 'index'])->middleware('permission:arrivee_depart.consulter')->name('attendance.index');
+    Route::post('/arrivees-departs/{user}/arrivee', [AttendanceController::class, 'arrival'])->middleware('permission:arrivee_depart.enregistrer')->name('attendance.arrival');
+    Route::post('/arrivees-departs/{user}/depart', [AttendanceController::class, 'departure'])->middleware('permission:arrivee_depart.enregistrer')->name('attendance.departure');
     Route::middleware('permission:stagiaire.consulter')->group(function (): void {
         Route::get('/stages/fiches-entree', [InternshipIntakeController::class, 'index'])->name('internship-intakes.index');
         Route::get('/stages/fiches-entree/{internshipIntakeForm}', [InternshipIntakeController::class, 'show'])->name('internship-intakes.show');
@@ -134,6 +140,7 @@ Route::middleware(['auth', 'account.active', 'password.changed'])->group(functio
         Route::post('/stages/fiches-entree', [InternshipIntakeController::class, 'store'])->name('internship-intakes.store');
         Route::patch('/stages/fiches-entree/{internshipIntakeForm}/soumettre', [InternshipIntakeController::class, 'submit'])->name('internship-intakes.submit');
         Route::patch('/stages/fiches-entree/{internshipIntakeForm}/decision', [InternshipIntakeController::class, 'decide'])->name('internship-intakes.decide');
+        Route::post('/stages/fiches-entree/{internshipIntakeForm}/objectifs', [InternshipIntakeController::class, 'storeObjective'])->name('internship-intakes.objectives.store');
         Route::post('/stages/stagiaires/{user}/activer', [InternshipIntakeController::class, 'activate'])->name('interns.activate');
         // Hors de `/stages/…` volontairement : cet écran porte sur les tuteurs, pas sur un stage,
         // et aucun segment ne peut ainsi entrer en collision avec `/stages/{internship}`.
@@ -142,6 +149,7 @@ Route::middleware(['auth', 'account.active', 'password.changed'])->group(functio
         Route::post('/stages/{internship}/evaluations', [InternshipController::class, 'recordEvaluation'])->name('internships.evaluations.store');
         Route::patch('/stages/{internship}/evaluations/{evaluation}/valider', [InternshipController::class, 'validateEvaluation'])->name('internships.evaluations.validate');
         Route::patch('/stages/{internship}/sortie', [InternshipController::class, 'exit'])->name('internships.exit');
+        Route::patch('/stages/{internship}/checklist/{item}/fait', [InternshipController::class, 'completeChecklistItem'])->name('internships.checklist.complete');
     });
     Route::get('/notifications', [NotificationController::class, 'index'])
         ->name('notifications.index');
@@ -282,6 +290,9 @@ Route::middleware(['auth', 'account.active', 'password.changed'])->group(functio
             ->name('accounts.password-reinitialization.initiate');
         Route::post('/comptes/{user}/reinitialisation/confirmer', [PasswordResetController::class, 'confirm'])
             ->name('accounts.password-reinitialization.confirm');
+        Route::post('/comptes/{user}/reinitialisation/directe', [PasswordResetController::class, 'direct'])
+            ->middleware('permission:compte.gerer')
+            ->name('accounts.password-reinitialization.direct');
     });
 
     Route::middleware('permission:objectif_entreprise.consulter')->group(function (): void {
@@ -321,6 +332,7 @@ Route::middleware(['auth', 'account.active', 'password.changed'])->group(functio
         Route::get('/taches/aujourdhui', [TaskController::class, 'today'])->name('tasks.today');
         Route::post('/taches', [TaskController::class, 'store'])->middleware('permission:tache.gerer')->name('tasks.store');
         Route::get('/taches/{task}', [TaskController::class, 'show'])->name('tasks.show');
+        Route::patch('/taches/{task}/etat', [TaskController::class, 'transition'])->middleware('permission:tache.gerer')->name('tasks.transition');
         Route::post('/taches/{task}/commentaires', [TaskController::class, 'comment'])->middleware('permission:tache.gerer')->name('tasks.comments.store');
         Route::post('/taches/{task}/liens', [TaskController::class, 'link'])->middleware('permission:tache.gerer')->name('tasks.links.store');
         Route::post('/taches/{task}/pieces-jointes', [TaskController::class, 'attach'])->middleware('permission:tache.gerer')->name('tasks.attachments.store');
@@ -407,6 +419,7 @@ Route::middleware(['auth', 'account.active', 'password.changed'])->group(functio
         Route::get('/finances/paiements-depenses', [ExpensePaymentController::class, 'index'])->name('expense-payments.index');
         Route::post('/finances/paiements-depenses/{expense}/payer', [ExpensePaymentController::class, 'pay'])->name('expense-payments.pay');
         Route::post('/finances/paiements-depenses/{expense}/annuler', [ExpensePaymentController::class, 'cancel'])->name('expense-payments.cancel');
+        Route::post('/finances/paiements-depenses/{expense}/justificatif', [ExpensePaymentController::class, 'attachProof'])->name('expense-payments.attach-proof');
     });
 
     Route::middleware('permission:part.consulter')->group(function (): void {

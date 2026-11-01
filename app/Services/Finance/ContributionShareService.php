@@ -211,6 +211,11 @@ final readonly class ContributionShareService
 
         $totalShares = (int) $entries->sum(fn (ContributionShare $entry): int => $entry->signedShares());
         $timelines = $this->timelines($entries, $holders->keys()->all());
+        $basisPoints = $this->basisPoints(
+            $holders->map(fn (User $holder): int => (int) $entries->where('holder_id', $holder->getKey())
+                ->sum(fn (ContributionShare $entry): int => $entry->signedShares()))->all(),
+            $totalShares,
+        );
 
         return [
             'total_shares' => $totalShares,
@@ -221,7 +226,7 @@ final readonly class ContributionShareService
             'directors' => $holders->map(fn (User $holder): array => $this->directorBlock(
                 holder: $holder,
                 entries: $entries->where('holder_id', $holder->getKey()),
-                totalShares: $totalShares,
+                basisPoints: $totalShares > 0 ? $basisPoints[(int) $holder->getKey()] : null,
                 timeline: $timelines[(int) $holder->getKey()] ?? [],
             ))->values()->all(),
         ];
@@ -284,16 +289,24 @@ final readonly class ContributionShareService
      * @param  list<array{occurred_on: string, percentage_label: string}>  $timeline
      * @return array<string, mixed>
      */
-    private function directorBlock(User $holder, Collection $entries, int $totalShares, array $timeline): array
+    private function directorBlock(User $holder, Collection $entries, ?int $basisPoints, array $timeline): array
     {
         $shares = (int) $entries->sum(fn (ContributionShare $entry): int => $entry->signedShares());
+        // Une annulation retranche son assiette : le montant affiché est le net réellement acquis.
+        // Jamais négatif : une annulation suit toujours l'émission qu'elle extourne.
+        $netBase = fn (ContributionOrigin $origin): int => max(0, (int) $entries->where('origin', $origin)->sum(
+            fn (ContributionShare $entry): int => $entry->entry_type === ContributionEntryType::Annulation ? -$entry->base_amount : $entry->base_amount,
+        ));
 
         return [
             'id' => (int) $holder->getKey(),
             'name' => $holder->person->full_name,
             'shares' => $shares,
             'shares_label' => number_format($shares, 0, '', "\u{202F}"),
-            'percentage_label' => $this->percentageLabel($shares, $totalShares),
+            'percentage_label' => $this->percentageLabel($basisPoints),
+            'percentage_basis_points' => $basisPoints ?? 0,
+            'contributed_amount_label' => Money::from($netBase(ContributionOrigin::Apport))->format(),
+            'brought_amount_label' => Money::from($netBase(ContributionOrigin::Encaissement))->format(),
             'entries' => $entries
                 ->sortByDesc(fn (ContributionShare $entry): string => $this->chronologicalKey($entry))
                 ->values()
@@ -356,10 +369,12 @@ final readonly class ContributionShareService
             $running[$holderId] = ($running[$holderId] ?? 0) + $entry->signedShares();
             $total += $entry->signedShares();
 
+            $basisPoints = $this->basisPoints($running, $total);
+
             foreach (array_keys($running) as $observedId) {
                 $timelines[$observedId][] = [
                     'occurred_on' => $entry->occurred_on->toDateString(),
-                    'percentage_label' => $this->percentageLabel($running[$observedId], $total),
+                    'percentage_label' => $this->percentageLabel($total > 0 ? $basisPoints[$observedId] : null),
                 ];
             }
         }
@@ -367,14 +382,53 @@ final readonly class ContributionShareService
         return $timelines;
     }
 
-    private function percentageLabel(int $shares, int $totalShares): string
+    /**
+     * Pourcentages en points de base entiers, répartis au plus fort reste : la somme vaut toujours
+     * exactement 10 000, soit 100,00 %. Arrondir chaque directeur séparément afficherait 100,01 %
+     * pour 15,625 % + 84,375 %. Aucun flottant ne circule ; à reste égal, l'ordre du registre
+     * départage, sans aucun classement entre personnes.
+     *
+     * @param  array<int, int>  $sharesByHolder
+     * @return array<int, int>
+     */
+    private function basisPoints(array $sharesByHolder, int $totalShares): array
     {
         if ($totalShares < 1) {
-            return '—';
+            return array_map(fn (): int => 0, $sharesByHolder);
         }
 
-        // Points de base entiers puis mise en forme : aucun flottant ne circule dans le calcul.
-        $basisPoints = intdiv($shares * 10_000, $totalShares);
+        $floors = [];
+        $remainders = [];
+
+        foreach ($sharesByHolder as $holderId => $shares) {
+            $scaled = max(0, $shares) * 10_000;
+            $floors[$holderId] = intdiv($scaled, $totalShares);
+            $remainders[$holderId] = $scaled % $totalShares;
+        }
+
+        $missing = 10_000 - array_sum($floors);
+        // Tri stable : à reste égal, l'ordre d'origine est conservé.
+        uasort($remainders, fn (int $left, int $right): int => $right <=> $left);
+
+        foreach (array_keys($remainders) as $holderId) {
+            if ($missing < 1) {
+                break;
+            }
+
+            if ($remainders[$holderId] > 0) {
+                $floors[$holderId]++;
+                $missing--;
+            }
+        }
+
+        return $floors;
+    }
+
+    private function percentageLabel(?int $basisPoints): string
+    {
+        if ($basisPoints === null) {
+            return '—';
+        }
 
         return str_replace('.', ',', number_format($basisPoints / 100, 2, '.', '')).' %';
     }

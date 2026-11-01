@@ -83,12 +83,14 @@ class SettingsServiceTest extends IdentityTestCase
             ->map(static fn ($date): string => $date->format('Y-m-d H:i:s.v'));
         $this->seed(SettingSeeder::class);
 
-        $this->assertSame(11, Setting::query()->count());
+        $this->assertSame(13, Setting::query()->count());
         $secondUpdatedAt = Setting::query()
             ->pluck('updated_at', 'key')
             ->map(static fn ($date): string => $date->format('Y-m-d H:i:s.v'));
         $this->assertSame($firstUpdatedAt->all(), $secondUpdatedAt->all());
         $this->assertSettingValue('intern_limit_per_tutor', 3);
+        $this->assertSettingValue('intern_arrival_time', '08:00');
+        $this->assertSettingValue('intern_arrival_tolerance_minutes', 10);
         $this->assertSettingValue('reserve_percentage', 20);
         $this->assertSettingValue('reserve_target_months', 3);
         $this->assertSettingValue('report_deadline_time', '17:45');

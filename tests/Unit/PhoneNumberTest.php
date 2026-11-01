@@ -15,6 +15,13 @@ class PhoneNumberTest extends TestCase
         }
     }
 
+    public function test_it_accepts_the_full_number_typed_without_the_plus_sign(): void
+    {
+        foreach (['22790123456', '227 90 12 34 56'] as $input) {
+            $this->assertSame('+22790123456', PhoneNumber::normalize($input));
+        }
+    }
+
     public function test_it_removes_supported_separators(): void
     {
         foreach (['90.12.34.56', '90-12-34-56', '(90) 12 34 56'] as $input) {

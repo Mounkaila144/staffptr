@@ -44,6 +44,7 @@ class ReserveMovement extends Model
         'created_by',
         'idempotency_key',
         'approval_state',
+        'approvals_required',
         'requested_at',
         'approved_at',
     ];
@@ -87,6 +88,7 @@ class ReserveMovement extends Model
         return [
             'type' => ReserveMovementType::class,
             'movement_amount' => 'integer',
+            'approvals_required' => 'integer',
             'occurred_on' => 'immutable_date',
             'requested_at' => 'immutable_datetime',
             'approved_at' => 'immutable_datetime',

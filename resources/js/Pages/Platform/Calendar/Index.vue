@@ -169,7 +169,7 @@ function changeActivity(holiday) {
                                     <p class="break-words font-semibold">{{ holiday.label }}</p>
                                     <p class="text-sm text-ink-secondary">Date d’effet : {{ holiday.display_date }}</p>
                                 </div>
-                                <StatusBadge :tone="holiday.is_active ? 'success' : 'neutral'">{{ holiday.is_active ? 'Actif' : 'Désactivé' }}</StatusBadge>
+                                <StatusBadge :status="holiday.is_active ? 'actif' : 'inactif'" />
                             </div>
                             <div class="flex flex-wrap gap-2">
                                 <AppButton variant="secondaire" @click="startEditing(holiday)">Modifier</AppButton>

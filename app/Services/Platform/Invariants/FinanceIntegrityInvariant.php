@@ -19,7 +19,9 @@ final class FinanceIntegrityInvariant implements InvariantCheck
         try {
             $badShares = ShareEntitlement::query()->whereNull('reversed_at')->selectRaw('payment_id, SUM(share_amount) AS total, MAX(base_amount) AS base')->groupBy('payment_id')->get()->filter(fn (ShareEntitlement $row): bool => (int) $row->getAttribute('total') !== (int) $row->getAttribute('base'))->pluck('payment_id')->all();
             $badReserve = ReserveMovement::query()->where('type', ReserveMovementType::Usage->value)->where('approval_state', 'approved')->where(function (Builder $query): void {
-                $query->whereNull('reason')->orWhereNull('reconstitution_plan')->orWhereNull('first_approved_by')->orWhereNull('second_approved_by')->orWhereColumn('first_approved_by', 'second_approved_by');
+                $query->whereNull('reason')->orWhereNull('reconstitution_plan')->orWhereNull('first_approved_by')->orWhereColumn('first_approved_by', 'second_approved_by')
+                    // Une seule approbation n'est admise que si la règle figée en exigeait une.
+                    ->orWhere(fn (Builder $single): Builder => $single->whereNull('second_approved_by')->where(fn (Builder $rule): Builder => $rule->whereNull('approvals_required')->orWhere('approvals_required', '!=', 1)));
             })->pluck('id')->all();
             $badReconciliations = Reconciliation::query()->where('state', ReconciliationState::Validated->value)->where(function (Builder $query): void {
                 $query->whereNull('controlled_by')->orWhereColumn('prepared_by', 'controlled_by')->orWhere(function (Builder $difference): void {

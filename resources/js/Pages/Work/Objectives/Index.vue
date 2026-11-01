@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { Head, Link, useForm, usePage } from "@inertiajs/vue3";
+import { Head, Link, router, useForm, usePage } from "@inertiajs/vue3";
 import AppButton from "../../../Components/AppButton.vue";
 import FormField from "../../../Components/FormField.vue";
 import AttachmentUploader from "../../../Components/AttachmentUploader.vue";
@@ -24,8 +24,11 @@ const ownerOptions = computed(() =>
 const priorityOptions = computed(() =>
     (props.priorities ?? []).map((p) => ({ value: p.value, label: p.label })),
 );
+// Le partage Inertia n'expose pas l'identifiant du compte (seulement person_id) :
+// quand une seule personne est désignable (soi-même), elle est présélectionnée.
 const form = useForm({
-    user_id: usePage().props.auth?.user?.id ?? "",
+    user_id:
+        props.assignableOwners.length === 1 ? props.assignableOwners[0].id : "",
     title: "",
     description: "",
     indicator: "",
@@ -36,19 +39,50 @@ const form = useForm({
     priority: "normale",
     company_priority_id: "",
     project_id: "",
-    progress: 0,
+    // « progress » est une propriété réservée de useForm (progression d’envoi) :
+    // le champ porte un autre nom côté client et est renvoyé sous « progress ».
+    initial_progress: 0,
     attachment_ulid: "",
 });
 const draft = useDraft(
     "objective",
-    usePage().props.auth?.user?.id,
+    usePage().props.auth?.person_id,
     "new",
     form,
 );
 const restored = draft.restore();
-if (restored) Object.assign(form, restored);
+if (restored) {
+    // Le brouillon stocké contient aussi l’état interne du formulaire
+    // (errors, processing, progress…) : seuls les champs saisis sont repris.
+    const fields = Object.keys(form.data());
+    Object.assign(
+        form,
+        Object.fromEntries(
+            Object.entries(restored).filter(
+                ([key, value]) =>
+                    fields.includes(key) && value !== "" && value !== null,
+            ),
+        ),
+    );
+}
 const submit = () =>
-    form.post("/objectifs", { onSuccess: () => draft.purge() });
+    form
+        .transform(({ initial_progress, ...data }) => ({
+            ...data,
+            progress: initial_progress,
+        }))
+        .post("/objectifs", { onSuccess: () => draft.purge() });
+// Navigation d’un mois à l’autre : sans elle, les objectifs d’un autre mois
+// (une copie vers le mois suivant, par exemple) restaient introuvables.
+const shiftMonth = (value, delta) => {
+    const [y, m] = value.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+const monthLabel = (value) => {
+    const [y, m] = value.split("-").map(Number);
+    return new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(new Date(y, m - 1, 1));
+};
 const emptyTitle = computed(() =>
     props.filtersActive
         ? "Aucun objectif ne correspond à ces filtres."
@@ -78,6 +112,7 @@ const emptyTitle = computed(() =>
                         >Synthèse mensuelle</Link
                     >
                 </nav>
+                <nav class="flex flex-wrap items-center gap-2" aria-label="Changer de mois"><Link :href="`/objectifs?month=${shiftMonth(month, -1)}`" class="touch-target inline-flex items-center rounded-lg border border-separator px-3 font-semibold text-primary">← Mois précédent</Link><span class="font-semibold">{{ monthLabel(month) }}</span><Link :href="`/objectifs?month=${shiftMonth(month, 1)}`" class="touch-target inline-flex items-center rounded-lg border border-separator px-3 font-semibold text-primary">Mois suivant →</Link></nav>
             </header>
             <form
                 v-if="canCreate"
@@ -224,12 +259,11 @@ const emptyTitle = computed(() =>
                             >{{ objective.title }}</Link
                         ><span
                             class="rounded-full border border-separator px-3 py-1"
-                            >● {{ objective.state_label }} —
-                            {{ objective.tone }}</span
+                            >{{ objective.state_label }}</span
                         >
                     </div>
                     <p class="text-sm text-ink-secondary">
-                        {{ objective.owner }} · {{ objective.due_date }}
+                        {{ objective.owner }} · échéance {{ objective.due_date_label }}
                     </p>
                     <div
                         class="h-3 overflow-hidden rounded-full bg-neutral-soft"
@@ -254,6 +288,7 @@ const emptyTitle = computed(() =>
                 :action-label="
                     filtersActive ? 'Réinitialiser les filtres' : undefined
                 "
+                @action="router.visit('/objectifs')"
             /></div
     ></AppLayout>
 </template>

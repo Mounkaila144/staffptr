@@ -47,12 +47,13 @@ class AccountAdministrationHttpTest extends IdentityTestCase
         $response = $this->actingAs($actor)->post(route('accounts.store'), $this->newAccountPayload());
         $response->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('Identity/Accounts/Index')
+            ->url('/comptes')
             ->where('createdAccount.person_name', 'Nouvelle Personne')
             ->where('createdAccount.phone', '+22790112233'));
-        preg_match('/[a-f0-9]{32}/', $response->getContent(), $matches);
-        $temporaryPassword = $matches[0] ?? '';
+        preg_match('/temporary_password(?:&quot;|"):(?:&quot;|")([0-9]{8})(?:&quot;|")/', $response->getContent(), $matches);
+        $temporaryPassword = $matches[1] ?? '';
 
-        $this->assertSame(32, strlen($temporaryPassword));
+        $this->assertMatchesRegularExpression('/\A[0-9]{8}\z/', $temporaryPassword);
         $this->assertSame(1, substr_count($response->getContent(), $temporaryPassword));
         $this->assertStringNotContainsString($temporaryPassword, serialize(session()->all()));
 
@@ -98,7 +99,7 @@ class AccountAdministrationHttpTest extends IdentityTestCase
         $this->actingAs($actor)->patch(route('accounts.roles.sync', $target), [
             'roles' => ['employe', 'tuteur'],
             'reason' => 'Responsabilité de tutorat',
-        ])->assertRedirect(route('accounts.index'));
+        ])->assertRedirect(route('accounts.index'))->assertSessionHas('success', 'Rôles mis à jour.');
         $this->actingAs($actor)->patch(route('accounts.roles.sync', $target), [
             'roles' => ['tuteur'],
             'reason' => 'Fin du rôle employé',
@@ -125,7 +126,8 @@ class AccountAdministrationHttpTest extends IdentityTestCase
 
         $this->actingAs($actor)->patch(route('accounts.archive', $target), [
             'reason' => 'Départ confirmé par la direction',
-        ])->assertRedirect(route('accounts.index'));
+        ])->assertRedirect(route('accounts.index'))
+            ->assertSessionHas('success', 'Compte archivé. La fiche personne reste consultable.');
 
         $target->refresh();
         $audit = AuditLog::query()->where('action', 'user_state_changed')->latest('id')->firstOrFail();

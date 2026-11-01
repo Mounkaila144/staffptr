@@ -84,14 +84,23 @@ final class PersonListSource extends AbstractListSource
         }
 
         if (($from = $this->filterValue($filters, 'from')) !== null) {
-            $labels[] = ['key' => 'from', 'label' => "Entrée à partir du {$from}"];
+            $labels[] = ['key' => 'from', 'label' => 'Entrée à partir du '.$this->displayDate($from)];
         }
 
         if (($to = $this->filterValue($filters, 'to')) !== null) {
-            $labels[] = ['key' => 'to', 'label' => "Entrée jusqu'au {$to}"];
+            $labels[] = ['key' => 'to', 'label' => "Entrée jusqu'au ".$this->displayDate($to)];
         }
 
         return $labels;
+    }
+
+    public function filterFields(): array
+    {
+        return [
+            $this->enumField('status', 'Statut', PersonOperationalStatus::cases()),
+            $this->dateField('from', 'Entrée à partir du'),
+            $this->dateField('to', "Entrée jusqu'au"),
+        ];
     }
 
     /** @return list<string> */
@@ -121,7 +130,7 @@ final class PersonListSource extends AbstractListSource
         return [
             (int) $record->getKey(),
             (string) $record->full_name,
-            $record->operational_status->value,
+            $record->operational_status->label(),
             $record->first_seen_at->toDateString(),
         ];
     }

@@ -28,7 +28,11 @@ class FixedChargeController extends Controller
             'charges' => $this->fixedChargeService->forManagement(),
             'currentBaseAmount' => $this->fixedChargeService->currentBaseAmount(),
             'reserveObjectiveAmount' => $this->fixedChargeService->reserveObjectiveAmount(),
-            'preview' => $request->session()->get('fixed_charge_preview'),
+            // L'aperçu reste en session jusqu'à la confirmation (le Form Request le compare), mais
+            // n'est affiché qu'à l'écran qui suit son calcul : un rechargement ne rouvre rien.
+            'preview' => $request->session()->get('fixed_charge_preview_ready')
+                ? $request->session()->get('fixed_charge_preview')
+                : null,
         ]);
     }
 
@@ -42,7 +46,9 @@ class FixedChargeController extends Controller
         $isActive = $request->boolean('is_active');
         $token = Str::random(48);
 
-        return redirect()->route('fixed-charges.index')->with('fixed_charge_preview', [
+        // `put` et non `with` : un flash serait consommé par l'affichage de la page, et la
+        // confirmation qui suit ne trouverait plus l'aperçu à comparer.
+        $request->session()->put('fixed_charge_preview', [
             'action' => $charge === null ? 'create' : "update:{$charge->getKey()}",
             'fixed_charge_id' => $charge?->getKey(),
             'label' => $label,
@@ -51,6 +57,8 @@ class FixedChargeController extends Controller
             'token' => $token,
             'impact' => $this->fixedChargeService->preview($charge, $monthlyAmount, $isActive),
         ]);
+
+        return redirect()->route('fixed-charges.index')->with('fixed_charge_preview_ready', true);
     }
 
     public function store(StoreFixedChargeRequest $request): RedirectResponse

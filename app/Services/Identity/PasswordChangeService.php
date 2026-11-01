@@ -18,7 +18,9 @@ class PasswordChangeService
             password: $password,
             actorId: (int) $user->getKey(),
             actorLabel: is_string($actorLabel) ? $actorLabel : "Compte {$user->getKey()}",
-            reason: 'Changement de mot de passe imposé à la première connexion',
+            reason: $user->must_change_password
+                ? 'Changement de mot de passe imposé à la première connexion'
+                : 'Changement de mot de passe à la demande du titulaire',
         );
 
         // Toutes les anciennes lignes, y compris celle de cette requête, ont été supprimées dans

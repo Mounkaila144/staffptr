@@ -30,7 +30,7 @@ class SettingManagementTest extends IdentityTestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Platform/Settings/Index')
-                ->has('settings', 11)
+                ->has('settings', 13)
                 ->where('settings.0.key', 'working_days')
                 ->has('workingDayOptions', 7)
                 ->has('attachmentTypeOptions', 5));
@@ -66,7 +66,8 @@ class SettingManagementTest extends IdentityTestCase
                 'settings' => ['reserve_percentage' => '24'],
                 'effective_at' => '2026-07-21T11:30',
             ])
-            ->assertRedirect(route('settings.index'));
+            ->assertRedirect(route('settings.index'))
+            ->assertSessionHas('success', 'Paramètres enregistrés.');
 
         $this->assertSame(24, app(SettingsService::class)->reservePercentage());
         $audit = AuditLog::query()->where('action', 'setting_changed')->sole();

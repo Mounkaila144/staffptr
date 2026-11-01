@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Finance;
 
 use App\Enums\FinancialAccountState;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Finance\AttachExpensePaymentProofRequest;
 use App\Http\Requests\Finance\CancelPaidExpenseRequest;
 use App\Http\Requests\Finance\PayExpenseRequest;
 use App\Models\Finance\Account;
@@ -63,6 +64,13 @@ class ExpensePaymentController extends Controller
         );
 
         return redirect()->route('expense-payments.index')->with('success', "Contre-écriture de dépense #{$counter->getKey()} enregistrée.");
+    }
+
+    public function attachProof(AttachExpensePaymentProofRequest $request, Expense $expense): RedirectResponse
+    {
+        $this->payments->attachPaymentProof($expense, (string) $request->validated('attachment_ulid'), $this->actor($request));
+
+        return redirect()->route('expense-payments.index')->with('success', 'Le justificatif de paiement a été enregistré.');
     }
 
     private function actor(Request $request): User

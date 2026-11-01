@@ -2,14 +2,17 @@
 
 namespace App\Services\Work;
 
+use App\Enums\WorkTaskStatus;
 use App\Models\Identity\User;
 use App\Models\Platform\Attachment;
 use App\Models\Work\Task;
 use App\Models\Work\WorkComment;
 use App\Models\Work\WorkLink;
+use App\Notifications\TaskAssignedNotification;
 use App\Services\Platform\AttachmentService;
 use App\Support\Auditing\AuditLogger;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 final class TaskService
@@ -25,7 +28,7 @@ final class TaskService
     {
         $task = new Task;
 
-        return DB::connection($task->getConnectionName())->transaction(function () use ($task, $data, $actor, $attachment): Task {
+        $created = DB::connection($task->getConnectionName())->transaction(function () use ($task, $data, $actor, $attachment): Task {
             if ($attachment instanceof Attachment) {
                 $this->assertStagedForActor($attachment, $actor);
             }
@@ -44,6 +47,50 @@ final class TaskService
             $this->dashboard->invalidate($task->assignee);
 
             return $task;
+        });
+        $this->notifyAssignee($created, $actor);
+
+        return $created;
+    }
+
+    /**
+     * Prévient la personne à qui la tâche est confiée — à la création et à tout changement de
+     * responsable — sauf quand l'auteur se la confie à lui-même.
+     *
+     * Appelée après la validation de la transaction : la tâche existe forcément quand la
+     * notification est lue. La ligne de la cloche est écrite tout de suite ; le message WhatsApp
+     * part par la file, si bien qu'une panne d'Evolution API ne fait jamais échouer l'action et
+     * reste visible pour les reprises.
+     */
+    private function notifyAssignee(Task $task, User $actor): void
+    {
+        $assignee = $task->assignee;
+        if ((int) $assignee->getKey() === (int) $actor->getKey()) {
+            return;
+        }
+
+        Notification::sendNow($assignee, TaskAssignedNotification::forDatabase($task, $actor), ['database']);
+        $assignee->notify(TaskAssignedNotification::forWhatsApp($task, $actor));
+    }
+
+    public function transition(Task $task, WorkTaskStatus $target, ?string $reason, User $actor): Task
+    {
+        return DB::connection($task->getConnectionName())->transaction(function () use ($task, $target, $reason, $actor): Task {
+            $locked = Task::query()->with('assignee')->whereKey($task->getKey())->lockForUpdate()->firstOrFail();
+            $from = $locked->status;
+            if (! $from->canTransitionTo($target)) {
+                throw ValidationException::withMessages(['status' => "Le passage de {$from->label()} vers {$target->label()} n’est pas autorisé."]);
+            }
+            $locked->status = $target;
+            $this->auditLogger->runExplicitly($locked, fn (): bool => $locked->saveOrFail(), $actor->getKey(), $this->actorLabel($actor), 'work_task_status_changed', ['status' => $from->value], ['status' => $target->value], $reason);
+            // La précision reste lisible sur la tâche elle-même : le journal d'audit n'est ouvert
+            // qu'à la direction, alors que celui qui suit la tâche doit savoir pourquoi elle a bougé.
+            if ($reason !== null) {
+                $locked->comments()->create(['author_id' => $actor->getKey(), 'body' => "{$from->label()} → {$target->label()} : {$reason}"]);
+            }
+            $this->dashboard->invalidate($locked->assignee);
+
+            return $locked->refresh();
         });
     }
 

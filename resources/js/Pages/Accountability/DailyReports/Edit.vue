@@ -133,9 +133,25 @@ function submitBlocker() {
         <div class="mx-auto grid w-full min-w-0 max-w-3xl gap-5" aria-labelledby="daily-report-title">
             <header class="grid min-w-0 gap-2">
                 <h1 id="daily-report-title" class="break-words text-screen-title">Mon rapport du jour</h1>
-                <p class="text-ink-secondary">{{ daily.date }} · Les réponses « Non » sont enregistrées comme telles.</p>
+                <p class="text-ink-secondary">{{ daily.date_label }} · à envoyer avant {{ daily.deadline_time }} · Les réponses « Non » sont enregistrées comme telles.</p>
                 <p v-if="daily.report" class="font-semibold">{{ daily.report.state_label }} · version {{ daily.report.version?.number }}</p>
             </header>
+
+            <section v-if="daily.report?.return_reason" class="grid gap-2 rounded-xl border-2 border-danger bg-surface p-4" role="status" aria-labelledby="return-title">
+                <h2 id="return-title" class="text-section-title">Rapport retourné : à corriger</h2>
+                <p class="whitespace-pre-wrap break-words"><strong>Motif :</strong> {{ daily.report.return_reason }}</p>
+                <p class="text-sm text-ink-secondary">Corrigez les champs concernés, indiquez le motif de la correction en bas du formulaire, puis renvoyez le rapport.</p>
+            </section>
+
+            <section v-if="daily.report?.comments?.length" class="grid gap-2 rounded-xl border border-separator bg-surface p-4" aria-labelledby="comments-title">
+                <h2 id="comments-title" class="text-section-title">Commentaires de votre responsable</h2>
+                <ul class="grid gap-2">
+                    <li v-for="item in daily.report.comments" :key="item.id" class="rounded-lg bg-neutral-soft p-3">
+                        <strong>{{ item.author }}</strong> · {{ item.created_at }}
+                        <p class="whitespace-pre-wrap break-words">{{ item.body }}</p>
+                    </li>
+                </ul>
+            </section>
 
             <div v-if="!daily.expected" class="rounded-xl border border-separator bg-neutral-soft p-4" role="status">
                 <p>{{ daily.unavailable_message }}</p>
@@ -206,7 +222,7 @@ function submitBlocker() {
                     </label>
                 </fieldset>
 
-                <label v-if="daily.report?.state === 'en_retard'" class="grid min-w-0 gap-2 font-semibold">Explication courte du retard (facultative)
+                <label v-if="daily.report?.state === 'en_retard' || (!daily.report && daily.deadline_passed)" class="grid min-w-0 gap-2 font-semibold">Explication courte du retard (facultative)
                     <textarea v-model="fields.lateness_explanation" rows="2" class="min-w-0 rounded-lg border border-separator p-3" />
                 </label>
 
@@ -220,7 +236,7 @@ function submitBlocker() {
                     <div v-if="taskRequestOpen" class="grid min-w-0 gap-3">
                         <label class="grid gap-2 font-semibold">Précisez votre besoin<textarea v-model="taskRequestForm.description" rows="3" required class="min-w-0 rounded-lg border border-separator p-3" /></label>
                         <label class="touch-target inline-flex items-center gap-2"><input v-model="taskRequestForm.is_urgent" type="checkbox" /> Cette demande est urgente</label>
-                        <p v-if="taskRequestForm.errors.description" class="text-danger" role="alert">{{ taskRequestForm.errors.description }}</p>
+                        <p v-for="(message, key) in taskRequestForm.errors" :key="key" class="text-danger" role="alert">{{ message }}</p>
                         <button type="button" class="touch-target rounded-lg bg-primary px-4 font-bold text-white" :disabled="taskRequestForm.processing" @click="submitTaskRequest">Transmettre à mon responsable</button>
                     </div>
                 </section>
@@ -233,6 +249,9 @@ function submitBlocker() {
                         <label class="grid gap-1 font-semibold">Personne sollicitée<select v-model="blockerForm.solicited_user_id" class="touch-target rounded-lg border border-separator px-3"><option value="">Choisir</option><option v-for="user in solicitableUsers" :key="user.id" :value="user.id">{{ user.name }}</option></select></label>
                         <label class="grid gap-1 font-semibold">Effet sur l’échéance<textarea v-model="blockerForm.deadline_impact" class="rounded-lg border border-separator p-3" /></label>
                         <label class="grid gap-1 font-semibold">Action déjà essayée<textarea v-model="blockerForm.attempted_action" class="rounded-lg border border-separator p-3" /></label>
+                        <ul v-if="Object.keys(blockerForm.errors).length" class="grid gap-1 sm:col-span-2" role="alert">
+                            <li v-for="(message, key) in blockerForm.errors" :key="key" class="text-danger">{{ message }}</li>
+                        </ul>
                         <button type="button" class="touch-target rounded-lg bg-primary px-4 font-bold text-white sm:col-span-2" :disabled="blockerForm.processing" @click="submitBlocker">Notifier la personne sollicitée</button>
                     </div>
                 </section>

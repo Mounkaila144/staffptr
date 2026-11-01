@@ -71,6 +71,8 @@ final class DailyReportAnalyticsService
             'view' => $view,
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
+            'from_label' => $from->format('d/m/Y'),
+            'to_label' => $to->format('d/m/Y'),
             'reports' => $reportPage->getCollection()->map(fn (DailyReport $report): array => [
                 'id' => $report->getKey(),
                 'author' => $report->author->person->full_name,

@@ -1,5 +1,7 @@
 <script setup>
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import FormField from '../../../Components/FormField.vue';
 import AlertLevelCard from '../../../Components/AlertLevelCard.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import EmptyState from '../../../Components/EmptyState.vue';
@@ -10,6 +12,7 @@ const props = defineProps({
     alert: { type: Object, required: true },
     plans: { type: Array, required: true },
     dueLabel: { type: String, required: true },
+    canManage: { type: Boolean, default: false },
 });
 
 const validation = useForm({});
@@ -21,6 +24,34 @@ function validatePlan(id) {
 // Le plan courant est la version la plus élevée ; les précédentes restent affichées et
 // consultables, jamais effacées (AC 17).
 const current = () => (props.plans.length ? props.plans[props.plans.length - 1] : null);
+
+function formatDate(iso) {
+    const [year, month, day] = String(iso ?? '').slice(0, 10).split('-');
+
+    return day ? `${day}/${month}/${year}` : iso;
+}
+
+// Refus métier sans champ dédié (plan déjà validé…) : affiché en tête.
+const page = usePage();
+const stateError = computed(() => page.props.errors?.state ?? '');
+
+// Révision d'un plan validé : nouvelle version pré-remplie, motif obligatoire (AC 17).
+const revising = ref(false);
+const revision = useForm({ finding: '', actions: '', responsibles: '', due_on: '', expected_result: '', revision_reason: '' });
+const revisionFields = [
+    { key: 'finding', label: 'Constat' },
+    { key: 'actions', label: 'Actions' },
+    { key: 'expected_result', label: 'Résultat attendu' },
+];
+function openRevision(plan) {
+    revision.defaults({ finding: plan.finding, actions: plan.actions, responsibles: plan.responsibles, due_on: plan.due_on, expected_result: plan.expected_result, revision_reason: '' });
+    revision.reset();
+    revision.clearErrors();
+    revising.value = true;
+}
+function submitRevision(plan) {
+    revision.post(`/finances/plans-correctifs/${plan.id}/reviser`, { preserveScroll: true, onSuccess: () => { revising.value = false; } });
+}
 </script>
 
 <template>
@@ -34,10 +65,12 @@ const current = () => (props.plans.length ? props.plans[props.plans.length - 1] 
 
             <AlertLevelCard :alert="alert" />
 
+            <p v-if="stateError" class="rounded-xl border border-danger/40 bg-danger-soft p-4 font-semibold text-danger" role="alert">⚠ {{ stateError }}</p>
+
             <EmptyState
                 v-if="plans.length === 0"
                 title="Aucun plan correctif n'est enregistré pour ce mois."
-                :reason="`Le niveau orange demande l'enregistrement d'un plan correctif sous 48 heures, soit avant le ${dueLabel}.`"
+                :reason="alert.level === 'vert' ? 'Au niveau vert, aucun plan n’est exigé ; la direction peut en enregistrer un de sa propre initiative.' : `Le niveau ${alert.level_label ?? alert.level} demande l'enregistrement d'un plan correctif sous 48 heures, soit avant le ${dueLabel}.`"
             />
 
             <p v-if="plans.length === 0 && alert.level === 'orange'" class="rounded-lg border border-warning bg-warning-soft p-3">
@@ -45,7 +78,7 @@ const current = () => (props.plans.length ? props.plans[props.plans.length - 1] 
             </p>
 
             <Link
-                v-if="plans.length === 0"
+                v-if="plans.length === 0 && canManage"
                 :href="`/finances/plans-correctifs/nouveau?mois=${month}`"
                 class="touch-target inline-flex w-fit items-center rounded-lg border-2 border-primary px-4 font-semibold text-primary"
             >
@@ -68,7 +101,7 @@ const current = () => (props.plans.length ? props.plans[props.plans.length - 1] 
                         <div><dt class="font-semibold">Constat</dt><dd class="break-words">{{ plan.finding }}</dd></div>
                         <div><dt class="font-semibold">Actions</dt><dd class="break-words">{{ plan.actions }}</dd></div>
                         <div><dt class="font-semibold">Responsables</dt><dd class="break-words">{{ plan.responsibles }}</dd></div>
-                        <div><dt class="font-semibold">Échéance</dt><dd>{{ plan.due_on }}</dd></div>
+                        <div><dt class="font-semibold">Échéance</dt><dd>{{ formatDate(plan.due_on) }}</dd></div>
                         <div><dt class="font-semibold">Résultat attendu</dt><dd class="break-words">{{ plan.expected_result }}</dd></div>
                         <div v-if="plan.revision_reason"><dt class="font-semibold">Motif de la révision</dt><dd class="break-words">{{ plan.revision_reason }}</dd></div>
                     </dl>
@@ -78,7 +111,7 @@ const current = () => (props.plans.length ? props.plans[props.plans.length - 1] 
                     </p>
 
                     <AppButton
-                        v-if="!plan.is_frozen && plan.id === current()?.id"
+                        v-if="canManage && !plan.is_frozen && plan.id === current()?.id"
                         variant="principal"
                         :busy="validation.processing"
                         @click="validatePlan(plan.id)"
@@ -89,6 +122,25 @@ const current = () => (props.plans.length ? props.plans[props.plans.length - 1] 
                     <p v-if="plan.is_frozen" class="text-sm text-ink-secondary">
                         Ce plan est validé : il ne peut plus être modifié. Une révision créera une nouvelle version.
                     </p>
+
+                    <template v-if="canManage && plan.is_frozen && plan.id === current()?.id">
+                        <AppButton v-if="!revising" variant="secondaire" @click="openRevision(plan)">Réviser le plan</AppButton>
+                        <form v-else class="grid min-w-0 gap-4 rounded-lg border border-warning p-3" @submit.prevent="submitRevision(plan)">
+                            <h3 class="font-semibold">Nouvelle version du plan</h3>
+                            <div v-for="field in revisionFields" :key="field.key" class="grid min-w-0 gap-2">
+                                <label :for="`revision-${field.key}`" class="text-field-label font-semibold">{{ field.label }} <span aria-hidden="true" class="text-danger">✱</span><span class="sr-only"> obligatoire</span></label>
+                                <textarea :id="`revision-${field.key}`" v-model="revision[field.key]" rows="3" required class="w-full min-w-0 rounded-lg border border-separator bg-surface px-3 py-2 text-base"></textarea>
+                                <p v-if="revision.errors[field.key]" class="text-sm font-semibold text-danger">⚠ {{ revision.errors[field.key] }}</p>
+                            </div>
+                            <FormField id="revision-responsibles" v-model="revision.responsibles" label="Responsables" required :error="revision.errors.responsibles" />
+                            <FormField id="revision-due-on" v-model="revision.due_on" variant="date" label="Échéance" required :error="revision.errors.due_on" />
+                            <FormField id="revision-reason" v-model="revision.revision_reason" label="Motif de la révision" required :error="revision.errors.revision_reason" />
+                            <div class="flex flex-wrap gap-2">
+                                <AppButton type="submit" variant="principal" :busy="revision.processing">Enregistrer la révision</AppButton>
+                                <AppButton variant="secondaire" @click="revising = false">Annuler</AppButton>
+                            </div>
+                        </form>
+                    </template>
                 </li>
             </ol>
         </div>

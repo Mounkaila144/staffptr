@@ -64,7 +64,7 @@ function updateProfile() {
                     <p class="break-all text-ink-secondary">{{ profile.phone }}</p>
                     <div class="flex flex-wrap gap-2">
                         <StatusBadge :status="profile.state" />
-                        <span class="inline-flex min-h-7 items-center rounded-full border border-separator px-2.5 py-1 text-sm font-semibold">{{ profile.operational_status_label }}</span>
+                        <span class="inline-flex min-h-7 items-center rounded-full border border-separator px-2.5 py-1 text-sm font-semibold">Situation : {{ profile.operational_status_label }}</span>
                     </div>
                 </div>
                 <nav class="flex flex-wrap gap-3 sm:col-span-2" aria-label="Sections du dossier">
@@ -84,8 +84,8 @@ function updateProfile() {
                     <div class="grid min-w-0 gap-1"><dt class="text-sm font-semibold text-ink-secondary">Fonction</dt><dd class="break-words">{{ profile.job_function_name ?? 'Non renseignée' }}</dd></div>
                     <div class="grid min-w-0 gap-1"><dt class="text-sm font-semibold text-ink-secondary">Type de relation</dt><dd>{{ profile.relation_type_label }}</dd></div>
                     <div class="grid min-w-0 gap-1"><dt class="text-sm font-semibold text-ink-secondary">Responsable direct</dt><dd>{{ manager?.name ?? 'Non renseigné' }}</dd></div>
-                    <div class="grid min-w-0 gap-1"><dt class="text-sm font-semibold text-ink-secondary">Début du contrat ou stage</dt><dd>{{ profile.contract_start_date ?? 'Non renseigné' }}</dd></div>
-                    <div class="grid min-w-0 gap-1"><dt class="text-sm font-semibold text-ink-secondary">Fin du contrat ou stage</dt><dd>{{ profile.contract_end_date ?? 'Non renseignée' }}</dd></div>
+                    <div class="grid min-w-0 gap-1"><dt class="text-sm font-semibold text-ink-secondary">Début du contrat ou stage</dt><dd>{{ profile.contract_start_date_label ?? 'Non renseigné' }}</dd></div>
+                    <div class="grid min-w-0 gap-1"><dt class="text-sm font-semibold text-ink-secondary">Fin du contrat ou stage</dt><dd>{{ profile.contract_end_date_label ?? 'Non renseignée' }}</dd></div>
                     <div class="grid min-w-0 gap-2 sm:col-span-2">
                         <dt class="text-sm font-semibold text-ink-secondary">Rôles</dt>
                         <dd class="flex flex-wrap gap-2"><span v-for="role in profile.roles" :key="role.value" class="rounded-full border border-separator px-3 py-1 text-sm font-semibold">{{ role.label }}</span></dd>
@@ -157,7 +157,7 @@ function updateProfile() {
 
                     <label class="grid min-w-0 gap-2 font-semibold" for="photo">Photo optionnelle
                         <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" class="touch-target min-w-0 max-w-full rounded-lg border border-separator bg-surface px-3 py-2 font-normal" @change="selectPhoto">
-                        <span class="text-sm font-normal text-ink-secondary">JPG, PNG ou WebP, 2 Mo maximum. Stockage public transitoire avant la story 3.5.</span>
+                        <span class="text-sm font-normal text-ink-secondary">JPG, PNG ou WebP, 2 Mo maximum.</span>
                         <span v-if="form.errors.photo" class="text-sm text-danger">⚠ {{ form.errors.photo }}</span>
                     </label>
 

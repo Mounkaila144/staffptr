@@ -34,15 +34,15 @@ class FirstAdminBootstrapTest extends IdentityTestCase
 
         $this->assertSame(Command::SUCCESS, $exitCode, $output);
         $this->assertMatchesRegularExpression(
-            '/Mot de passe temporaire — affiché une seule fois : ([a-f0-9]{32})/',
+            '/Mot de passe temporaire — affiché une seule fois : ([0-9]{8})/',
             $output,
         );
-        preg_match('/Mot de passe temporaire — affiché une seule fois : ([a-f0-9]{32})/', $output, $matches);
+        preg_match('/Mot de passe temporaire — affiché une seule fois : ([0-9]{8})/', $output, $matches);
         $temporaryPassword = $matches[1];
         $user = User::query()->sole();
         $person = Person::query()->sole();
 
-        $this->assertSame(32, strlen($temporaryPassword));
+        $this->assertSame(8, strlen($temporaryPassword));
         $this->assertSame(1, substr_count($output, $temporaryPassword));
         $this->assertNotSame($temporaryPassword, $user->getRawOriginal('password'));
         $this->assertTrue(Hash::check($temporaryPassword, $user->password));

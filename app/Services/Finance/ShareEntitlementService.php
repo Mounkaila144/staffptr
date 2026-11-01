@@ -27,6 +27,12 @@ final readonly class ShareEntitlementService
     /** @return list<array<string, mixed>> */
     public function forViewer(User $viewer): array
     {
+        // Parts dont un versement est déjà demandé (dépense ni refusée ni annulée) : une seconde
+        // demande serait refusée par `requestPayment`, le bouton n'est donc plus proposé.
+        $requested = Expense::query()->whereNotNull('share_entitlement_id')
+            ->whereNotIn('state', ['refusee', 'annulee'])
+            ->pluck('share_entitlement_id')->map(fn (mixed $id): int => (int) $id)->flip();
+
         return ShareEntitlement::query()->visibleTo($viewer)
             ->whereNull('reversed_at')
             ->with(['contract.client', 'payment', 'beneficiary.person'])
@@ -57,7 +63,10 @@ final readonly class ShareEntitlementService
                 'period_start' => $entitlement->period_start->toDateString(),
                 'period_end' => $entitlement->period_end->toDateString(),
                 'source_received_on' => $entitlement->source_received_on->toDateString(),
-                'can_request_payment' => (int) $entitlement->beneficiary_id === (int) $viewer->getKey() && $entitlement->remainingAmount() > 0,
+                'payment_requested' => $requested->has((int) $entitlement->getKey()),
+                'can_request_payment' => (int) $entitlement->beneficiary_id === (int) $viewer->getKey()
+                    && $entitlement->remainingAmount() > 0
+                    && ! $requested->has((int) $entitlement->getKey()),
             ])->all();
     }
 

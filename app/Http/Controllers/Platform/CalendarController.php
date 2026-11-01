@@ -83,7 +83,8 @@ class CalendarController extends Controller
         Gate::authorize('create', Holiday::class);
         $this->holidayService->create($request->validated(), $this->actor($request));
 
-        return redirect()->route('calendar.index', $this->periodQuery($request));
+        return redirect()->route('calendar.index', $this->periodQuery($request))
+            ->with('success', 'Jour férié ajouté.');
     }
 
     public function update(UpdateHolidayRequest $request, Holiday $holiday): RedirectResponse
@@ -91,7 +92,8 @@ class CalendarController extends Controller
         Gate::authorize('update', $holiday);
         $this->holidayService->update($holiday, $request->validated(), $this->actor($request));
 
-        return redirect()->route('calendar.index', $this->periodQuery($request));
+        return redirect()->route('calendar.index', $this->periodQuery($request))
+            ->with('success', 'Jour férié modifié.');
     }
 
     public function deactivate(ChangeHolidayActivityRequest $request, Holiday $holiday): RedirectResponse
@@ -99,7 +101,8 @@ class CalendarController extends Controller
         Gate::authorize('update', $holiday);
         $this->holidayService->deactivate($holiday, $this->actor($request));
 
-        return redirect()->route('calendar.index', $this->periodQuery($request));
+        return redirect()->route('calendar.index', $this->periodQuery($request))
+            ->with('success', 'Jour férié désactivé : la journée redevient travaillée.');
     }
 
     public function reactivate(ChangeHolidayActivityRequest $request, Holiday $holiday): RedirectResponse
@@ -107,7 +110,8 @@ class CalendarController extends Controller
         Gate::authorize('update', $holiday);
         $this->holidayService->reactivate($holiday, $this->actor($request));
 
-        return redirect()->route('calendar.index', $this->periodQuery($request));
+        return redirect()->route('calendar.index', $this->periodQuery($request))
+            ->with('success', 'Jour férié réactivé.');
     }
 
     /** @return array{year?: int, month?: int} */

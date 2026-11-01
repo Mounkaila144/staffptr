@@ -8,6 +8,7 @@ use App\Http\Requests\Accountability\StoreDailyReportRequest;
 use App\Models\Accountability\DailyReport;
 use App\Models\Identity\User;
 use App\Services\Accountability\DailyReportService;
+use App\Services\Platform\NotificationReadService;
 use App\Services\Platform\SettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,12 +21,15 @@ class DailyReportController extends Controller
     public function __construct(
         private readonly DailyReportService $service,
         private readonly SettingsService $settings,
+        private readonly NotificationReadService $notificationReadService,
     ) {}
 
     public function create(Request $request): Response
     {
         Gate::authorize('create', DailyReport::class);
         $actor = $this->actor($request);
+        // Ouvrir son rapport vaut lecture des notifications qui y mènent (retour, rappel).
+        $this->notificationReadService->markForLink($actor, route('daily-reports.today', absolute: false));
 
         return Inertia::render('Accountability/DailyReports/Edit', [
             'daily' => $this->service->formFor($actor),
@@ -35,7 +39,7 @@ class DailyReportController extends Controller
                 'allowed_types' => $this->settings->attachmentAllowedTypes(),
                 'max_size_bytes' => $this->settings->attachmentMaxSizeBytes(),
             ],
-            'solicitableUsers' => User::query()->where('state', UserState::Actif)->with('person')->get()->sortBy('person.full_name')->map(fn (User $user): array => ['id' => $user->getKey(), 'name' => $user->person->full_name])->values()->all(),
+            'solicitableUsers' => User::query()->where('state', UserState::Actif)->whereKeyNot($actor->getKey())->with('person')->get()->sortBy('person.full_name')->map(fn (User $user): array => ['id' => $user->getKey(), 'name' => $user->person->full_name])->values()->all(),
         ]);
     }
 

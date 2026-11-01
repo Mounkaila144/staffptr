@@ -230,6 +230,27 @@ class ListingAndExportHttpTest extends IdentityTestCase
         $this->assertCount(2, $listing['active_filters']);
     }
 
+    /** Les filtres et les états sont présentés en français, jamais sous leur nom technique. */
+    public function test_filters_and_states_are_offered_in_french(): void
+    {
+        $direction = $this->userWithRole('direction');
+        Expense::factory()->create(['requester_id' => $direction->getKey(), 'state' => ExpenseState::Demandee->value]);
+
+        $this->actingAs($direction)
+            ->get(route('listing.index', ['liste' => ListRegistry::EXPENSES, 'state' => 'demandee', 'from' => '2026-08-01']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filterFields.0.key', 'state')
+                ->where('filterFields.0.label', 'État')
+                ->where('filterFields.0.type', 'select')
+                ->where('filterFields.0.options.0', ['value' => 'demandee', 'label' => 'Demandée'])
+                ->where('filterFields.1.label', 'Catégorie')
+                ->where('filterFields.2.type', 'date')
+                ->where('listing.items.0.cells.3', 'Demandée')
+                ->where('listing.active_filters.0.label', 'État : Demandée')
+                ->where('listing.active_filters.1.label', 'Créée à partir du 01/08/2026'));
+    }
+
     /** AC 7 — le tri est une liste blanche : une colonne inventée retombe sur le tri par défaut. */
     public function test_ac_7_an_unknown_sort_column_falls_back_to_the_default(): void
     {

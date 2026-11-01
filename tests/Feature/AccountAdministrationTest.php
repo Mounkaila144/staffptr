@@ -40,8 +40,8 @@ class AccountAdministrationTest extends IdentityTestCase
             $audit->new_values,
         ], JSON_THROW_ON_ERROR))->implode('\n');
 
-        $this->assertSame(32, strlen($result['temporary_password']));
-        $this->assertMatchesRegularExpression('/^[a-f0-9]{32}$/', $result['temporary_password']);
+        // Décision du propriétaire (2026-11-01) : 8 chiffres, faciles à dicter.
+        $this->assertMatchesRegularExpression('/^[0-9]{8}$/', $result['temporary_password']);
         $this->assertTrue(Hash::check($result['temporary_password'], $user->password));
         $this->assertSame(UserState::Actif, $user->state);
         $this->assertTrue($user->must_change_password);

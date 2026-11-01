@@ -24,7 +24,7 @@ class RoleAssignmentGuardTest extends IdentityTestCase
         $assignments->assignRole($user, 'super_admin', null, 'Test');
 
         $this->expectException(RoleAssignmentConflict::class);
-        $this->expectExceptionMessage('aucun rôle ni permission métier');
+        $this->expectExceptionMessage('Un compte Super administrateur ne peut cumuler aucun autre rôle');
 
         $assignments->assignRole($user, 'direction', null, 'Test');
     }

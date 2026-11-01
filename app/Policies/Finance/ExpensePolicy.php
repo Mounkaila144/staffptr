@@ -46,8 +46,10 @@ class ExpensePolicy
             return true;
         }
 
-        // Direction can cancel any
-        return $user->can('depense.consulter');
+        // La direction peut annuler toute demande en attente. Le test portait sur
+        // `depense.consulter`, que tout le monde détient : n'importe quel compte pouvait annuler
+        // la demande d'un autre par une requête directe.
+        return $user->can('depense.approuver');
     }
 
     public function pay(User $user, Expense $expense): bool
@@ -62,6 +64,16 @@ class ExpensePolicy
         return $user->hasRole('finance')
             && $user->can('depense.payer')
             && $expense->state === ExpenseState::Payee;
+    }
+
+    /** Régularisation d'un paiement enregistré sans justificatif (FR124). */
+    public function attachPaymentProof(User $user, Expense $expense): bool
+    {
+        return $user->hasRole('finance')
+            && $user->can('depense.payer')
+            && $expense->state === ExpenseState::Payee
+            && $expense->counter_entry_of_id === null
+            && $expense->payment_attachment_id === null;
     }
 
     public function approve(User $user, Expense $expense): bool

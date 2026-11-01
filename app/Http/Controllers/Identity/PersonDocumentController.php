@@ -55,7 +55,7 @@ class PersonDocumentController extends Controller
 
         return redirect()
             ->route('people.documents.index', $person)
-            ->with('status', 'Document rangé dans le dossier.');
+            ->with('success', 'Document rangé dans le dossier.');
     }
 
     public function show(Request $request, Person $person, PersonDocument $document): BinaryFileResponse
@@ -94,7 +94,7 @@ class PersonDocumentController extends Controller
 
         return redirect()
             ->route('people.documents.index', $person)
-            ->with('status', 'Document archivé. Il reste consultable dans le dossier.');
+            ->with('success', 'Document archivé. Il reste consultable dans le dossier.');
     }
 
     private function ensureBelongsToPerson(PersonDocument $document, Person $person): void

@@ -53,6 +53,8 @@ accueillir de stagiaires sans mission ni objectifs.* — [PRD 3.9]
 5. Le point de contrôle du **niveau d'alerte rouge** est posé ici, derrière un service `AlertLevel` retournant `vert` tant que Epic 9 n'est pas livré. Le test bloquant correspondant est écrit en **9.2** — voir § 4.
 6. L'activation produit une entrée d'audit.
 
+> **Décision du propriétaire (2026-11-01)** : à l'activation, le tuteur devient le responsable direct (`users.manager_id`) du stagiaire, de façon auditée ; un changement de tuteur réaligne ce responsable. Rattrapage des stages actifs existants : `php artisan ptr:align-intern-managers [--dry-run]`.
+
 ---
 
 ### Story 7.4 — Limite bloquante de stagiaires par tuteur
@@ -79,6 +81,7 @@ stage produise des compétences et une trace, pas seulement une présence.* — 
 2. Une **évaluation hebdomadaire** est enregistrable par le tuteur et **consultable par le stagiaire**.
 3. Une **évaluation finale** est enregistrable ; l'application indique si les conditions d'attestation sont remplies, **sans générer de document** en MVP (FR89).
 4. Une **checklist de sortie** est générée : livrables remis, matériel rendu, accès fermés, documents sauvegardés, évaluation finale enregistrée.
+   > **Décision du propriétaire (2026-11-01)** : terminer le stage ferme l'accès du compte s'il n'a que le rôle `stagiaire` (état utilisateur `termine`, sessions révoquées, audité, même transaction) ; un compte porteur d'un autre rôle reste actif.
 5. ⛔ Le stagiaire consulte son dossier, le tuteur ceux de ses stagiaires, `direction` tous ; **tout autre accès est refusé**, y compris par URL directe.
 6. Aucune évaluation validée n'est modifiable ni supprimable.
 7. Le bloc **« Dernière évaluation »** est ajouté au tableau de bord personnel (5.8). **FR166 est dès lors intégralement satisfait.**

@@ -52,7 +52,12 @@ class Deliverable extends Model
 
     public function scheduleVarianceDays(): ?int
     {
-        return $this->actual_date?->diffInDays($this->planned_date, false) * -1;
+        // Sans date réelle, il n'y a pas d'écart : `null * -1` vaudrait 0 et afficherait à tort « Livré à la date prévue ».
+        if ($this->actual_date === null) {
+            return null;
+        }
+
+        return (int) round($this->planned_date->diffInDays($this->actual_date, false));
     }
 
     public function scheduleVarianceLabel(): string

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Identity;
 
-use App\Enums\AbsenceState;
 use App\Enums\AbsenceType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Identity\AbsenceIndexRequest;
@@ -13,6 +12,7 @@ use App\Http\Requests\Identity\StoreAbsenceRequest;
 use App\Models\Identity\Absence;
 use App\Models\Identity\User;
 use App\Models\Platform\Attachment;
+use App\Services\Identity\AbsenceDecisionRule;
 use App\Services\Identity\AbsenceService;
 use App\Services\Platform\SettingsService;
 use Illuminate\Database\Eloquent\Collection;
@@ -27,6 +27,7 @@ class AbsenceController extends Controller
     public function __construct(
         private readonly AbsenceService $absenceService,
         private readonly SettingsService $settingsService,
+        private readonly AbsenceDecisionRule $decisionRule,
     ) {}
 
     public function index(AbsenceIndexRequest $request): Response
@@ -36,9 +37,8 @@ class AbsenceController extends Controller
         $relations = ['user.person', 'user.manager.person', 'decidedBy.person', 'attachment'];
 
         $mine = Absence::query()->with($relations)->where('user_id', $actor->getKey())->latest('start_date')->get();
-        $pending = Absence::query()->with($relations)
-            ->where('state', AbsenceState::Demandee)
-            ->whereHas('user', fn ($query) => $query->where('manager_id', $actor->getKey()))
+        // Subordonnés directs, et pour la direction les personnes sans responsable direct actif.
+        $pending = $this->decisionRule->pendingFor($actor)->with($relations)
             ->latest('start_date')
             ->get();
         $visible = Absence::query()->with($relations)->visibleTo($actor)->latest('start_date')->get();
@@ -143,6 +143,8 @@ class AbsenceController extends Controller
                 'name' => $absence->user->person->full_name,
             ],
             'manager_name' => $absence->user->manager?->person?->full_name,
+            'decided_by_direction' => $decidedByDirection = $this->decisionRule->isDecidedByDirection($absence),
+            'decision_route_label' => $decidedByDirection ? AbsenceDecisionRule::DIRECTION_ROUTE_LABEL : null,
             'decided_by_name' => $absence->decidedBy?->person?->full_name,
             'attachment' => $absence->attachment instanceof Attachment ? [
                 'name' => $absence->attachment->original_name,

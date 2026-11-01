@@ -27,8 +27,8 @@ function refuse() {
             </header>
             <dl class="grid min-w-0 gap-4 sm:grid-cols-2">
                 <div><dt class="text-sm font-semibold text-ink-secondary">Motif</dt><dd class="break-words">{{ absence.reason }}</dd></div>
-                <div><dt class="text-sm font-semibold text-ink-secondary">Responsable direct</dt><dd>{{ absence.manager_name || 'Non renseigné' }}</dd></div>
-                <div v-if="absence.decided_by_name"><dt class="text-sm font-semibold text-ink-secondary">Décision prise par</dt><dd>{{ absence.decided_by_name }}</dd></div>
+                <div><dt class="text-sm font-semibold text-ink-secondary">Responsable direct</dt><dd>{{ absence.manager_name || 'Non renseigné' }}</dd><dd v-if="absence.decision_route_label" class="text-sm font-semibold text-ink-secondary">{{ absence.decision_route_label }}</dd></div>
+                <div v-if="absence.decided_by_name"><dt class="text-sm font-semibold text-ink-secondary">{{ absence.state === 'annulee' ? 'Annulée par' : 'Décision prise par' }}</dt><dd>{{ absence.decided_by_name }}</dd></div>
                 <div v-if="absence.decision_reason"><dt class="text-sm font-semibold text-ink-secondary">Motif du refus</dt><dd class="break-words">{{ absence.decision_reason }}</dd></div>
             </dl>
             <a v-if="absence.attachment" :href="absence.attachment.url" class="touch-target inline-flex w-fit items-center font-semibold text-primary underline-offset-4 hover:underline">Ouvrir le justificatif : {{ absence.attachment.name }}</a>

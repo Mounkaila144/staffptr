@@ -46,6 +46,37 @@ class FixedChargeHttpTest extends IdentityTestCase
         $this->assertDatabaseHas('fixed_charges', ['label' => 'Hébergement local', 'monthly_amount' => 45_000]);
     }
 
+    /**
+     * Parcours réel du navigateur : l'aperçu redirige vers la page, qui l'affiche, puis
+     * « Confirmer » envoie la création. L'affichage ne doit pas consommer l'aperçu attendu.
+     */
+    public function test_a_preview_displayed_on_the_page_can_still_be_confirmed(): void
+    {
+        $finance = $this->userWithRole('finance');
+        $payload = ['label' => 'Gardiennage', 'monthly_amount' => 40_000, 'is_active' => true];
+
+        $this->actingAs($finance)->post(route('fixed-charges.preview'), $payload)->assertRedirect();
+        $token = '';
+        $this->actingAs($finance)->get(route('fixed-charges.index'))->assertOk()->assertInertia(
+            function (AssertableInertia $page) use (&$token): AssertableInertia {
+                $token = (string) $page->toArray()['props']['preview']['token'];
+
+                return $page->where('preview.label', 'Gardiennage');
+            },
+        );
+
+        $this->actingAs($finance)
+            ->post(route('fixed-charges.store'), [...$payload, 'preview_token' => $token])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('fixed-charges.index'));
+        $this->assertDatabaseHas('fixed_charges', ['label' => 'Gardiennage', 'monthly_amount' => 40_000]);
+
+        // Une fois confirmé, l'aperçu ne réapparaît plus à l'affichage suivant.
+        $this->actingAs($finance)->get(route('fixed-charges.index'))->assertInertia(
+            fn (AssertableInertia $page): AssertableInertia => $page->where('preview', null),
+        );
+    }
+
     public function test_ac_8_9_and_12_update_and_activity_change_require_a_matching_preview(): void
     {
         $finance = $this->userWithRole('finance');

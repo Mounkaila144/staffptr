@@ -1,7 +1,10 @@
 <script setup>
+import { ref } from "vue";
 import { Head, Link, useForm } from "@inertiajs/vue3";
 import AppButton from "../../../Components/AppButton.vue";
+import AppModal from "../../../Components/AppModal.vue";
 import AttachmentUploader from "../../../Components/AttachmentUploader.vue";
+import DataTable from "../../../Components/DataTable.vue";
 import EmptyState from "../../../Components/EmptyState.vue";
 import AppLayout from "../../../Layouts/AppLayout.vue";
 const props = defineProps({
@@ -25,6 +28,14 @@ const form = useForm({
     spent_budget_xof: "",
     attachment_ulid: "",
 });
+const creating = ref(false);
+const projectColumns = [
+    { key: "name", label: "Projet", primary: true },
+    { key: "client_name", label: "Client" },
+    { key: "manager", label: "Responsable" },
+    { key: "start_date", label: "Période" },
+    { key: "status_label", label: "Statut" },
+];
 </script>
 <template>
     <Head title="Projets" /><AppLayout title="Projets"
@@ -35,15 +46,10 @@ const form = useForm({
                     Responsabilités, membres, dates et livrables réunis au même
                     endroit.
                 </p>
+                <AppButton v-if="canCreate" variant="principal" class="justify-self-start" @click="creating = true">Nouveau projet</AppButton>
             </header>
-            <form
-                v-if="canCreate"
-                class="grid min-w-0 gap-4 rounded-xl border border-separator p-4 sm:grid-cols-2"
-                @submit.prevent="form.post('/projets')"
-            >
-                <h2 class="text-section-title sm:col-span-2">
-                    Créer un projet
-                </h2>
+            <AppModal v-if="canCreate" v-model:open="creating" size="lg" title="Créer un projet">
+                <form class="grid min-w-0 gap-4 sm:grid-cols-2" @submit.prevent="form.post('/projets', { onSuccess: () => { creating = false } })">
                 <label class="grid gap-1"
                     >Nom<input
                         v-model="form.name"
@@ -110,49 +116,24 @@ const form = useForm({
                         :max-size-bytes="attachment.max_size_bytes"
                         @uploaded="form.attachment_ulid = $event.ulid"
                     />
-                    <p v-if="form.errors.attachment_ulid" class="text-danger">{{ form.errors.attachment_ulid }}</p>
-                </div><AppButton
+                </div><ul v-if="form.hasErrors" class="grid gap-1 text-danger sm:col-span-2" role="alert"><li v-for="(message, field) in form.errors" :key="field">{{ message }}</li></ul><AppButton
                     type="submit"
                     variant="principal"
                     :busy="form.processing"
                     >Créer le projet</AppButton
                 >
             </form>
-            <ul v-if="projects.data.length" class="grid min-w-0 gap-3">
-                <li
-                    v-for="project in projects.data"
-                    :key="project.id"
-                    class="grid min-w-0 gap-2 rounded-xl border border-separator bg-surface p-4"
-                >
-                    <div class="flex flex-wrap justify-between gap-2">
-                        <Link
-                            :href="`/projets/${project.id}`"
-                            class="break-words font-semibold text-primary"
-                            >{{ project.name }}</Link
-                        ><span
-                            class="rounded-full border border-separator px-3 py-1"
-                            >{{ project.status_label }}</span
-                        >
-                    </div>
-                    <p>
-                        {{ project.manager }} · {{ project.start_date
-                        }}<template v-if="project.end_date">
-                            au {{ project.end_date }}</template
-                        >
-                    </p>
-                    <p
-                        v-if="project.client_name"
-                        class="text-sm text-ink-secondary"
-                    >
-                        Client : {{ project.client_name }}
-                    </p>
-                </li>
-            </ul>
+            </AppModal>
+            <DataTable v-if="projects.data.length" :columns="projectColumns" :rows="projects.data" :row-href="(project) => `/projets/${project.id}`" caption="Liste des projets">
+                <template #cell-status_label="{ row }"><span class="inline-flex rounded-full border border-separator-strong px-2.5 py-0.5 text-[0.8125rem] font-semibold text-ink-secondary">{{ row.status_label }}</span></template>
+                <template #cell-start_date="{ row }">{{ row.start_date }}<template v-if="row.end_date"> → {{ row.end_date }}</template></template>
+            </DataTable>
             <EmptyState
                 v-else
                 :title="emptyMessage"
                 reason="Les projets apparaîtront ici après leur création."
                 :action-label="canCreate ? 'Créer un projet' : undefined"
+                @action="creating = true"
             /></div
     ></AppLayout>
 </template>

@@ -10,6 +10,7 @@ use App\Http\Requests\Work\AttachWorkItemRequest;
 use App\Http\Requests\Work\CommentWorkItemRequest;
 use App\Http\Requests\Work\StoreTaskRequest;
 use App\Http\Requests\Work\TaskIndexRequest;
+use App\Http\Requests\Work\UpdateTaskStatusRequest;
 use App\Models\Identity\User;
 use App\Models\Platform\Attachment;
 use App\Models\Work\Objective;
@@ -46,7 +47,7 @@ class TaskController extends Controller
         $actor = $this->actor($request);
         Gate::authorize('viewAny', Task::class);
 
-        return Inertia::render('Work/Tasks/Today', ['tasks' => $this->todayTasks->forUser($actor)->map(fn (Task $task): array => $this->serialize($task))->all(), 'emptyMessage' => 'Aucune tâche prévue aujourd’hui.']);
+        return Inertia::render('Work/Tasks/Today', ['tasks' => $this->todayTasks->forUser($actor)->map(fn (Task $task): array => $this->serialize($task))->all(), 'emptyMessage' => 'Aucune tâche prévue aujourd’hui.', 'canUpdate' => $actor->can('tache.gerer')]);
     }
 
     public function show(Request $request, Task $task): Response
@@ -68,6 +69,14 @@ class TaskController extends Controller
         }
 
         return redirect()->route('tasks.show', $task)->with('success', 'La tâche a été créée.');
+    }
+
+    public function transition(UpdateTaskStatusRequest $request, Task $task): RedirectResponse
+    {
+        $reason = $request->validated('reason');
+        $this->service->transition($task, $request->status(), is_string($reason) && $reason !== '' ? $reason : null, $this->actor($request));
+
+        return back()->with('success', 'Le statut de la tâche a été mis à jour.');
     }
 
     public function comment(CommentWorkItemRequest $request, Task $task): RedirectResponse
@@ -134,7 +143,7 @@ class TaskController extends Controller
     /** @return array<string, mixed> */
     private function serialize(Task $task): array
     {
-        return ['id' => $task->getKey(), 'title' => $task->title, 'assignee' => $task->relationLoaded('assignee') ? $task->assignee->person->full_name : null, 'due_date' => $task->due_date->format('d/m/Y'), 'priority' => $task->priority->value, 'priority_label' => $task->priority->label(), 'status' => $task->status->value, 'status_label' => $task->status->label(), 'project' => $task->project?->name, 'objective' => $task->objective?->title, 'parent' => $task->parent?->title, 'comments' => $task->relationLoaded('comments') ? $task->comments->map(fn (WorkComment $comment): array => ['id' => $comment->getKey(), 'author' => $comment->author->person->full_name, 'body' => $comment->body])->all() : [], 'links' => $task->relationLoaded('links') ? $task->links->map(fn (WorkLink $link): array => ['id' => $link->getKey(), 'label' => $link->label, 'url' => $link->url])->all() : [], 'attachments' => $task->relationLoaded('attachments') ? $task->attachments->map(fn (Attachment $file): array => ['name' => $file->original_name, 'url' => route('attachments.show', $file)])->all() : []];
+        return ['id' => $task->getKey(), 'title' => $task->title, 'assignee' => $task->relationLoaded('assignee') ? $task->assignee->person->full_name : null, 'due_date' => $task->due_date->format('d/m/Y'), 'priority' => $task->priority->value, 'priority_label' => $task->priority->label(), 'status' => $task->status->value, 'status_label' => $task->status->label(), 'transitions' => $this->options($task->status->allowedTransitions()), 'project' => $task->project?->name, 'objective' => $task->objective?->title, 'parent' => $task->parent?->title, 'comments' => $task->relationLoaded('comments') ? $task->comments->map(fn (WorkComment $comment): array => ['id' => $comment->getKey(), 'author' => $comment->author->person->full_name, 'body' => $comment->body])->all() : [], 'links' => $task->relationLoaded('links') ? $task->links->map(fn (WorkLink $link): array => ['id' => $link->getKey(), 'label' => $link->label, 'url' => $link->url])->all() : [], 'attachments' => $task->relationLoaded('attachments') ? $task->attachments->map(fn (Attachment $file): array => ['name' => $file->original_name, 'url' => route('attachments.show', $file)])->all() : []];
     }
 
     private function attachment(mixed $ulid): ?Attachment

@@ -80,7 +80,14 @@ class PersonProfileHttpTest extends IdentityTestCase
 
         $this->actingAs($direction)
             ->patch(route('people.update', $target->person), $payload)
-            ->assertRedirect(route('people.show', $target->person));
+            ->assertRedirect(route('people.show', $target->person))
+            ->assertSessionHas('success', 'Fiche enregistrée.');
+
+        $this->actingAs($direction)
+            ->get(route('people.show', $target->person))
+            ->assertInertia(fn ($page) => $page
+                ->where('profile.contract_start_date_label', '01/02/2026')
+                ->where('profile.contract_end_date_label', '31/08/2026'));
 
         $target->refresh();
         $this->assertSame('Moussa Issoufou', $target->person->fresh()->full_name);
@@ -97,6 +104,19 @@ class PersonProfileHttpTest extends IdentityTestCase
             ->patch(route('people.update', $target->person), [...$payload, 'full_name' => 'Interdit'])
             ->assertForbidden();
         $this->assertSame('Moussa Issoufou', $target->person->fresh()->full_name);
+    }
+
+    public function test_a_person_whose_only_account_is_archived_stays_readable_without_edit_form(): void
+    {
+        $direction = $this->userWithRole('direction');
+        $archived = User::factory()->archived()->create();
+
+        $this->actingAs($direction)
+            ->get(route('people.show', $archived->person))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('profile.state', 'archive')
+                ->where('canEdit', false));
     }
 
     public function test_ac_3_form_request_refuses_a_three_account_cycle_and_self_assignment(): void

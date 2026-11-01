@@ -3,6 +3,7 @@
 namespace App\Services\Finance;
 
 use App\Enums\ExpenseState;
+use App\Enums\UserState;
 use App\Models\Finance\Expense;
 use App\Models\Finance\ExpenseApproval;
 use App\Models\Identity\User;
@@ -20,7 +21,10 @@ class ExpenseApprovalReminderService
     public function dispatchDue(?CarbonImmutable $now = null): int
     {
         $now = ($now ?? CarbonImmutable::now('UTC'))->setTimezone(self::TIMEZONE);
+        // Mêmes approbateurs que la règle RM-09 (ExpenseApprovalRequirement) : comptes direction
+        // actifs, hors demandeur et hors bénéficiaire d'une part.
         $approvers = User::permission('depense.approuver')
+            ->where('state', UserState::Actif->value)
             ->select(['users.id', 'users.person_id', 'users.phone', 'users.state'])
             ->get();
         $sent = 0;
@@ -30,6 +34,7 @@ class ExpenseApprovalReminderService
                 $decidedIds = $expense->approvals->pluck('approver_id')->map(static fn (mixed $id): int => (int) $id);
                 $missingApprovers = $approvers->filter(
                     static fn (User $approver): bool => (int) $approver->getKey() !== (int) $expense->requester_id
+                        && (int) $approver->getKey() !== (int) $expense->beneficiary_user_id
                         && ! $decidedIds->contains((int) $approver->getKey()),
                 );
 
@@ -54,6 +59,7 @@ class ExpenseApprovalReminderService
             ->select([
                 'id',
                 'requester_id',
+                'beneficiary_user_id',
                 'category_id',
                 'reason',
                 'requested_amount',

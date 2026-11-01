@@ -37,7 +37,7 @@ const isCancelled = computed(() => props.expense.state === 'annulee');
 <template>
     <Head :title="`Demande de dépense — ${expense.reason}`" />
 
-    <AppLayout :title="`Demande de dépense`" back-label="Retour au registre" back-href="/depenses" active-navigation="settings">
+    <AppLayout :title="`Demande de dépense`" back-label="Retour au registre" back-href="/depenses" active-navigation="expenses">
         <div class="grid min-w-0 gap-6">
             <header class="flex min-w-0 flex-wrap items-start justify-between gap-3">
                 <div class="grid min-w-0 gap-2">
@@ -93,6 +93,34 @@ const isCancelled = computed(() => props.expense.state === 'annulee');
                 <p class="whitespace-pre-wrap text-sm">{{ expense.expected_result }}</p>
             </div>
 
+            <div class="grid min-w-0 gap-3 rounded-xl border border-separator bg-surface p-6">
+                <h2 class="text-section-title">Justificatif</h2>
+                <a v-if="expense.attachment" :href="expense.attachment.url" class="touch-target inline-flex w-fit items-center break-all font-semibold text-primary underline-offset-4 hover:underline">
+                    Télécharger « {{ expense.attachment.name }} »
+                </a>
+                <p v-else class="text-sm text-ink-secondary">Aucun justificatif n’a été joint à cette demande.</p>
+            </div>
+
+            <div class="grid min-w-0 gap-3 rounded-xl border border-separator bg-surface p-6">
+                <h2 class="text-section-title">Décisions de la direction</h2>
+                <p v-if="expense.approval_progress" class="font-semibold">{{ expense.approval_progress }}</p>
+                <p v-if="expense.approval_rule" class="text-sm text-ink-secondary">{{ expense.approval_rule }}</p>
+                <p v-if="expense.approvals.length === 0" class="text-sm text-ink-secondary">Aucune décision pour l’instant.</p>
+                <ul v-else class="grid min-w-0 gap-2">
+                    <li v-for="decision in expense.approvals" :key="`${decision.approver}-${decision.decided_at}`" class="grid min-w-0 gap-1 rounded-lg border border-separator p-3 text-sm">
+                        <p class="font-semibold">{{ decision.decision === 'approve' ? '✓ Approbation' : '× Refus' }} — {{ decision.approver }}</p>
+                        <p>{{ decision.decided_at }}</p>
+                        <p v-if="decision.comment" class="break-words">Motif : {{ decision.comment }}</p>
+                    </li>
+                </ul>
+            </div>
+
+            <div v-if="expense.payment" class="grid min-w-0 gap-2 rounded-xl border border-separator bg-surface p-6 text-sm">
+                <h2 class="text-section-title">Paiement</h2>
+                <p>Payée le {{ expense.payment.paid_at }}<span v-if="expense.payment.account"> depuis « {{ expense.payment.account }} »</span><span v-if="expense.payment.mode"> ({{ expense.payment.mode }})</span>.</p>
+                <p v-if="expense.payment.cancellation_reason" class="font-semibold text-danger">Paiement annulé par contre-écriture. Motif : {{ expense.payment.cancellation_reason }}</p>
+            </div>
+
             <div v-if="isPending && canCancel" class="grid min-w-0 gap-4">
                 <AppButton v-if="!cancelFormOpen" variant="destructeur" @click="openCancelForm">Annuler cette demande</AppButton>
 
@@ -103,7 +131,7 @@ const isCancelled = computed(() => props.expense.state === 'annulee');
                         id="cancel-reason"
                         v-model="cancelForm.cancel_reason"
                         label="Motif d'annulation"
-                        type="textarea"
+                        as="textarea"
                         required
                         :error="cancelForm.errors.cancel_reason"
                         rows="3"
@@ -120,7 +148,7 @@ const isCancelled = computed(() => props.expense.state === 'annulee');
             <EmptyState
                 v-else-if="isCancelled"
                 title="Cette demande a été annulée."
-                :reason="`Motif : ${expense.cancel_reason}`"
+                :reason="expense.cancel_reason ? `Motif : ${expense.cancel_reason}` : 'Le paiement de cette dépense a été annulé par contre-écriture.'"
             />
 
             <EmptyState

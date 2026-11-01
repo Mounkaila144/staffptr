@@ -56,11 +56,11 @@ defineProps({
                         reason="Votre rôle ne donne accès à aucun des indicateurs consolidés."
                     />
 
-                    <div v-else class="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    <div v-else class="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3 items-start">
                         <DashboardBlock v-if="blocks.members_without_objective" :block="blocks.members_without_objective" block-key="members_without_objective">
-                            <p class="text-card-title">{{ blocks.members_without_objective.count }}</p>
+                            <p class="text-tile">{{ blocks.members_without_objective.count }}</p>
                             <ul v-if="blocks.members_without_objective.items.length" class="grid min-w-0 gap-1">
-                                <li v-for="member in blocks.members_without_objective.items" :key="member.id" class="break-words rounded-lg bg-neutral-soft p-2">
+                                <li v-for="member in blocks.members_without_objective.items" :key="member.id" class="break-words rounded-lg bg-neutral-soft px-3 py-2 text-sm">
                                     {{ member.name }}
                                 </li>
                             </ul>
@@ -69,7 +69,7 @@ defineProps({
 
                         <DashboardBlock v-if="blocks.daily_reports" :block="blocks.daily_reports" block-key="daily_reports">
                             <template v-if="blocks.daily_reports.is_working_day">
-                                <p class="text-card-title">{{ blocks.daily_reports.sent }} / {{ blocks.daily_reports.expected }} envoyés</p>
+                                <p class="text-tile">{{ blocks.daily_reports.sent }} / {{ blocks.daily_reports.expected }} envoyés</p>
                                 <p>{{ blocks.daily_reports.missing }} manquant{{ blocks.daily_reports.missing > 1 ? 's' : '' }}</p>
                             </template>
                             <!-- SOC-06 : le vide par absence d'attente ne se confond pas avec le vide par absence de donnée. -->
@@ -77,9 +77,9 @@ defineProps({
                         </DashboardBlock>
 
                         <DashboardBlock v-if="blocks.objectives_by_state" :block="blocks.objectives_by_state" block-key="objectives_by_state">
-                            <p class="text-card-title">{{ blocks.objectives_by_state.total }} objectifs</p>
+                            <p class="text-tile">{{ blocks.objectives_by_state.total }} objectif{{ blocks.objectives_by_state.total > 1 ? "s" : "" }}</p>
                             <ul v-if="blocks.objectives_by_state.total > 0" class="grid min-w-0 gap-1">
-                                <li v-for="group in blocks.objectives_by_state.items" :key="group.key" class="flex flex-wrap justify-between gap-2 rounded-lg bg-neutral-soft p-2">
+                                <li v-for="group in blocks.objectives_by_state.items" :key="group.key" class="flex flex-wrap justify-between gap-2 rounded-lg bg-neutral-soft px-3 py-2 text-sm">
                                     <span>{{ group.label }}</span><span class="font-semibold">{{ group.count }}</span>
                                 </li>
                             </ul>
@@ -87,9 +87,9 @@ defineProps({
                         </DashboardBlock>
 
                         <DashboardBlock v-if="blocks.late_projects" :block="blocks.late_projects" block-key="late_projects">
-                            <p class="text-card-title">{{ blocks.late_projects.count }}</p>
+                            <p class="text-tile">{{ blocks.late_projects.count }}</p>
                             <ul v-if="blocks.late_projects.items.length" class="grid min-w-0 gap-1">
-                                <li v-for="project in blocks.late_projects.items" :key="project.id" class="grid min-w-0 rounded-lg bg-neutral-soft p-2">
+                                <li v-for="project in blocks.late_projects.items" :key="project.id" class="grid min-w-0 rounded-lg bg-neutral-soft px-3 py-2 text-sm">
                                     <span class="break-words font-semibold">{{ project.name }}</span>
                                     <span class="text-sm">{{ project.status_label }} · fin prévue le {{ project.end_date }}</span>
                                 </li>
@@ -119,23 +119,23 @@ defineProps({
                         </DashboardBlock>
 
                         <DashboardBlock v-if="blocks.month_collections" :block="blocks.month_collections" block-key="month_collections">
-                            <p class="text-card-title">{{ blocks.month_collections.amount_label }}</p>
+                            <p class="text-tile">{{ blocks.month_collections.amount_label }}</p>
                             <p>{{ blocks.month_collections.month_label }}</p>
                         </DashboardBlock>
 
                         <DashboardBlock v-if="blocks.month_charges" :block="blocks.month_charges" block-key="month_charges">
-                            <p class="text-card-title">{{ blocks.month_charges.amount_label }}</p>
+                            <p class="text-tile">{{ blocks.month_charges.amount_label }}</p>
                         </DashboardBlock>
 
                         <DashboardBlock v-if="blocks.available_balance" :block="blocks.available_balance" block-key="available_balance">
-                            <p class="text-card-title">
+                            <p class="text-tile">
                                 <span v-if="blocks.available_balance.is_negative">−</span>{{ blocks.available_balance.amount_label }}
                             </p>
                             <p v-if="blocks.available_balance.is_negative">Solde négatif.</p>
                         </DashboardBlock>
 
                         <DashboardBlock v-if="blocks.receivables" :block="blocks.receivables" block-key="receivables">
-                            <p class="text-card-title">{{ blocks.receivables.amount_label }}</p>
+                            <p class="text-tile">{{ blocks.receivables.amount_label }}</p>
                             <p v-if="blocks.receivables.count > 0">
                                 {{ blocks.receivables.count }} facture{{ blocks.receivables.count > 1 ? 's' : '' }} échue{{ blocks.receivables.count > 1 ? 's' : '' }}
                             </p>
@@ -143,7 +143,7 @@ defineProps({
                         </DashboardBlock>
 
                         <DashboardBlock v-if="blocks.reserve" :block="blocks.reserve" block-key="reserve">
-                            <p class="text-card-title">{{ blocks.reserve.amount_label }}</p>
+                            <p class="text-tile">{{ blocks.reserve.amount_label }}</p>
                             <p>{{ blocks.reserve.covered_months_label }}</p>
                         </DashboardBlock>
                     </div>

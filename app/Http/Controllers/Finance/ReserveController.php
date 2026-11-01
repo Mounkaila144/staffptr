@@ -32,12 +32,15 @@ class ReserveController extends Controller
 
     public function requestUsage(RequestReserveUsageRequest $request): RedirectResponse
     {
-        $this->reserve->requestUsage(
+        $usage = $this->reserve->requestUsage(
             (int) $request->validated('movement_amount'), (string) $request->validated('reason'),
             (string) $request->validated('reconstitution_plan'), (string) $request->validated('idempotency_key'), $this->actor($request),
         );
+        $message = $this->reserve->approvalsRequiredFor($usage) === 1
+            ? 'La demande d’utilisation attend l’approbation de l’autre dirigeant (demande d’un dirigeant : une seule suffit).'
+            : 'La demande d’utilisation attend deux approbations distinctes de la direction.';
 
-        return redirect()->route('reserve.index')->with('success', 'La demande d’utilisation attend deux approbations distinctes de la direction.');
+        return redirect()->route('reserve.index')->with('success', $message);
     }
 
     public function approve(ApproveReserveUsageRequest $request, ReserveMovement $reserveMovement): RedirectResponse

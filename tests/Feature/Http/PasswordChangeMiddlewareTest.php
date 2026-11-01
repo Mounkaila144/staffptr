@@ -69,6 +69,37 @@ class PasswordChangeMiddlewareTest extends IdentityTestCase
         $this->assertGuest();
     }
 
+    /** Décision de la direction : huit caractères suffisent, même s'ils ne sont que des chiffres. */
+    public function test_eight_digits_are_accepted_and_seven_are_refused(): void
+    {
+        $user = User::factory()->active()->create(['must_change_password' => true]);
+
+        $this->actingAs($user)
+            ->patch(route('password.change.update'), ['password' => '1234567', 'password_confirmation' => '1234567'])
+            ->assertSessionHasErrors(['password' => 'Le mot de passe doit contenir au moins 8 caractères (des chiffres seuls suffisent).']);
+        $this->assertTrue($user->refresh()->must_change_password);
+
+        $this->actingAs($user)
+            ->patch(route('password.change.update'), ['password' => '12345678', 'password_confirmation' => '12345678'])
+            ->assertRedirect(route('home'))
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success', 'Votre nouveau mot de passe est enregistré.');
+        $this->assertTrue(Hash::check('12345678', $user->refresh()->password));
+    }
+
+    public function test_the_change_screen_tells_a_forced_change_from_a_voluntary_one(): void
+    {
+        $forced = User::factory()->active()->create(['must_change_password' => true]);
+        $voluntary = User::factory()->active()->create(['must_change_password' => false]);
+
+        $this->actingAs($forced)->get(route('password.change.edit'))
+            ->assertInertia(fn ($page) => $page->component('Identity/ChangePassword')->where('forced', true));
+        $this->flushSession();
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($voluntary)->get(route('password.change.edit'))
+            ->assertInertia(fn ($page) => $page->component('Identity/ChangePassword')->where('forced', false));
+    }
+
     public function test_ac_3_and_4_password_change_is_hashed_audited_and_unlocks_access(): void
     {
         $oldPassword = 'Ancien-Mot-De-Passe-2026';

@@ -4,10 +4,12 @@ namespace App\Services\Accountability;
 
 use App\Enums\DailyReportDecisionType;
 use App\Enums\DailyReportState;
+use App\Enums\TaskRequestState;
 use App\Models\Accountability\DailyReport;
 use App\Models\Accountability\DailyReportComment;
 use App\Models\Accountability\DailyReportDecision;
 use App\Models\Accountability\DailyReportVersion;
+use App\Models\Accountability\TaskRequest;
 use App\Models\Identity\User;
 use App\Models\Platform\Attachment;
 use App\Notifications\DailyReportDecisionNotification;
@@ -105,7 +107,7 @@ final class DailyReportReviewService
     /** @return array<string, mixed> */
     public function item(DailyReport $report): array
     {
-        $report->loadMissing(['author.person', 'currentVersion.attachment', 'comments.author.person', 'versions.author.person', 'versions.attachment', 'decisions.reviewer.person']);
+        $report->loadMissing(['author.person', 'currentVersion.attachment', 'comments.author.person', 'versions.author.person', 'versions.attachment', 'decisions.reviewer.person', 'taskRequests']);
         $current = $report->currentVersion;
 
         return [
@@ -123,6 +125,14 @@ final class DailyReportReviewService
                 'body' => $comment->body,
                 'created_at' => DateTimeFormatter::format($comment->created_at),
             ])->all(),
+            // Les demandes de tâche émises depuis ce rapport : la notification du responsable
+            // mène ici, il doit donc pouvoir les lire et les marquer traitées.
+            'task_requests' => $report->taskRequests->sortBy('id')->map(fn (TaskRequest $taskRequest): array => [
+                'id' => $taskRequest->getKey(),
+                'description' => $taskRequest->description,
+                'is_urgent' => (bool) $taskRequest->is_urgent,
+                'is_open' => $taskRequest->state === TaskRequestState::Ouvert,
+            ])->values()->all(),
         ];
     }
 

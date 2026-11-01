@@ -1,10 +1,19 @@
 <script setup>
-import { reactive } from "vue";
-import { Head, router, useForm } from "@inertiajs/vue3";
+import { computed, reactive } from "vue";
+import { Head, useForm } from "@inertiajs/vue3";
 import AppButton from "../../../Components/AppButton.vue";
 import EmptyState from "../../../Components/EmptyState.vue";
+import FormField from "../../../Components/FormField.vue";
 import AppLayout from "../../../Layouts/AppLayout.vue";
-const props = defineProps({ deliverables: Object, statuses: Array, assignablePeople: { type: Array, default: () => [] }, projects: { type: Array, default: () => [] } });
+const props = defineProps({
+    deliverables: Object,
+    statuses: Array,
+    canCreate: { type: Boolean, default: false },
+    assignablePeople: { type: Array, default: () => [] },
+    projects: { type: Array, default: () => [] },
+});
+const projectOptions = computed(() => props.projects.map((p) => ({ value: p.id, label: p.name })));
+const peopleOptions = computed(() => props.assignablePeople.map((p) => ({ value: p.id, label: p.name })));
 const form = useForm({
     project_id: "",
     owner_id: "",
@@ -13,8 +22,20 @@ const form = useForm({
     actual_date: "",
     status: "prevu",
 });
-const transitions = reactive(Object.fromEntries(props.deliverables.data.map((item) => [item.id, { status: "", reason: "" }])));
-const transition = (item) => router.patch(`/livrables/${item.id}/etat`, transitions[item.id]);
+const submit = () =>
+    form.post("/livrables", {
+        preserveScroll: true,
+        onSuccess: () => form.reset("title", "planned_date", "actual_date"),
+    });
+// Un formulaire de changement de statut par livrable, créé à la demande pour garder ses erreurs.
+const transitions = reactive({});
+const transitionFor = (item) => (transitions[item.id] ??= useForm({ status: "", reason: "" }));
+const transition = (item) =>
+    transitionFor(item).patch(`/livrables/${item.id}/etat`, {
+        preserveScroll: true,
+        onSuccess: () => delete transitions[item.id],
+    });
+const focusForm = () => document.getElementById("deliverable-title")?.focus();
 </script>
 <template>
     <Head title="Livrables" /><AppLayout title="Livrables"
@@ -26,60 +47,29 @@ const transition = (item) => router.patch(`/livrables/${item.id}/etat`, transiti
                 </p>
             </header>
             <form
-                class="grid min-w-0 gap-3 rounded-xl border border-separator p-4 sm:grid-cols-2"
-                @submit.prevent="form.post('/livrables')"
+                v-if="canCreate"
+                class="grid min-w-0 gap-4 rounded-xl border border-separator p-4 sm:grid-cols-2"
+                @submit.prevent="submit"
             >
                 <h2 class="text-section-title sm:col-span-2">
                     Créer un livrable
                 </h2>
-                <input
-                    v-model="form.title"
-                    required
-                    placeholder="Titre"
-                    class="touch-target min-w-0 rounded-lg border border-separator px-3"
-                /><label class="grid gap-1"
-                    >Projet<select
-                        v-model="form.project_id"
-                        required
-                        class="touch-target min-w-0 rounded-lg border border-separator bg-surface px-3"
+                <div class="sm:col-span-2">
+                    <FormField id="deliverable-title" v-model="form.title" label="Titre" :maxlength="200" :error="form.errors.title" required />
+                </div>
+                <FormField id="deliverable-project" v-model="form.project_id" as="select" label="Projet" placeholder="Choisir un projet" :options="projectOptions" :error="form.errors.project_id" required />
+                <FormField id="deliverable-owner" v-model="form.owner_id" as="select" label="Responsable" placeholder="Choisir une personne" :options="peopleOptions" :error="form.errors.owner_id" required />
+                <FormField id="deliverable-planned-date" v-model="form.planned_date" variant="date" label="Date prévue" :error="form.errors.planned_date" required />
+                <FormField id="deliverable-actual-date" v-model="form.actual_date" variant="date" label="Date réelle" hint="À renseigner si le livrable a déjà été remis." :error="form.errors.actual_date" optional-label />
+                <FormField id="deliverable-status" v-model="form.status" as="select" label="Statut initial" :options="statuses" :error="form.errors.status" required />
+                <div class="flex items-end">
+                    <AppButton
+                        type="submit"
+                        variant="principal"
+                        :busy="form.processing"
+                        >Créer le livrable</AppButton
                     >
-                        <option value="" disabled>Choisir un projet</option>
-                        <option v-for="project in projects" :key="project.id" :value="project.id">
-                            {{ project.name }}
-                        </option>
-                    </select></label
-                ><label class="grid gap-1"
-                    >Responsable<select
-                        v-model="form.owner_id"
-                        required
-                        class="touch-target min-w-0 rounded-lg border border-separator bg-surface px-3"
-                    >
-                        <option value="" disabled>Choisir une personne</option>
-                        <option v-for="person in assignablePeople" :key="person.id" :value="person.id">
-                            {{ person.name }}
-                        </option>
-                    </select></label
-                ><input
-                    v-model="form.planned_date"
-                    required
-                    type="date"
-                    class="touch-target min-w-0 rounded-lg border border-separator px-3"
-                /><input
-                    v-model="form.actual_date"
-                    type="date"
-                    aria-label="Date réelle optionnelle"
-                    class="touch-target min-w-0 rounded-lg border border-separator px-3"
-                /><select
-                    v-model="form.status"
-                    aria-label="Statut initial"
-                    class="touch-target min-w-0 rounded-lg border border-separator px-3"
-                ><option v-for="status in statuses" :key="status.value" :value="status.value">{{ status.label }}</option></select
-                /><AppButton
-                    type="submit"
-                    variant="principal"
-                    :busy="form.processing"
-                    >Créer le livrable</AppButton
-                >
+                </div>
             </form>
             <ul v-if="deliverables.data.length" class="grid min-w-0 gap-3">
                 <li
@@ -89,14 +79,16 @@ const transition = (item) => router.patch(`/livrables/${item.id}/etat`, transiti
                 >
                     <div class="flex flex-wrap justify-between gap-2">
                         <strong class="break-words">{{ item.title }}</strong
-                        ><span>{{ item.status_label }}</span>
+                        ><span class="rounded-full border border-separator px-3 py-1">{{ item.status_label }}</span>
                     </div>
                     <p>{{ item.project }} · {{ item.owner }}</p>
-                    <p>{{ item.variance_label }}</p>
-                    <form class="grid min-w-0 gap-2 sm:grid-cols-2" @submit.prevent="transition(item)">
-                        <select v-model="transitions[item.id].status" required :aria-label="`Nouveau statut de ${item.title}`" class="touch-target min-w-0 rounded-lg border border-separator px-3"><option value="" disabled>Choisir un statut</option><option v-for="status in statuses" :key="status.value" :value="status.value">{{ status.label }}</option></select>
-                        <input v-model="transitions[item.id].reason" required minlength="5" placeholder="Motif du changement" class="touch-target min-w-0 rounded-lg border border-separator px-3">
-                        <AppButton type="submit">Mettre à jour le statut</AppButton>
+                    <p class="text-sm text-ink-secondary">
+                        Prévu le {{ item.planned_date }}<template v-if="item.actual_date"> · remis le {{ item.actual_date }}</template> · {{ item.variance_label }}
+                    </p>
+                    <form v-if="item.transitions.length" class="grid min-w-0 gap-2 sm:grid-cols-2" @submit.prevent="transition(item)">
+                        <FormField :id="`deliverable-${item.id}-status`" v-model="transitionFor(item).status" as="select" label="Nouveau statut" placeholder="Choisir un statut" :options="item.transitions" :error="transitionFor(item).errors.status" required />
+                        <FormField :id="`deliverable-${item.id}-reason`" v-model="transitionFor(item).reason" label="Motif du changement" hint="5 caractères au moins." :maxlength="1000" :error="transitionFor(item).errors.reason" required />
+                        <div><AppButton type="submit" :busy="transitionFor(item).processing">Mettre à jour le statut</AppButton></div>
                     </form>
                 </li>
             </ul>
@@ -104,6 +96,8 @@ const transition = (item) => router.patch(`/livrables/${item.id}/etat`, transiti
                 v-else
                 title="Aucun livrable prévu."
                 reason="Les livrables apparaîtront ici après leur création."
+                :action-label="canCreate ? 'Créer un livrable' : undefined"
+                @action="focusForm"
             /></div
     ></AppLayout>
 </template>

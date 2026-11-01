@@ -34,7 +34,7 @@ l'application n'attende pas de rapport un jour où l'entreprise est fermée.* �
 
 1. Une absence porte type (congé, maladie, autre), date de début, date de fin, motif court, justificatif optionnel.
 2. Les états `demandee`, `approuvee`, `refusee`, `annulee` existent ; **le refus exige un motif**.
-3. ⛔ L'approbation appartient au **responsable direct** ; un utilisateur ne peut pas approuver sa propre absence ; testé y compris pour `direction`.
+3. ⛔ L'approbation appartient au **responsable direct** ; un utilisateur ne peut pas approuver sa propre absence ; testé y compris pour `direction`. *(Décision du propriétaire, 2026-11-01 : si le demandeur n'a pas de responsable direct actif, tout compte `direction` actif autre que lui décide ; sinon règle inchangée.)*
 4. ⛔ Aucun rapport n'est attendu sur un jour couvert par une absence **`approuvee`** ; un test crée une absence approuvée et vérifie que le jour n'apparaît pas dans les rapports manquants.
 5. Une absence `demandee` ou `refusee` **ne suspend pas** l'attente de rapport ; testé.
 6. Les indicateurs de ponctualité excluent du dénominateur les jours non travaillés et les jours d'absence approuvée ; un test calcule le taux sur un mois comportant les deux.
@@ -84,7 +84,7 @@ qu'aucune sortie d'argent ne dépende d'une seule personne.* — [PRD 1.12]
 
 C'est la story qui porte la valeur centrale du Jalon 1. Chacun de ses critères est un test bloquant.
 
-1. ⛔ Une dépense passe à `approuvee` **uniquement** après enregistrement de l'approbation de **deux comptes `direction` distincts**, quel que soit le montant, qu'elle soit ou non prévue au budget (RM-09, CA-09).
+1. ⛔ Une dépense passe à `approuvee` **uniquement** après enregistrement de l'approbation de **deux comptes `direction` distincts**, quel que soit le montant, qu'elle soit ou non prévue au budget (RM-09, CA-09). *(Décision du propriétaire, 2026-11-01 : approbations requises = 2 ; pour une demande d’un dirigeant (ou dont il est bénéficiaire) = min(2, autres comptes `direction` actifs), au moins 1 — une demande d'un dirigeant, quand il n'y en a que deux, est approuvée par l'autre seul ; personne n'approuve sa propre dépense. Nombre figé sur la dépense au passage à `approuvee`.)*
 2. ⛔ **Aucun seuil de montant n'existe** dans le code ni au paramétrage ; un test soumet une dépense de 1 000 FCFA et vérifie que deux approbations restent exigées.
 3. ⛔ Le demandeur ne compte **jamais** comme approbateur de sa propre demande, y compris s'il porte le rôle `direction` (RM-10, CA-11). Message : « Vous êtes le demandeur de cette dépense. Elle doit être approuvée par les deux autres comptes de direction. »
 4. ⛔ Tant qu'une seule approbation est enregistrée, la dépense reste `demandee` et **n'est pas payable** ; toute tentative de paiement est refusée côté serveur.

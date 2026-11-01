@@ -4,6 +4,7 @@ namespace App\Support\Listing\Sources;
 
 use App\Enums\ExpenseState;
 use App\Models\Finance\Expense;
+use App\Models\Finance\ExpenseCategory;
 use App\Models\Identity\User;
 use App\Support\Listing\AbstractListSource;
 use App\Support\Listing\ListRegistry;
@@ -85,22 +86,46 @@ final class ExpenseListSource extends AbstractListSource
         $labels = [];
 
         if (($state = $this->filterValue($filters, 'state')) !== null) {
-            $labels[] = ['key' => 'state', 'label' => 'État : '.$state];
+            $labels[] = ['key' => 'state', 'label' => 'État : '.(ExpenseState::tryFrom($state)?->label() ?? $state)];
         }
 
         if (($category = $this->filterValue($filters, 'category_id')) !== null) {
-            $labels[] = ['key' => 'category_id', 'label' => "Catégorie n° {$category}"];
+            $name = ExpenseCategory::query()->whereKey((int) $category)->value('name');
+            $labels[] = ['key' => 'category_id', 'label' => 'Catégorie : '.($name ?? "n° {$category}")];
         }
 
         if (($from = $this->filterValue($filters, 'from')) !== null) {
-            $labels[] = ['key' => 'from', 'label' => "À partir du {$from}"];
+            $labels[] = ['key' => 'from', 'label' => 'Créée à partir du '.$this->displayDate($from)];
         }
 
         if (($to = $this->filterValue($filters, 'to')) !== null) {
-            $labels[] = ['key' => 'to', 'label' => "Jusqu'au {$to}"];
+            $labels[] = ['key' => 'to', 'label' => "Créée jusqu'au ".$this->displayDate($to)];
         }
 
         return $labels;
+    }
+
+    public function filterFields(): array
+    {
+        return [
+            $this->enumField('state', 'État', ExpenseState::cases()),
+            [
+                'key' => 'category_id',
+                'label' => 'Catégorie',
+                'type' => 'select',
+                'options' => ExpenseCategory::query()
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->map(static fn (ExpenseCategory $category): array => [
+                        'value' => (string) $category->getKey(),
+                        'label' => (string) $category->name,
+                    ])
+                    ->values()
+                    ->all(),
+            ],
+            $this->dateField('from', 'Créée à partir du'),
+            $this->dateField('to', "Créée jusqu'au"),
+        ];
     }
 
     /** @return list<string> */
@@ -132,7 +157,7 @@ final class ExpenseListSource extends AbstractListSource
             (string) $record->reason,
             // Entier brut : additionnable dans un tableur, jamais « 12 000 F CFA ».
             (int) $record->requested_amount,
-            $record->state->value,
+            $record->state->label(),
             $record->category?->name,
             $record->requester->person->full_name,
             $record->created_at->setTimezone('Africa/Niamey')->format('Y-m-d H:i'),

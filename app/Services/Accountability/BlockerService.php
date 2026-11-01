@@ -3,6 +3,7 @@
 namespace App\Services\Accountability;
 
 use App\Enums\BlockerState;
+use App\Exceptions\Identity\EvolutionApiUnavailable;
 use App\Models\Accountability\Blocker;
 use App\Models\Accountability\DailyReport;
 use App\Models\Identity\User;
@@ -59,7 +60,14 @@ final class BlockerService
         // conserve la notification immédiate (AC 36, 39).
         if ($this->grouping->enqueue($blocker) === null) {
             Notification::sendNow($solicited, BlockerNotification::forDatabase($blocker), ['database']);
-            $solicited->notify(BlockerNotification::forWhatsApp($blocker));
+            try {
+                $solicited->notify(BlockerNotification::forWhatsApp($blocker));
+            } catch (EvolutionApiUnavailable $exception) {
+                // Le blocage est enregistré et la notification dans l'application est partie :
+                // une passerelle WhatsApp indisponible (file synchrone) ne doit pas transformer
+                // le signalement en erreur, au risque d'un second signalement en double.
+                report($exception);
+            }
         }
 
         return $blocker;

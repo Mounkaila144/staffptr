@@ -32,7 +32,16 @@ const filterRole = ref(props.filters.role ?? '');
 const roleDrafts = reactive({});
 const archiveReasons = reactive({});
 const confirmationCodes = reactive({});
+const directResetReasons = reactive({});
+const directResetOpen = ref(null);
+// Réinitialisation sans WhatsApp : réservée à la direction (permission compte.gerer).
+const canResetWithoutWhatsApp = computed(() => (page.props.auth?.permissions ?? []).includes('compte.gerer'));
 const busyAction = ref('');
+// Les erreurs du serveur ne disent pas quel compte elles concernent : on retient le compte de la
+// dernière action pour ne les afficher que sur sa carte, et non sur toutes les cartes de la page.
+const actionAccountId = ref(null);
+const challengeOffPage = computed(() => Boolean(props.passwordResetChallenge)
+    && !props.accounts.data.some((account) => account.id === props.passwordResetChallenge.user_id));
 const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Niamey' });
 const creation = useForm({
     person_mode: 'new',
@@ -50,6 +59,7 @@ watch(() => props.accounts.data, (accounts) => {
         roleDrafts[account.id] ??= { roles: [...account.roles], reason: '' };
         archiveReasons[account.id] ??= '';
         confirmationCodes[account.id] ??= '';
+        directResetReasons[account.id] ??= '';
     }
 }, { immediate: true });
 
@@ -89,8 +99,10 @@ function resetFilters() {
 function syncRoles(account) {
     const key = `roles-${account.id}`;
     busyAction.value = key;
+    actionAccountId.value = account.id;
     router.patch(`/comptes/${account.id}/roles`, roleDrafts[account.id], {
         preserveScroll: true,
+        preserveState: true,
         onFinish: () => { busyAction.value = ''; },
     });
 }
@@ -98,8 +110,10 @@ function syncRoles(account) {
 function archiveAccount(account) {
     const key = `archive-${account.id}`;
     busyAction.value = key;
+    actionAccountId.value = account.id;
     router.patch(`/comptes/${account.id}/archiver`, { reason: archiveReasons[account.id] }, {
         preserveScroll: true,
+        preserveState: true,
         onFinish: () => { busyAction.value = ''; },
     });
 }
@@ -112,8 +126,11 @@ function initiateReset(account) {
     const key = `reset-initiate-${account.id}`;
     busyAction.value = key;
     resetConfirmation.value = null;
+    actionAccountId.value = account.id;
     router.post(`/comptes/${account.id}/reinitialisation/initier`, {}, {
-        preserveScroll: true,
+        // La réponse affiche la première page : on ne garde la position que si la carte y figure.
+        preserveScroll: (visited) => visited.props.accounts.data.some((item) => item.id === account.id),
+        preserveState: true,
         onFinish: () => { busyAction.value = ''; },
     });
 }
@@ -121,10 +138,32 @@ function initiateReset(account) {
 function confirmReset(account) {
     const key = `reset-confirm-${account.id}`;
     busyAction.value = key;
+    actionAccountId.value = account.id;
     router.post(`/comptes/${account.id}/reinitialisation/confirmer`, {
         confirmation_code: confirmationCodes[account.id],
     }, {
-        preserveScroll: true,
+        // En cas de réussite, le mot de passe temporaire s'affiche en haut de page.
+        preserveScroll: (visited) => !visited.props.resetAccount,
+        preserveState: true,
+        onFinish: () => { busyAction.value = ''; },
+    });
+}
+
+function resetWithoutWhatsApp(account) {
+    const key = `reset-direct-${account.id}`;
+    busyAction.value = key;
+    actionAccountId.value = account.id;
+    router.post(`/comptes/${account.id}/reinitialisation/directe`, {
+        verification: directResetReasons[account.id],
+    }, {
+        preserveScroll: (visited) => !visited.props.resetAccount,
+        preserveState: true,
+        onSuccess: (visited) => {
+            if (visited.props.resetAccount) {
+                directResetReasons[account.id] = '';
+                directResetOpen.value = null;
+            }
+        },
         onFinish: () => { busyAction.value = ''; },
     });
 }
@@ -138,6 +177,16 @@ function confirmReset(account) {
                 <h1 class="text-screen-title">Administration des comptes</h1>
                 <p class="text-ink-secondary">Créez les accès, attribuez les responsabilités et archivez un compte sans supprimer sa fiche personne.</p>
             </header>
+
+            <!-- La réponse à l'envoi du code affiche la première page : si le compte visé n'y figure pas, sa saisie de code s'affiche ici. -->
+            <section v-if="challengeOffPage" class="grid gap-3 rounded-xl border border-primary bg-primary-soft p-4" aria-live="polite">
+                <h2 class="text-section-title">Réinitialiser le mot de passe de {{ passwordResetChallenge.person_name }}</h2>
+                <form class="grid gap-3" @submit.prevent="confirmReset({ id: passwordResetChallenge.user_id })">
+                    <p>Code envoyé à <strong>{{ passwordResetChallenge.person_name }}</strong>. Il expire dans {{ passwordResetChallenge.expires_in_minutes }} minutes.</p>
+                    <FormField id="confirmation-code-top" v-model="confirmationCodes[passwordResetChallenge.user_id]" label="Code de confirmation WhatsApp" variant="code" autocomplete="one-time-code" :error="errors.confirmation_code" required />
+                    <AppButton type="submit" variant="principal" :busy="busyAction === `reset-confirm-${passwordResetChallenge.user_id}`" busy-label="Vérification">Confirmer le code et générer le mot de passe</AppButton>
+                </form>
+            </section>
 
             <section v-if="createdAccount && credentialVisible" class="grid gap-4 rounded-xl border-2 border-warning bg-warning-soft p-5" aria-live="polite">
                 <div class="grid gap-2">
@@ -281,7 +330,7 @@ function confirmReset(account) {
                                 </div>
                             </fieldset>
                             <FormField :id="`role-reason-${account.id}`" v-model="roleDrafts[account.id].reason" label="Motif du changement de rôles" required />
-                            <p v-if="errors.roles" class="text-sm font-semibold text-danger">⚠ {{ errors.roles }}</p>
+                            <p v-if="errors.roles && actionAccountId === account.id" class="text-sm font-semibold text-danger">⚠ {{ errors.roles }}</p>
                             <AppButton type="submit" variant="secondaire" :busy="busyAction === `roles-${account.id}`" busy-label="Mise à jour">Enregistrer les rôles</AppButton>
                         </form>
 
@@ -289,12 +338,12 @@ function confirmReset(account) {
                             <div class="grid gap-1">
                                 <h4 :id="`reset-title-${account.id}`" class="font-semibold">Réinitialiser le mot de passe <span class="sr-only">de {{ account.person.name }}</span></h4>
                                 <p class="text-sm text-ink-secondary">Un code à 6 chiffres sera envoyé sur le WhatsApp enregistré de la cible. La cible doit vous lire ce code avant toute génération du mot de passe temporaire.</p>
-                                <p class="text-sm font-semibold text-warning">Si WhatsApp est indisponible, l’opération reste bloquée sans contournement. Le mot de passe temporaire ne sera jamais envoyé par WhatsApp.</p>
+                                <p class="text-sm font-semibold text-warning">Si WhatsApp est indisponible, seule la direction peut réinitialiser sans code, après avoir vérifié l’identité de la personne hors application ; l’opération est inscrite au journal d’audit avec son motif. Le mot de passe temporaire ne sera jamais envoyé par WhatsApp.</p>
                             </div>
 
                             <form v-if="passwordResetChallenge?.user_id === account.id" class="grid gap-3 rounded-xl border border-primary bg-primary-soft p-4" @submit.prevent="confirmReset(account)">
                                 <p>Code envoyé à <strong>{{ passwordResetChallenge.person_name }}</strong>. Il expire dans {{ passwordResetChallenge.expires_in_minutes }} minutes.</p>
-                                <FormField :id="`confirmation-code-${account.id}`" v-model="confirmationCodes[account.id]" label="Code de confirmation WhatsApp" variant="code" autocomplete="one-time-code" :error="errors.confirmation_code" required />
+                                <FormField :id="`confirmation-code-${account.id}`" v-model="confirmationCodes[account.id]" label="Code de confirmation WhatsApp" variant="code" autocomplete="one-time-code" :error="actionAccountId === account.id ? errors.confirmation_code : ''" required />
                                 <AppButton type="submit" variant="principal" :busy="busyAction === `reset-confirm-${account.id}`" busy-label="Vérification">Confirmer le code et générer le mot de passe</AppButton>
                             </form>
 
@@ -311,8 +360,21 @@ function confirmReset(account) {
                             />
 
                             <template v-else>
-                                <p v-if="errors.password_reset" class="text-sm font-semibold text-danger">⚠ {{ errors.password_reset }}</p>
+                                <p v-if="errors.password_reset && actionAccountId === account.id" class="text-sm font-semibold text-danger">⚠ {{ errors.password_reset }}</p>
                                 <AppButton variant="secondaire" :busy="busyAction === `reset-initiate-${account.id}`" busy-label="Envoi du code" @click="askForReset(account)">Commencer la vérification WhatsApp</AppButton>
+
+                                <template v-if="canResetWithoutWhatsApp && !account.is_self">
+                                    <AppButton v-if="directResetOpen !== account.id" variant="discret" class="w-fit" @click="directResetOpen = account.id">WhatsApp indisponible ? Réinitialiser sans code</AppButton>
+                                    <form v-else class="grid gap-3 rounded-xl border-2 border-warning bg-warning-soft p-4" @submit.prevent="resetWithoutWhatsApp(account)">
+                                        <p class="font-semibold">Réinitialiser sans code WhatsApp</p>
+                                        <p class="text-sm">Vérifiez d’abord vous-même l’identité de {{ account.person.name }} (en personne ou par appel). Toutes ses sessions seront fermées et il devra choisir un nouveau mot de passe à sa prochaine connexion. Votre nom et le motif seront inscrits au journal d’audit.</p>
+                                        <FormField :id="`direct-reset-reason-${account.id}`" v-model="directResetReasons[account.id]" label="Comment avez-vous vérifié son identité ?" placeholder="Ex. : vu en personne au bureau le matin" :error="actionAccountId === account.id ? errors.verification : ''" required />
+                                        <div class="flex flex-wrap gap-2">
+                                            <AppButton type="submit" variant="destructeur" :busy="busyAction === `reset-direct-${account.id}`" :disabled="busyAction === `reset-direct-${account.id}`" busy-label="Réinitialisation">Générer le mot de passe temporaire</AppButton>
+                                            <AppButton variant="discret" @click="directResetOpen = null">Annuler</AppButton>
+                                        </div>
+                                    </form>
+                                </template>
                             </template>
                         </section>
 
@@ -322,7 +384,7 @@ function confirmReset(account) {
                                 <p class="text-sm text-ink-secondary">La fiche personne reste intacte et consultable. Le numéro pourra être réutilisé. Le statut opérationnel de la personne ne change pas.</p>
                             </div>
                             <FormField :id="`archive-reason-${account.id}`" v-model="archiveReasons[account.id]" label="Motif de l’archivage" required />
-                            <p v-if="errors.reason" class="text-sm font-semibold text-danger">⚠ {{ errors.reason }}</p>
+                            <p v-if="errors.reason && actionAccountId === account.id" class="text-sm font-semibold text-danger">⚠ {{ errors.reason }}</p>
                             <AppButton type="submit" variant="destructeur" :busy="busyAction === `archive-${account.id}`" busy-label="Archivage">Archiver le compte</AppButton>
                         </form>
                     </article>

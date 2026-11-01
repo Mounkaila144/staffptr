@@ -4,11 +4,11 @@ namespace App\Policies\Identity;
 
 use App\Models\Identity\Absence;
 use App\Models\Identity\User;
-use App\Services\Identity\HierarchyService;
+use App\Services\Identity\AbsenceDecisionRule;
 
 class AbsencePolicy
 {
-    public function __construct(private readonly HierarchyService $hierarchyService) {}
+    public function __construct(private readonly AbsenceDecisionRule $decisionRule) {}
 
     public function viewAny(User $user): bool
     {
@@ -63,12 +63,7 @@ class AbsencePolicy
 
     private function canDecide(User $user, Absence $absence): bool
     {
-        if (! $this->viewAny($user) || (int) $absence->user_id === (int) $user->getKey()) {
-            return false;
-        }
-
-        $manager = $this->hierarchyService->directRelations($absence->user)['manager'];
-
-        return $manager instanceof User && (int) $manager->getKey() === (int) $user->getKey();
+        // Responsable direct actif, sinon direction (décision du 2026-11-01) ; jamais soi-même.
+        return $this->viewAny($user) && $this->decisionRule->canDecide($user, $absence);
     }
 }

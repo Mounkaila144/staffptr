@@ -28,6 +28,7 @@ use Illuminate\Support\Carbon;
  * @property string $expected_result
  * @property string|null $project_or_contract_note
  * @property ExpenseState $state
+ * @property int|null $approvals_required
  * @property string|null $cancel_reason
  * @property Carbon $created_at
  * @property Carbon $updated_at
@@ -155,7 +156,9 @@ class Expense extends Model
      */
     public function attachment(): MorphOne
     {
-        return $this->morphOne(Attachment::class, 'attachable');
+        // Le justificatif de paiement est lui aussi rattaché à la dépense : sans ordre explicite,
+        // la relation pouvait rendre celui-ci à la place du justificatif de la demande.
+        return $this->morphOne(Attachment::class, 'attachable')->oldestOfMany();
     }
 
     /**
@@ -178,6 +181,7 @@ class Expense extends Model
         return [
             'state' => ExpenseState::class,
             'requested_amount' => 'integer',
+            'approvals_required' => 'integer',
             'paid_on' => 'immutable_date',
             'paid_at' => 'immutable_datetime',
             'is_advance_reimbursement' => 'boolean',

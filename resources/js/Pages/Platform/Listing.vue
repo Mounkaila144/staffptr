@@ -7,6 +7,7 @@ import AppLayout from '../../Layouts/AppLayout.vue';
 
 const props = defineProps({
     listing: { type: Object, required: true },
+    // Liste de { key, label, type, options } fournie par la source de la liste.
     filterFields: { type: Array, required: true },
     appliedFilters: { type: Object, required: true },
     savedFilters: { type: Array, default: () => [] },
@@ -108,12 +109,23 @@ function exportUrl() {
                 <h2 id="filter-panel-title" class="text-section-title">Filtres</h2>
 
                 <div class="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    <div v-for="field in filterFields" :key="field" class="grid min-w-0 gap-1">
-                        <label :for="`filter-${field}`" class="text-field-label font-semibold">{{ field }}</label>
+                    <!-- Chaque filtre porte un libellé français ; une liste fermée propose ses choix au lieu d'une saisie libre. -->
+                    <div v-for="field in filterFields" :key="field.key" class="grid min-w-0 gap-1">
+                        <label :for="`filter-${field.key}`" class="text-field-label font-semibold">{{ field.label }}</label>
+                        <select
+                            v-if="field.type === 'select'"
+                            :id="`filter-${field.key}`"
+                            v-model="draft[field.key]"
+                            class="min-h-12 w-full min-w-0 rounded-lg border border-separator bg-surface px-3"
+                        >
+                            <option :value="undefined">Tous</option>
+                            <option v-for="option in field.options" :key="option.value" :value="option.value">{{ option.label }}</option>
+                        </select>
                         <input
-                            :id="`filter-${field}`"
-                            v-model="draft[field]"
-                            :type="field === 'from' || field === 'to' ? 'date' : 'text'"
+                            v-else
+                            :id="`filter-${field.key}`"
+                            v-model="draft[field.key]"
+                            :type="field.type === 'date' ? 'date' : 'text'"
                             class="min-h-12 w-full min-w-0 rounded-lg border border-separator bg-surface px-3"
                         />
                     </div>

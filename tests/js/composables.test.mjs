@@ -186,3 +186,21 @@ test('La direction dispose d’un chemin vers chaque écran du parcours de stage
         assert.ok(menu.includes(entree), `La direction doit pouvoir atteindre « ${entree} ».`);
     }
 });
+
+test('La direction atteint les priorités d’entreprise depuis le menu', () => {
+    // L’écran existait (création, modification avec motif, annulation) mais aucune entrée
+    // de menu n’y menait : il fallait connaître l’adresse.
+    const menu = usePermissions(ref(['role:direction'])).moreNavigation.value;
+
+    assert.ok(menu.includes('Priorités d’entreprise'));
+});
+
+test('La direction atteint les clients, factures et rapprochements depuis le menu', () => {
+    // La direction détient `client.consulter`, `facture.gerer` et `rapprochement.controler`,
+    // mais aucune entrée ne menait aux clients ni aux rapprochements à contrôler.
+    const menu = usePermissions(ref(['role:direction'])).moreNavigation.value;
+
+    for (const entree of ['Clients et factures', 'Rapprochement']) {
+        assert.ok(menu.includes(entree), `La direction doit pouvoir atteindre « ${entree} ».`);
+    }
+});
