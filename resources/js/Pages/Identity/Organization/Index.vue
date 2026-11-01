@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, reactive, ref } from 'vue';
+import { nextTick, reactive, ref, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppButton from '../../../Components/AppButton.vue';
 import EmptyState from '../../../Components/EmptyState.vue';
@@ -22,6 +22,15 @@ const busyAction = ref('');
 const actionErrors = reactive({ department: '', function: '' });
 const departmentDrafts = reactive(Object.fromEntries(props.departments.map((item) => [item.id, item.name])));
 const functionDrafts = reactive(Object.fromEntries(props.jobFunctions.map((item) => [item.id, item.name])));
+
+// Un service ou une fonction créé après l'ouverture de la page doit arriver avec son nom pré-rempli,
+// sinon « Renommer » partirait d'un champ vide.
+watch(() => props.departments, (departments) => {
+    for (const item of departments) departmentDrafts[item.id] ??= item.name;
+});
+watch(() => props.jobFunctions, (jobFunctions) => {
+    for (const item of jobFunctions) functionDrafts[item.id] ??= item.name;
+});
 
 const companyForm = useForm({
     name: props.company.name,

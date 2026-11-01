@@ -314,6 +314,48 @@ class ContributionShareLifecycleTest extends IdentityTestCase
         );
     }
 
+    /** AC 14 — deux tiers / un tiers s'arrondissent au plus proche et totalisent 100 %. */
+    public function test_ac_14_percentages_are_rounded_to_the_nearest_basis_point(): void
+    {
+        $first = $this->director();
+        $second = $this->director();
+        $service = app(CapitalContributionService::class);
+
+        $service->approve($service->record(2_000_000, 'Matériel.', (string) Str::ulid(), $first), $second);
+        $service->approve($service->record(1_000_000, 'Fonds de roulement.', (string) Str::ulid(), $second), $first);
+
+        $register = app(ContributionShareService::class)->register();
+        $this->assertSame('66,67 %', $this->blockFor($register, $first)['percentage_label']);
+        $this->assertSame('33,33 %', $this->blockFor($register, $second)['percentage_label']);
+    }
+
+    /**
+     * AC 14 — deux demi-points de base arrondis chacun vers le haut afficheraient 100,01 %.
+     * 125 000 F et 675 000 F donnent 15,625 % et 84,375 % : la répartition doit rester à 100 %,
+     * le demi-point restant allant au premier inscrit au registre.
+     */
+    public function test_ac_14_displayed_percentages_always_total_one_hundred(): void
+    {
+        $first = $this->director();
+        $second = $this->director();
+        $service = app(CapitalContributionService::class);
+
+        $service->approve($service->record(125_000, 'Matériel.', (string) Str::ulid(), $first), $second);
+        $service->approve($service->record(675_000, 'Fonds de roulement.', (string) Str::ulid(), $second), $first);
+
+        $register = app(ContributionShareService::class)->register();
+        $firstBlock = $this->blockFor($register, $first);
+        $secondBlock = $this->blockFor($register, $second);
+
+        $this->assertSame(10_000, $firstBlock['percentage_basis_points'] + $secondBlock['percentage_basis_points']);
+        $this->assertSame(
+            ['15,63 %', '84,37 %'],
+            [$firstBlock['percentage_label'], $secondBlock['percentage_label']],
+        );
+        $this->assertSame('15,63 %', last($firstBlock['timeline'])['percentage_label']);
+        $this->assertSame('84,37 %', last($secondBlock['timeline'])['percentage_label']);
+    }
+
     public function test_ac_16_and_17_each_line_states_its_origin_amount_vintage_coefficient_and_shares(): void
     {
         $director = $this->director();

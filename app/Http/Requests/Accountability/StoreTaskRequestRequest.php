@@ -22,4 +22,10 @@ class StoreTaskRequestRequest extends FormRequest
     {
         return ['description' => ['required', 'string', 'max:2000'], 'is_urgent' => ['required', 'boolean']];
     }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return ['description.required' => 'Précisez la tâche dont vous avez besoin.'];
+    }
 }

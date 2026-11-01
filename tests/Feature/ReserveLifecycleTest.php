@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ReserveMovementType;
+use App\Enums\UserState;
 use App\Models\Finance\Contract;
 use App\Models\Finance\FixedCharge;
 use App\Models\Finance\Payment;
@@ -10,6 +12,7 @@ use App\Models\Finance\ShareEntitlement;
 use App\Models\Identity\User;
 use App\Services\Finance\ReserveService;
 use App\Services\Identity\RoleAssignmentService;
+use App\Services\Platform\Invariants\FinanceIntegrityInvariant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -89,6 +92,63 @@ class ReserveLifecycleTest extends IdentityTestCase
         $service->approveUsage($usage, $this->roleUser('direction'));
         $this->assertSame(20_000, $allocate()?->movement_amount);
         $this->assertSame(270_000, $service->currentAmount());
+    }
+
+    public function test_a_director_request_is_approved_by_the_other_director_alone_when_only_two_exist(): void
+    {
+        ReserveMovement::factory()->create(['movement_amount' => 500_000, 'approval_state' => 'approved']);
+        $requester = $this->roleUser('direction');
+        $other = $this->roleUser('direction');
+        $service = app(ReserveService::class);
+
+        $usage = $service->requestUsage(100_000, 'Urgence de trésorerie.', 'Reconstitution au prochain encaissement.', (string) Str::ulid(), $requester);
+        $this->assertSame(1, $service->approvalsRequiredFor($usage));
+
+        try {
+            $service->approveUsage($usage, $requester);
+            $this->fail('Le demandeur n’approuve pas sa propre demande.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('approval', $exception->errors());
+        }
+
+        $service->approveUsage($usage, $other);
+        $usage->refresh();
+        $this->assertSame('approved', $usage->approval_state);
+        $this->assertSame(1, $usage->approvals_required);
+        $this->assertNull($usage->second_approved_by);
+        $this->assertSame(400_000, $service->currentAmount());
+        $this->assertTrue(app(FinanceIntegrityInvariant::class)->check()->passed);
+    }
+
+    public function test_a_finance_request_still_needs_two_directors_even_if_one_is_suspended(): void
+    {
+        ReserveMovement::factory()->create(['movement_amount' => 500_000, 'approval_state' => 'approved']);
+        $first = $this->roleUser('direction');
+        $this->roleUser('direction')->forceFill(['state' => UserState::Suspendu])->save();
+        $service = app(ReserveService::class);
+
+        $usage = $service->requestUsage(100_000, 'Urgence de trésorerie.', 'Reconstitution au prochain encaissement.', (string) Str::ulid(), $this->roleUser('finance'));
+        $this->assertSame(2, $service->approvalsRequiredFor($usage));
+        $service->approveUsage($usage, $first);
+        $this->assertSame('pending', $usage->refresh()->approval_state);
+    }
+
+    public function test_the_invariant_flags_a_single_approval_that_the_rule_did_not_allow(): void
+    {
+        $approver = $this->roleUser('direction');
+        $movement = ReserveMovement::factory()->create([
+            'type' => ReserveMovementType::Usage->value,
+            'approval_state' => 'approved',
+            'reason' => 'Motif.',
+            'reconstitution_plan' => 'Plan.',
+            'first_approved_by' => $approver->getKey(),
+            'second_approved_by' => null,
+            'approvals_required' => null,
+        ]);
+
+        $result = app(FinanceIntegrityInvariant::class)->check();
+        $this->assertFalse($result->passed);
+        $this->assertStringContainsString('réserve #'.$movement->getKey(), $result->observed);
     }
 
     private function roleUser(string $role): User

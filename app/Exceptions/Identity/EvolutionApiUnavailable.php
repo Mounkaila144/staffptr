@@ -8,6 +8,6 @@ class EvolutionApiUnavailable extends Exception
 {
     public function __construct()
     {
-        parent::__construct("Le code WhatsApp n'a pas pu être envoyé. La réinitialisation reste bloquée jusqu'au rétablissement du service.");
+        parent::__construct("Le code WhatsApp n'a pas pu être envoyé. Un compte direction peut réinitialiser sans code avec « WhatsApp indisponible ? Réinitialiser sans code ».");
     }
 }

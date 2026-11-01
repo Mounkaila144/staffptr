@@ -2,10 +2,13 @@
 
 namespace Tests\Feature\Http;
 
+use App\Enums\InternshipChecklistType;
 use App\Enums\InternshipState;
 use App\Models\Accountability\Internship;
+use App\Models\Accountability\InternshipChecklistItem;
 use App\Models\Identity\User;
 use App\Services\Accountability\InternshipEvaluationService;
+use App\Services\Accountability\InternshipService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\SettingSeeder;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -139,6 +142,61 @@ class InternshipDossierHttpTest extends TestCase
 
         $this->assertSame(InternshipState::Termine, $internship->refresh()->state);
         $this->assertSame(5, $internship->checklistItems()->where('checklist_type', 'sortie')->count());
+    }
+
+    /**
+     * La checklist d'intégration ne pouvait pas être cochée : la condition d'attestation qui en
+     * dépend n'était jamais remplie. Le tuteur coche chaque point, une fois, et le stagiaire non.
+     */
+    public function test_the_tutor_completes_the_integration_checklist_and_meets_the_certificate_conditions(): void
+    {
+        [$tutor, $intern, $internship] = $this->internship();
+        app(InternshipService::class)->generateChecklist($internship, InternshipChecklistType::Integration);
+        $items = $internship->checklistItems()->where('checklist_type', 'integration')->get();
+        $this->actingAs($tutor)->put(route('internships.plan.save', $internship), [
+            'skills_to_learn' => 'Rédaction.', 'objectives' => 'Documenter.',
+            'weekly_tasks' => 'Une procédure par semaine.', 'expected_evidence' => 'Procédures publiées.',
+        ]);
+        $this->actingAs($tutor)->post(route('internships.evaluations.store', $internship), $this->evaluationPayload());
+
+        $first = $items->first();
+        $this->assertInstanceOf(InternshipChecklistItem::class, $first);
+        $this->flushSession();
+        $this->actingAs($intern)
+            ->patch(route('internships.checklist.complete', [$internship, $first]))
+            ->assertForbidden();
+
+        foreach ($items as $item) {
+            $this->flushSession();
+            $this->actingAs($tutor)
+                ->patch(route('internships.checklist.complete', [$internship, $item]))
+                ->assertRedirect()
+                ->assertSessionHasNoErrors();
+        }
+
+        $this->actingAs($tutor)
+            ->patch(route('internships.checklist.complete', [$internship, $first]))
+            ->assertSessionHasErrors(['checklist' => 'Ce point est déjà marqué comme fait.']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'internship_checklist_item_completed']);
+
+        $this->flushSession();
+        $this->actingAs($tutor)->get(route('internships.show', $internship))
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->where('internship.checklists.integration.0.completed', true)
+                ->where('internship.certificate_conditions_met', true));
+    }
+
+    /** Un point d'un autre stage est introuvable depuis ce dossier. */
+    public function test_a_checklist_item_of_another_internship_is_not_found(): void
+    {
+        [$tutor, , $internship] = $this->internship();
+        [, , $other] = $this->internship();
+        app(InternshipService::class)->generateChecklist($other, InternshipChecklistType::Integration);
+        $foreign = $other->checklistItems()->firstOrFail();
+
+        $this->actingAs($tutor)
+            ->patch(route('internships.checklist.complete', [$internship, $foreign]))
+            ->assertNotFound();
     }
 
     /**

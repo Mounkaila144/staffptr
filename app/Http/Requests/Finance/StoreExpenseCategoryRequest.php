@@ -3,8 +3,8 @@
 namespace App\Http\Requests\Finance;
 
 use App\Models\Finance\ExpenseCategory;
+use App\Rules\Finance\UniqueExpenseCategoryName;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreExpenseCategoryRequest extends FormRequest
 {
@@ -17,7 +17,7 @@ class StoreExpenseCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:160', Rule::unique('expense_categories', 'name')],
+            'name' => ['required', 'string', 'max:160', new UniqueExpenseCategoryName],
             'is_essential' => ['required', 'boolean'],
         ];
     }

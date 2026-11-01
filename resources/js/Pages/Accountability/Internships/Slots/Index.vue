@@ -6,6 +6,7 @@ import AppButton from '../../../../Components/AppButton.vue';
 defineProps({
     slots: { type: Array, required: true },
     nextSlot: { type: String, default: null },
+    tutorName: { type: String, default: null },
     pendingRequests: { type: Array, required: true },
     canManage: { type: Boolean, default: false },
     success: { type: String, default: null },
@@ -35,14 +36,16 @@ function addSlot() {
             </p>
 
             <section class="grid min-w-0 gap-2 rounded-xl border border-separator bg-surface p-4">
-                <h2 class="text-section-title">Mes créneaux</h2>
+                <h2 class="text-section-title">{{ tutorName ? `Créneaux de votre tuteur, ${tutorName}` : 'Mes créneaux' }}</h2>
                 <ul v-if="slots.length" class="grid gap-1">
                     <li v-for="slot in slots" :key="slot.id" class="text-ink-secondary">
                         {{ slot.weekday_label }} à {{ slot.start_time }}
                     </li>
                 </ul>
                 <p v-else class="text-ink-secondary">
-                    Aucun créneau configuré. Sans créneau, les demandes vous parviennent à l’unité, dès leur envoi.
+                    {{ tutorName
+                        ? 'Votre tuteur n’a pas fixé de créneau : vos demandes lui sont transmises dès leur envoi.'
+                        : 'Aucun créneau configuré. Sans créneau, les demandes vous parviennent à l’unité, dès leur envoi.' }}
                 </p>
                 <p v-if="nextSlot" class="text-ink-secondary">Prochain créneau : {{ nextSlot }}.</p>
 

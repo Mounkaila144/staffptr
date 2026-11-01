@@ -39,7 +39,13 @@ async function startEditing(category) {
     editForm.is_essential = category.is_essential;
     editForm.clearErrors();
     await nextTick();
-    editNameField.value?.focus();
+    focusEditName();
+}
+
+// `ref` posé dans un `v-for` : Vue fournit un tableau, pas le composant lui-même.
+function focusEditName() {
+    const field = Array.isArray(editNameField.value) ? editNameField.value[0] : editNameField.value;
+    field?.focus?.();
 }
 
 function stopEditing() {
@@ -51,7 +57,7 @@ function submitEdit(category) {
     editForm.patch(`/categories-depense/${category.id}`, {
         preserveScroll: true,
         onSuccess: stopEditing,
-        onError: () => nextTick(() => editNameField.value?.focus()),
+        onError: () => nextTick(focusEditName),
     });
 }
 

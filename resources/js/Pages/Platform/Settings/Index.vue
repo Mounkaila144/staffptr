@@ -200,7 +200,7 @@ function previewDifference() {
                 <section class="grid min-w-0 gap-4 rounded-xl border border-separator bg-surface p-4" aria-labelledby="attachment-settings-title">
                     <div class="grid gap-1">
                         <h2 id="attachment-settings-title" class="text-section-title">Pièces jointes</h2>
-                        <p class="text-sm text-ink-secondary">Choisissez les formats qui pourront être acceptés par les futurs écrans de dépôt.</p>
+                        <p class="text-sm text-ink-secondary">Choisissez les formats de fichier que l’application acceptera lors des dépôts.</p>
                     </div>
                     <fieldset class="grid min-w-0 gap-3">
                         <legend class="font-semibold">Types autorisés</legend>

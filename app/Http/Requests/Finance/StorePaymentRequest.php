@@ -31,4 +31,13 @@ class StorePaymentRequest extends FormRequest
             'idempotency_key' => ['required', 'ulid'],
         ];
     }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'contract_id.required_without' => 'Choisissez le contrat concerné ou, à défaut, un projet.',
+            'project_id.required_without' => 'Choisissez le contrat concerné ou, à défaut, un projet.',
+        ];
+    }
 }

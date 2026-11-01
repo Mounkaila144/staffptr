@@ -10,6 +10,7 @@ use App\Models\Platform\Attachment;
 use App\Models\Platform\AuditLog;
 use App\Services\Identity\AbsenceService;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
 use Tests\Support\IdentityTestCase;
 
@@ -47,6 +48,7 @@ class AbsenceLifecycleTest extends IdentityTestCase
 
     public function test_ac_3_direct_manager_can_approve_and_the_transition_is_audited(): void
     {
+        Queue::fake(); // message WhatsApp de la décision : asynchrone en production
         $manager = User::factory()->active()->create();
         $employee = User::factory()->active()->withManager($manager)->create();
         $absence = Absence::factory()->for($employee)->requested()->create();
@@ -65,6 +67,7 @@ class AbsenceLifecycleTest extends IdentityTestCase
 
     public function test_ac_2_refusal_requires_a_reason_and_only_a_requested_absence_can_transition(): void
     {
+        Queue::fake(); // message WhatsApp de la décision : asynchrone en production
         $manager = User::factory()->active()->create();
         $employee = User::factory()->active()->withManager($manager)->create();
         $absence = Absence::factory()->for($employee)->requested()->create();

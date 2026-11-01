@@ -54,6 +54,14 @@ interface ListSource
     public function activeFilterLabels(array $filters): array;
 
     /**
+     * Champs du panneau de filtres, avec leur libellé français et, pour une liste fermée, les
+     * choix proposés : une personne ne doit jamais deviner une valeur technique à saisir.
+     *
+     * @return list<array{key: string, label: string, type: string, options: list<array{value: string, label: string}>}>
+     */
+    public function filterFields(): array;
+
+    /**
      * Colonnes triables. Une colonne absente de cette liste est refusée : le tri ne doit pas
      * devenir un canal d'injection ni de divulgation de schéma.
      *

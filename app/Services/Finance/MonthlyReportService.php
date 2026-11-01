@@ -38,6 +38,16 @@ final readonly class MonthlyReportService
                 'validated_by' => $report->validated_by, 'alert_level' => $report->alert_level?->value,
                 'is_closed' => $report->closure !== null && $report->closure->reopened_at === null,
                 'is_reopened' => $report->closure !== null && $report->closure->reopened_at !== null,
+                // Libellés lisibles : l'écran n'affiche jamais une valeur technique ni un identifiant.
+                'state_label' => match ($report->state) {
+                    MonthlyReportState::Draft => 'Brouillon à contrôler',
+                    MonthlyReportState::Controlled => 'Contrôlé, à valider par la direction',
+                    MonthlyReportState::Validated => $report->closure !== null && $report->closure->reopened_at !== null ? 'Validé puis rouvert' : 'Validé et clôturé',
+                },
+                'alert_level_label' => $report->alert_level?->label(),
+                'prepared_by_name' => $report->preparer?->person?->full_name,
+                'controlled_by_name' => $report->controller?->person?->full_name,
+                'validated_by_name' => $report->validator?->person?->full_name,
             ])->all();
     }
 

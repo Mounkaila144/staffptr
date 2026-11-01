@@ -7,12 +7,14 @@ use App\Enums\AbsenceType;
 use App\Models\Identity\Absence;
 use App\Models\Identity\User;
 use App\Models\Platform\Attachment;
+use App\Notifications\AbsenceDecidedNotification;
 use App\Services\Platform\AttachmentService;
 use App\Support\Auditing\AuditLogger;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 class AbsenceService
@@ -20,7 +22,7 @@ class AbsenceService
     public function __construct(
         private readonly AuditLogger $auditLogger,
         private readonly AttachmentService $attachmentService,
-        private readonly HierarchyService $hierarchyService,
+        private readonly AbsenceDecisionRule $decisionRule,
     ) {}
 
     public function declare(
@@ -91,7 +93,7 @@ class AbsenceService
 
     public function approve(Absence $absence, User $actor): Absence
     {
-        return $this->decide($absence, $actor, AbsenceState::Approuvee, null, 'absence_approved');
+        return $this->notifyRequester($this->decide($absence, $actor, AbsenceState::Approuvee, null, 'absence_approved'));
     }
 
     public function refuse(Absence $absence, string $reason, User $actor): Absence
@@ -104,7 +106,7 @@ class AbsenceService
             ]);
         }
 
-        return $this->decide($absence, $actor, AbsenceState::Refusee, $reason, 'absence_refused');
+        return $this->notifyRequester($this->decide($absence, $actor, AbsenceState::Refusee, $reason, 'absence_refused'));
     }
 
     public function cancel(Absence $absence, User $actor): Absence
@@ -143,7 +145,7 @@ class AbsenceService
             $action,
         ): Absence {
             $lockedAbsence = $this->locked($absence);
-            $this->assertDirectManager($lockedAbsence, $actor);
+            $this->assertCanDecide($lockedAbsence, $actor);
             $this->assertPending($lockedAbsence);
 
             return $this->transition($lockedAbsence, $actor, $state, $reason, $action);
@@ -179,18 +181,23 @@ class AbsenceService
         return $absence->refresh()->load(['user.person', 'user.manager.person', 'decidedBy.person', 'attachment']);
     }
 
-    private function assertDirectManager(Absence $absence, User $actor): void
+    /**
+     * Le responsable direct actif décide ; sans responsable direct actif, tout compte direction
+     * actif autre que le demandeur décide (décision du propriétaire du 2026-11-01).
+     */
+    private function assertCanDecide(Absence $absence, User $actor): void
     {
         if ((int) $absence->user_id === (int) $actor->getKey()) {
             throw new AuthorizationException("L'auto-approbation d'une absence est interdite.");
         }
 
-        $relations = $this->hierarchyService->directRelations($absence->user);
-        $manager = $relations['manager'];
-
-        if (! $manager instanceof User || (int) $manager->getKey() !== (int) $actor->getKey()) {
-            throw new AuthorizationException('Seul le responsable direct peut décider de cette absence.');
+        if ($this->decisionRule->canDecide($actor, $absence)) {
+            return;
         }
+
+        throw new AuthorizationException($this->decisionRule->isDecidedByDirection($absence)
+            ? 'Sans responsable direct, seule la direction peut décider de cette absence.'
+            : 'Seul le responsable direct peut décider de cette absence.');
     }
 
     private function assertPending(Absence $absence): void
@@ -220,6 +227,18 @@ class AbsenceService
                 'attachment_ulid' => 'Ce justificatif ne peut pas être rattaché à cette demande.',
             ]);
         }
+    }
+
+    /**
+     * Prévient le demandeur de la décision, après validation de la transaction. La cloche est
+     * écrite tout de suite ; WhatsApp passe par la file et ne peut pas faire échouer la décision.
+     */
+    private function notifyRequester(Absence $absence): Absence
+    {
+        Notification::sendNow($absence->user, AbsenceDecidedNotification::forDatabase($absence), ['database']);
+        $absence->user->notify(AbsenceDecidedNotification::forWhatsApp($absence));
+
+        return $absence;
     }
 
     private function actorLabel(User $actor): string

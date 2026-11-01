@@ -22,7 +22,9 @@ final readonly class ReconciliationService
     {
         return Reconciliation::query()->visibleTo($viewer)->with(['account', 'preparer.person', 'controller.person', 'previous'])
             ->orderByDesc('period_end')->get()->map(fn (Reconciliation $item): array => [
-                'id' => (int) $item->getKey(), 'account' => $item->account->label,
+                'id' => (int) $item->getKey(), 'account' => $item->account->label, 'account_id' => (int) $item->account_id,
+                'physical_balance_amount' => (int) $item->physical_balance_amount,
+                'responsible_id' => $item->responsible_id === null ? null : (int) $item->responsible_id,
                 'period_start' => $item->period_start->toDateString(), 'period_end' => $item->period_end->toDateString(),
                 'calculated_balance_label' => Money::from($item->calculated_balance_amount)->format(),
                 'physical_balance_label' => Money::from($item->physical_balance_amount)->format(),

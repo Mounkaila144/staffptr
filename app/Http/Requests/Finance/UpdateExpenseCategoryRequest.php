@@ -3,8 +3,8 @@
 namespace App\Http\Requests\Finance;
 
 use App\Models\Finance\ExpenseCategory;
+use App\Rules\Finance\UniqueExpenseCategoryName;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateExpenseCategoryRequest extends FormRequest
 {
@@ -25,7 +25,7 @@ class UpdateExpenseCategoryRequest extends FormRequest
                 'required',
                 'string',
                 'max:160',
-                Rule::unique('expense_categories', 'name')->ignore($category instanceof ExpenseCategory ? $category->getKey() : null),
+                new UniqueExpenseCategoryName($category instanceof ExpenseCategory ? (int) $category->getKey() : null),
             ],
             'is_essential' => ['required', 'boolean'],
         ];

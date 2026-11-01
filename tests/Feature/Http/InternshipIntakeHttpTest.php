@@ -4,11 +4,13 @@ namespace Tests\Feature\Http;
 
 use App\Enums\InternshipIntakeState;
 use App\Enums\UserState;
+use App\Models\Accountability\Internship;
 use App\Models\Accountability\InternshipIntakeForm;
 use App\Models\Identity\User;
 use App\Models\Work\Objective;
 use App\Services\Accountability\InternshipIntakeService;
 use Database\Seeders\SettingSeeder;
+use Illuminate\Support\Collection;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Support\RefreshesSeparatedDatabase;
 use Tests\TestCase;
@@ -256,6 +258,141 @@ class InternshipIntakeHttpTest extends TestCase
         $this->actingAs($direction)->post(route('interns.activate', $candidate))->assertRedirect();
 
         $this->assertSame(UserState::Actif, $candidate->refresh()->state);
+    }
+
+    /**
+     * Une fiche rédigée pour un stagiaire déjà activé menait à un bouton « Activer » que le serveur
+     * refusait sans que rien ne s'affiche, pendant que le vrai nouveau compte restait invité.
+     */
+    public function test_an_already_activated_intern_is_neither_a_candidate_nor_activatable_again(): void
+    {
+        [$direction, $tutor, $candidate] = $this->actors();
+        $form = $this->approvedForm($direction, $tutor, $candidate);
+        Objective::factory()->count(3)->create(['user_id' => $candidate->getKey()]);
+        $this->actingAs($direction)->post(route('interns.activate', $candidate))->assertSessionHasNoErrors();
+
+        $this->actingAs($direction)->get(route('internship-intakes.show', $form))
+            ->assertInertia(fn (Assert $page) => $page->where('already_activated', true));
+        $this->actingAs($direction)->get(route('internship-intakes.index'))
+            ->assertInertia(fn (Assert $page) => $page->has('candidates', 0)->has('awaiting', 0));
+        $this->actingAs($direction)->post(route('interns.activate', $candidate))
+            ->assertSessionHasErrors(['candidate' => 'Ce stagiaire a déjà un stage ouvert.']);
+    }
+
+    /** Un stagiaire invité sans fiche est signalé, avec l'étape qui lui manque. */
+    public function test_an_invited_intern_without_a_form_is_listed_as_awaiting(): void
+    {
+        [$direction, , $candidate] = $this->actors();
+
+        $this->actingAs($direction)->get(route('internship-intakes.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('awaiting', 1)
+                ->where('awaiting.0.id', (int) $candidate->getKey())
+                ->where('awaiting.0.form_id', null)
+                ->where('awaiting.0.step', 'Aucune fiche d’entrée : le compte ne peut pas encore être activé'));
+    }
+
+    /** Toute la mise en route tient sur la fiche : les objectifs s'y ajoutent sans changer d'écran. */
+    public function test_the_objectives_are_added_from_the_intake_form_for_its_own_candidate(): void
+    {
+        [$direction, $tutor, $candidate] = $this->actors();
+        $form = $this->approvedForm($direction, $tutor, $candidate);
+        $other = User::factory()->active()->withRole('employe')->create();
+
+        for ($rank = 1; $rank <= 3; $rank++) {
+            $this->actingAs($direction)->from(route('internship-intakes.show', $form))
+                ->post(route('internship-intakes.objectives.store', $form), [
+                    // Le compte envoyé est ignoré : le responsable est lu sur la fiche.
+                    'user_id' => (int) $other->getKey(),
+                    'title' => "Résultat attendu {$rank}",
+                    'description' => 'Objectif du stage, convenu avec le tuteur.',
+                    'indicator' => 'Avancement constaté en revue',
+                    'target_value' => '100 %',
+                    'expected_evidence' => 'Livrable déposé et relu.',
+                    'due_date' => now()->addDays(30)->format('Y-m-d'),
+                    'priority' => 'normale',
+                ])
+                ->assertRedirect(route('internship-intakes.show', $form))
+                ->assertSessionHasNoErrors()
+                ->assertSessionHas('success', "Objectif ajouté ({$rank} sur 3).");
+        }
+
+        $this->assertSame(3, Objective::query()->where('user_id', $candidate->getKey())->count());
+        $this->assertSame(0, Objective::query()->where('user_id', $other->getKey())->count());
+        $this->actingAs($direction)->get(route('internship-intakes.show', $form))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('readiness.satisfied', true)
+                ->has('objectives', 3)
+                ->where('permissions.add_objective', true));
+
+        $this->flushSession();
+        $this->actingAs($other)->post(route('internship-intakes.objectives.store', $form), ['title' => 'x'])->assertForbidden();
+    }
+
+    /** Un objectif de départ ne peut pas naître échu : l'échéance passée est refusée en français. */
+    public function test_an_intake_objective_cannot_be_due_in_the_past(): void
+    {
+        [$direction, $tutor, $candidate] = $this->actors();
+        $form = $this->approvedForm($direction, $tutor, $candidate);
+
+        $this->actingAs($direction)->from(route('internship-intakes.show', $form))
+            ->post(route('internship-intakes.objectives.store', $form), [
+                'title' => 'Objectif échu',
+                'description' => 'Objectif du stage.',
+                'indicator' => 'Avancement',
+                'target_value' => '100 %',
+                'expected_evidence' => 'Livrable déposé.',
+                'due_date' => now()->subDay()->format('Y-m-d'),
+                'priority' => 'normale',
+            ])
+            ->assertSessionHasErrors(['due_date' => 'L’échéance ne peut pas être dans le passé.']);
+
+        $this->assertSame(0, Objective::query()->where('user_id', $candidate->getKey())->count());
+    }
+
+    /** Une fiche refusée laissait l'encadré d'attente sans issue : il propose d'en rédiger une nouvelle. */
+    public function test_an_intern_whose_form_was_refused_is_offered_a_new_form(): void
+    {
+        [$direction, $tutor, $candidate] = $this->actors();
+        $form = app(InternshipIntakeService::class)->decide(
+            $this->submittedForm($direction, $tutor, $candidate),
+            $direction,
+            approved: false,
+            reason: 'Besoin à préciser.',
+        );
+
+        $this->actingAs($direction)->get(route('internship-intakes.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('awaiting', 1)
+                ->where('awaiting.0.form_id', (int) $form->getKey())
+                ->where('awaiting.0.form_refused', true)
+                ->where('awaiting.0.step', 'Fiche refusée — rédigez une nouvelle fiche pour pouvoir l’activer')
+                ->where('candidates.0.value', (int) $candidate->getKey()));
+    }
+
+    /** Le tuteur complet est annoncé sur la fiche et dans la liste, avant le clic d'activation. */
+    public function test_a_tutor_at_the_limit_is_announced_before_activation(): void
+    {
+        [$direction, $tutor, $candidate] = $this->actors();
+        $form = $this->approvedForm($direction, $tutor, $candidate);
+        Internship::factory()->count(3)->forTutor($tutor)->create();
+
+        $this->actingAs($direction)->get(route('internship-intakes.show', $form))
+            ->assertInertia(fn (Assert $page) => $page->where(
+                'tutor_at_limit',
+                fn (?string $message): bool => is_string($message) && str_contains($message, 'encadre déjà 3 stagiaires actifs'),
+            ));
+        $this->actingAs($direction)->get(route('internship-intakes.index'))
+            ->assertInertia(fn (Assert $page) => $page->where(
+                'tutors',
+                /** @param  Collection<int, array{value: int, label: string}>  $tutors */
+                fn (Collection $tutors): bool => $tutors->contains(fn (array $option): bool => $option['value'] === (int) $tutor->getKey()
+                    && str_ends_with($option['label'], '— complet (3 stagiaires sur 3)')),
+            ));
+
+        Objective::factory()->count(3)->create(['user_id' => $candidate->getKey()]);
+        $this->actingAs($direction)->post(route('interns.activate', $candidate))
+            ->assertSessionHasErrors('tutor_id');
     }
 
     /** @return array{0: User, 1: User, 2: User} */

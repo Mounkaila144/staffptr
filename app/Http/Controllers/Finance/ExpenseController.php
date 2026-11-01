@@ -7,10 +7,14 @@ use App\Http\Requests\Finance\CancelExpenseRequest;
 use App\Http\Requests\Finance\StoreExpenseRequest;
 use App\Http\Requests\Finance\UpdateExpenseRequest;
 use App\Models\Finance\Expense;
+use App\Models\Finance\ExpenseApproval;
 use App\Models\Finance\ExpenseCategory;
 use App\Models\Identity\User;
 use App\Models\Platform\Attachment;
+use App\Services\Finance\ExpenseApprovalRequirement;
 use App\Services\Finance\ExpenseService;
+use App\Services\Platform\SettingsService;
+use App\Support\DateTimeFormatter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -19,7 +23,18 @@ use Inertia\Response;
 
 class ExpenseController extends Controller
 {
-    public function __construct(private readonly ExpenseService $expenseService) {}
+    private const PAYMENT_MODE_LABELS = [
+        'especes' => 'Espèces',
+        'banque' => 'Banque',
+        'mobile_money' => 'Mobile Money',
+        'autre' => 'Autre',
+    ];
+
+    public function __construct(
+        private readonly ExpenseService $expenseService,
+        private readonly SettingsService $settings,
+        private readonly ExpenseApprovalRequirement $approvalRequirement,
+    ) {}
 
     public function create(Request $request): Response
     {
@@ -30,6 +45,12 @@ class ExpenseController extends Controller
                 ->active()
                 ->orderBy('name')
                 ->get(['id', 'name']),
+            // Sans ces réglages, le téléversement du justificatif ne pouvait pas aboutir.
+            'attachment' => [
+                'attachable_id' => (int) $actor->person_id,
+                'allowed_types' => $this->settings->attachmentAllowedTypes(),
+                'max_size_bytes' => $this->settings->attachmentMaxSizeBytes(),
+            ],
         ]);
     }
 
@@ -72,7 +93,7 @@ class ExpenseController extends Controller
                     'formatted_amount' => $expense->formattedAmount(),
                     'beneficiary' => $expense->beneficiary,
                     'state' => $expense->state->value,
-                    'created_at' => $expense->created_at->format('d/m/Y H:i'),
+                    'created_at' => DateTimeFormatter::format($expense->created_at),
                     'requester' => [
                         'id' => $expense->requester->getKey(),
                         'name' => $expense->requester->person->full_name,
@@ -97,6 +118,8 @@ class ExpenseController extends Controller
             ],
 
             'can_create' => true, // AC 3: all authenticated users can create
+            // Le paiement n'avait aucune entrée dans le menu : le registre y mène pour la finance.
+            'can_pay' => $actor->hasRole('finance') && $actor->can('depense.payer'),
         ]);
     }
 
@@ -105,7 +128,15 @@ class ExpenseController extends Controller
         Gate::authorize('view', $expense);
         $this->actor($request);
 
-        $expense->load(['requester.person', 'category', 'attachment']);
+        $expense->load(['requester.person', 'category', 'attachment', 'approvals.approver.person', 'account']);
+        $attachment = $expense->attachment;
+        // RM-09 (décision du 2026-11-01) : l'écran dit combien d'approbations sont requises et pourquoi.
+        $requiredApprovals = $this->approvalRequirement->requiredFor($expense);
+        $approvedCount = $expense->approvals
+            ->where('decision', ExpenseApproval::DECISION_APPROVE)
+            ->pluck('approver_id')
+            ->unique()
+            ->count();
 
         return Inertia::render('Finance/Expenses/Show', [
             'expense' => [
@@ -118,7 +149,8 @@ class ExpenseController extends Controller
                 'project_or_contract_note' => $expense->project_or_contract_note,
                 'state' => $expense->state->value,
                 'cancel_reason' => $expense->cancel_reason,
-                'created_at' => $expense->created_at->format('d/m/Y H:i'),
+                // Heure affichée dans le fuseau de Niamey : la date brute est en UTC.
+                'created_at' => DateTimeFormatter::format($expense->created_at),
                 'requester' => [
                     'id' => $expense->requester->getKey(),
                     'name' => $expense->requester->person->full_name,
@@ -127,7 +159,31 @@ class ExpenseController extends Controller
                     'id' => $expense->category->getKey(),
                     'name' => $expense->category->name,
                 ],
-                'attachment' => $expense->attachment?->ulid,
+                'attachment' => $attachment instanceof Attachment ? [
+                    'name' => $attachment->original_name,
+                    'url' => route('attachments.show', $attachment, false),
+                ] : null,
+                // Le demandeur doit pouvoir lire qui a décidé et, surtout, pourquoi sa demande a
+                // été refusée : sans cela, l'écran affichait « Refusée » sans aucun motif.
+                'approvals_required' => $requiredApprovals,
+                'approval_progress' => $this->approvalRequirement->progressLabel($expense, $approvedCount, $requiredApprovals),
+                'approval_rule' => $this->approvalRequirement->explanation($expense, $requiredApprovals),
+                'approvals' => $expense->approvals
+                    ->sortBy('decided_at')
+                    ->values()
+                    ->map(static fn (ExpenseApproval $approval): array => [
+                        'approver' => $approval->approver->person->full_name,
+                        'decision' => $approval->decision,
+                        'comment' => $approval->comment,
+                        'decided_at' => $approval->decided_at !== null ? DateTimeFormatter::format($approval->decided_at) : null,
+                    ])
+                    ->all(),
+                'payment' => $expense->paid_at !== null ? [
+                    'account' => $expense->account?->label,
+                    'paid_at' => DateTimeFormatter::format($expense->paid_at),
+                    'mode' => self::PAYMENT_MODE_LABELS[(string) $expense->payment_mode] ?? null,
+                    'cancellation_reason' => $expense->payment_cancellation_reason,
+                ] : null,
                 'can_update' => Gate::allows('update', $expense),
                 'can_cancel' => Gate::allows('cancel', $expense),
             ],

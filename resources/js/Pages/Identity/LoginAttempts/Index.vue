@@ -1,8 +1,9 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 
-defineProps({
+const props = defineProps({
     attempts: { type: Object, required: true },
     sessions: { type: Array, required: true },
     people: { type: Array, required: true },
@@ -10,6 +11,16 @@ defineProps({
     filtersActive: { type: Boolean, required: true },
     hasFailedAttemptsLast30Days: { type: Boolean, required: true },
 });
+
+// Un filtre refusé (période inversée, personne inconnue) renvoie sur la page précédente : sans ce
+// message, le refus passerait pour un filtre sans effet.
+const page = usePage();
+// `v-model` plutôt que `:value` : la valeur choisie reste affichée même si la liste des options
+// arrive ou change après le premier rendu, et l'identifiant est comparé en texte comme dans l'URL.
+const personId = ref(props.filters.person_id == null ? '' : String(props.filters.person_id));
+const filterErrors = computed(() => ['person_id', 'from', 'to']
+    .map((field) => page.props.errors?.[field])
+    .filter(Boolean));
 </script>
 
 <template>
@@ -24,9 +35,9 @@ defineProps({
             <form method="get" action="/connexions" class="grid gap-4 rounded-xl border border-separator bg-surface p-4" aria-label="Filtrer l'historique">
                 <div class="grid gap-4 sm:grid-cols-3">
                     <label class="grid gap-1 text-sm font-semibold">Personne
-                        <select name="person_id" :value="filters.person_id ?? ''" class="touch-target rounded-lg border border-separator bg-surface px-3 font-normal">
+                        <select v-model="personId" name="person_id" class="touch-target w-full min-w-0 rounded-lg border border-separator bg-surface px-3 font-normal">
                             <option value="">Toutes les personnes</option>
-                            <option v-for="person in people" :key="person.id" :value="person.id">{{ person.name }}</option>
+                            <option v-for="person in people" :key="person.id" :value="String(person.id)">{{ person.name }}</option>
                         </select>
                     </label>
                     <label class="grid gap-1 text-sm font-semibold">Du
@@ -36,6 +47,7 @@ defineProps({
                         <input name="to" type="date" :value="filters.to ?? ''" class="touch-target rounded-lg border border-separator bg-surface px-3 font-normal">
                     </label>
                 </div>
+                <p v-for="message in filterErrors" :key="message" class="text-sm font-medium text-danger" role="alert">⚠ {{ message }}</p>
                 <div class="flex flex-wrap gap-3">
                     <button type="submit" class="touch-target rounded-lg bg-primary px-4 font-semibold text-white">Filtrer</button>
                     <Link v-if="filtersActive" href="/connexions" class="touch-target inline-flex items-center rounded-lg px-4 font-semibold text-primary">Réinitialiser les filtres</Link>

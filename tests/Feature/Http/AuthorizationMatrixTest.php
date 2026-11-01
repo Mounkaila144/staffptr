@@ -327,7 +327,8 @@ class AuthorizationMatrixTest extends IdentityTestCase
         $this->assertSame('Platform/403', $page['component'] ?? null, "Le refus {$case} doit rendre la page 403 complète.");
         $this->assertIsArray($props, "Les props Inertia du refus {$case} doivent être inspectables.");
         $this->assertEqualsCanonicalizing(
-            ['auth', 'errors', 'notifications'],
+            // `flash` ne porte qu'une confirmation d'action, jamais une donnée du refus.
+            ['auth', 'errors', 'flash', 'notifications'],
             array_keys($props),
             "Contenu partiel détecté dans le refus {$case}.",
         );

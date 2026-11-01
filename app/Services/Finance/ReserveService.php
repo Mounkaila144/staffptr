@@ -3,6 +3,7 @@
 namespace App\Services\Finance;
 
 use App\Enums\ReserveMovementType;
+use App\Enums\UserState;
 use App\Models\Finance\Contract;
 use App\Models\Finance\Payment;
 use App\Models\Finance\ReserveMovement;
@@ -68,6 +69,15 @@ final readonly class ReserveService
                     'reconstitution_plan' => $movement->reconstitution_plan,
                     'first_approved_by' => $movement->first_approved_by,
                     'second_approved_by' => $movement->second_approved_by,
+                    'first_approver_name' => $movement->firstApprover?->person?->full_name,
+                    'approvals_required' => $movement->type === ReserveMovementType::Usage ? $this->approvalsRequiredFor($movement) : null,
+                    // Masquage d'interface : l'approbation reste contrôlée par `approveUsage`.
+                    'can_approve' => $viewer !== null
+                        && $movement->type === ReserveMovementType::Usage
+                        && $movement->approval_state === 'pending'
+                        && $viewer->hasRole('direction') && $viewer->can('reserve.gerer')
+                        && (int) $movement->created_by !== (int) $viewer->getKey()
+                        && (int) $movement->first_approved_by !== (int) $viewer->getKey(),
                 ])->all(),
         ];
     }
@@ -173,15 +183,21 @@ final readonly class ReserveService
                 throw ValidationException::withMessages(['approval' => 'Les deux approbateurs doivent être distincts du demandeur et entre eux.']);
             }
             $oldValues = $locked->getRawOriginal();
-            if ($locked->first_approved_by === null) {
+            $required = $this->approvalsRequiredFor($locked);
+            $isFirst = $locked->first_approved_by === null;
+            if ($isFirst) {
                 $locked->first_approved_by = $actor->getKey();
+            } else {
+                $locked->second_approved_by = $actor->getKey();
+            }
+            if ($isFirst && $required > 1) {
                 $action = 'reserve_usage_first_approved';
             } else {
                 if ($locked->movement_amount > $this->currentAmount()) {
                     throw ValidationException::withMessages(['reserve' => 'Le montant demandé dépasse la réserve disponible.']);
                 }
-                $locked->second_approved_by = $actor->getKey();
                 $locked->approval_state = 'approved';
+                $locked->approvals_required = $required;
                 $locked->approved_at = CarbonImmutable::now('UTC');
                 $action = 'reserve_usage_approved';
             }
@@ -193,6 +209,30 @@ final readonly class ReserveService
 
             return $locked;
         });
+    }
+
+    /**
+     * Décision du propriétaire (2026-11-01) : 2 approbations de dirigeants distincts du demandeur ;
+     * si le demandeur est lui-même un dirigeant, min(2, autres dirigeants actifs), au moins 1.
+     */
+    public function approvalsRequiredFor(ReserveMovement $movement): int
+    {
+        if ($movement->approvals_required !== null) {
+            return (int) $movement->approvals_required;
+        }
+        if ($movement->approval_state === 'approved') {
+            return 2;
+        }
+        $requesterIsDirection = User::role('direction')->whereKey($movement->created_by)->exists();
+        if (! $requesterIsDirection) {
+            return 2;
+        }
+        $otherActiveDirectors = User::role('direction')
+            ->where('state', UserState::Actif->value)
+            ->whereKeyNot($movement->created_by)
+            ->count();
+
+        return max(1, min(2, $otherActiveDirectors));
     }
 
     private function actorLabel(User $actor): string

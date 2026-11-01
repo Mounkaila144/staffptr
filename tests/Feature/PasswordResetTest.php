@@ -47,7 +47,7 @@ class PasswordResetTest extends IdentityTestCase
         $this->assertNotSame($originalHash, $freshTarget->password);
         $this->assertTrue(Hash::check($result['temporary_password'], $freshTarget->password));
         $this->assertTrue($freshTarget->must_change_password);
-        $this->assertSame(32, strlen($result['temporary_password']));
+        $this->assertMatchesRegularExpression('/^[0-9]{8}$/', $result['temporary_password']);
 
         $this->expectException(PasswordResetVerificationFailed::class);
         app(PasswordResetService::class)->reset($actor, $target, $code);

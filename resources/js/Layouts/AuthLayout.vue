@@ -1,9 +1,19 @@
 <template>
+    <!-- Ce gabarit est recopié dans `app.blade.php` pour la connexion, rendue sans JavaScript. -->
     <a class="skip-link" href="#main-content">Aller au contenu</a>
-    <header class="flex h-14 items-center border-b border-separator bg-surface px-4" aria-label="En-tête">
-        <a href="/" class="touch-target inline-flex items-center font-semibold text-primary">PTR Staff</a>
-    </header>
-    <main id="main-content" tabindex="-1" class="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-content items-center px-4 py-8">
-        <slot />
-    </main>
+    <div class="min-h-screen bg-canvas">
+        <div class="h-56 bg-rail" aria-hidden="true" />
+        <main id="main-content" tabindex="-1" class="mx-auto -mt-44 grid w-full max-w-md gap-6 px-4 pb-12 outline-none">
+            <header class="flex items-center gap-3 text-white" aria-label="En-tête">
+                <a href="/" class="flex items-center gap-3">
+                    <span class="grid size-10 place-items-center rounded-lg bg-primary text-sm font-bold" aria-hidden="true">PTR</span>
+                    <span class="grid leading-tight">
+                        <span class="text-lg font-semibold">PTR Staff</span>
+                        <span class="text-sm text-rail-ink">Espace de travail de PTR Niger</span>
+                    </span>
+                </a>
+            </header>
+            <slot />
+        </main>
+    </div>
 </template>

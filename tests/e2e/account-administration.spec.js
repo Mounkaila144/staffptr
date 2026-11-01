@@ -10,7 +10,6 @@ test('AC 2, 6 et 7 — création et cartes de comptes restent utilisables à 320
     await page.getByLabel('Mot de passe').fill('Direction-E2E-2026');
     await page.getByRole('button', { name: 'Se connecter' }).click();
 
-    await page.getByRole('button', { name: 'Plus' }).click();
     await page.getByRole('link', { name: 'Comptes et rôles', exact: true }).click();
     await expect(page).toHaveURL(/\/comptes$/);
     await expect(page.getByRole('heading', { name: 'Administration des comptes' })).toBeVisible();

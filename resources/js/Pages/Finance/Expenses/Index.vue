@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import AppButton from '../../../Components/AppButton.vue';
+import DataTable from '../../../Components/DataTable.vue';
 import EmptyState from '../../../Components/EmptyState.vue';
 import FormField from '../../../Components/FormField.vue';
 import StatusBadge from '../../../Components/StatusBadge.vue';
@@ -12,6 +13,7 @@ const props = defineProps({
     categories: { type: Array, required: true },
     filters: { type: Object, required: true },
     can_create: { type: Boolean, required: true },
+    can_pay: { type: Boolean, default: false },
 });
 
 const filterForm = useForm({
@@ -43,19 +45,31 @@ const isEmptyByFilter = computed(() =>
 );
 
 const isEmptyByAbsence = computed(() => !isEmptyByFilter.value);
+const expenseColumns = [
+    { key: 'reason', label: 'Motif', primary: true },
+    { key: 'formatted_amount', label: 'Montant', align: 'right' },
+    { key: 'beneficiary', label: 'Bénéficiaire' },
+    { key: 'category.name', label: 'Catégorie', hideOnMobile: true },
+    { key: 'requester.name', label: 'Demandeur' },
+    { key: 'created_at', label: 'Créée le', hideOnMobile: true },
+    { key: 'state', label: 'État' },
+];
 </script>
 
 <template>
     <Head title="Demandes de dépense" />
 
-    <AppLayout title="Demandes de dépense" back-label="Paramètres" back-href="/parametres" active-navigation="settings">
+    <AppLayout title="Demandes de dépense" active-navigation="expenses">
         <div class="grid min-w-0 gap-6">
             <header class="flex min-w-0 flex-wrap items-start justify-between gap-3">
                 <div class="grid min-w-0 gap-2">
                     <h1 class="break-words text-page-title">Demandes de dépense</h1>
-                    <p class="max-w-2xl text-ink-secondary">Registre des demandes de dépense en attente de double approbation.</p>
+                    <p class="max-w-2xl text-ink-secondary">Registre des demandes de dépense : chacune exige deux approbations de la direction avant de pouvoir être payée (une seule, celle de l’autre dirigeant, quand le demandeur est lui-même dirigeant).</p>
                 </div>
-                <AppButton v-if="can_create" variant="principal" href="/depenses/create">Nouvelle demande</AppButton>
+                <div class="flex flex-wrap gap-2">
+                    <AppButton v-if="can_pay" variant="secondaire" href="/finances/paiements-depenses">Payer les dépenses approuvées</AppButton>
+                    <AppButton v-if="can_create" variant="principal" href="/depenses/create">Nouvelle demande</AppButton>
+                </div>
             </header>
 
             <!-- Filters -->
@@ -67,12 +81,13 @@ const isEmptyByAbsence = computed(() => !isEmptyByFilter.value);
                         id="filter-state"
                         v-model="filterForm.state"
                         label="État"
-                        type="select"
+                        as="select"
                         :options="[
                             { value: '', label: 'Tous les états' },
                             { value: 'demandee', label: 'Demandée' },
                             { value: 'approuvee', label: 'Approuvée' },
                             { value: 'refusee', label: 'Refusée' },
+                            { value: 'payee', label: 'Payée' },
                             { value: 'annulee', label: 'Annulée' },
                         ]"
                     />
@@ -81,7 +96,7 @@ const isEmptyByAbsence = computed(() => !isEmptyByFilter.value);
                         id="filter-category"
                         v-model="filterForm.category_id"
                         label="Catégorie"
-                        type="select"
+                        as="select"
                         :options="[
                             { value: '', label: 'Toutes les catégories' },
                             ...categories.map(c => ({ value: c.id, label: c.name })),
@@ -100,7 +115,7 @@ const isEmptyByAbsence = computed(() => !isEmptyByFilter.value);
                 title="Aucune demande de dépense pour ce mois."
                 reason="Le registre est vide. Créez une demande pour commencer le suivi."
                 action-label="Nouvelle demande"
-                :action-href="can_create ? '/depenses/create' : undefined"
+                :action-href="can_create ? '/depenses/create' : ''"
             />
 
             <EmptyState
@@ -111,25 +126,11 @@ const isEmptyByAbsence = computed(() => !isEmptyByFilter.value);
                 @action="clearFilters"
             />
 
-            <ul v-else class="grid min-w-0 gap-3">
-                <li v-for="expense in expenses" :key="expense.id" class="grid min-w-0 gap-4 rounded-xl border border-separator bg-surface p-4">
-                    <div class="flex min-w-0 flex-wrap items-start justify-between gap-2">
-                        <h2 class="min-w-0 break-words text-card-title">{{ expense.reason }}</h2>
-                        <StatusBadge :status="expense.state" />
-                    </div>
-
-                    <div class="grid gap-2 text-sm">
-                        <p class="font-semibold text-primary">{{ expense.formatted_amount }}</p>
-                        <p class="text-ink-secondary">Bénéficiaire : {{ expense.beneficiary }}</p>
-                        <p class="text-ink-secondary">Catégorie : {{ expense.category.name }}</p>
-                        <p class="text-ink-secondary">Demandeur : {{ expense.requester.name }}</p>
-                        <p class="text-ink-secondary">Créée le : {{ expense.created_at }}</p>
-                        <p v-if="expense.cancel_reason" class="text-sm font-semibold text-danger">Annulée : {{ expense.cancel_reason }}</p>
-                    </div>
-
-                    <AppButton variant="secondaire" :href="`/depenses/${expense.id}`">Voir les détails</AppButton>
-                </li>
-            </ul>
+            <DataTable v-else :columns="expenseColumns" :rows="expenses" :row-href="(expense) => `/depenses/${expense.id}`" caption="Demandes de dépense">
+                <template #cell-reason="{ row }"><span class="grid gap-0.5"><a :href="`/depenses/${row.id}`" class="font-semibold text-ink hover:text-primary">{{ row.reason }}</a><span v-if="row.cancel_reason" class="text-xs font-semibold text-danger">Annulée : {{ row.cancel_reason }}</span></span></template>
+                <template #cell-formatted_amount="{ row }"><span class="font-semibold text-ink">{{ row.formatted_amount }}</span></template>
+                <template #cell-state="{ row }"><StatusBadge :status="row.state" /></template>
+            </DataTable>
         </div>
     </AppLayout>
 </template>

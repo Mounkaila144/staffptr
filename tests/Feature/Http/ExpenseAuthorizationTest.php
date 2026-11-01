@@ -6,6 +6,7 @@ use App\Enums\ExpenseState;
 use App\Models\Finance\Expense;
 use App\Models\Finance\ExpenseCategory;
 use App\Models\Identity\User;
+use Database\Seeders\SettingSeeder;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\Test;
@@ -37,6 +38,8 @@ class ExpenseAuthorizationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Le formulaire de dépense lit les réglages des pièces jointes, comme en production.
+        $this->seed(SettingSeeder::class);
 
         $this->direction = User::factory()->active()->withRole('direction')->create();
         $this->finance = User::factory()->active()->withRole('finance')->create();
@@ -249,5 +252,16 @@ class ExpenseAuthorizationTest extends TestCase
         $this->assertDatabaseHas('expenses', [
             'id' => $this->ownExpense->id,
         ]);
+    }
+
+    #[Test]
+    public function the_create_form_receives_the_attachment_settings_its_uploader_needs(): void
+    {
+        // Sans ces réglages, le téléversement du justificatif affichait « NaN Mo » et échouait.
+        $this->actingAs($this->employe)->get('/depenses/create')->assertOk()->assertInertia(fn (Assert $page): Assert => $page
+            ->component('Finance/Expenses/Create')
+            ->where('attachment.attachable_id', (int) $this->employe->person_id)
+            ->has('attachment.allowed_types')
+            ->where('attachment.max_size_bytes', fn ($bytes): bool => is_int($bytes) && $bytes > 0));
     }
 }

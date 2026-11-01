@@ -85,6 +85,11 @@ class PasswordResetVerificationService
         }
     }
 
+    public function isPending(User $actor, User $target): bool
+    {
+        return Cache::has($this->cacheKey($actor, $target));
+    }
+
     private function digest(string $confirmationCode): string
     {
         $key = config('app.key');

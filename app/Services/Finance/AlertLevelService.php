@@ -158,7 +158,10 @@ class AlertLevelService
 
         return (int) Payment::query()
             ->where('state', PaymentState::Validated)
-            ->whereBetween('received_on', [$start->toDateString(), $start->endOfMonth()->toDateString()])
+            // Les contre-écritures annulent un encaissement : elles ne sont pas des rentrées.
+            ->whereNull('reversal_of_id')
+            ->whereDate('received_on', '>=', $start->toDateString())
+            ->whereDate('received_on', '<=', $start->endOfMonth()->toDateString())
             ->sum('received_amount');
     }
 

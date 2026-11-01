@@ -34,7 +34,8 @@ class PersonDocumentHttpTest extends IdentityTestCase
                     'document_type' => $type->value,
                     'attachment_ulid' => $attachment->ulid,
                 ])
-                ->assertRedirect(route('people.documents.index', $target->person));
+                ->assertRedirect(route('people.documents.index', $target->person))
+                ->assertSessionHas('success', 'Document rangé dans le dossier.');
         }
 
         $storedTypes = PersonDocument::query()

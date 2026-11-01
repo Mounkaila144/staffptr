@@ -27,7 +27,7 @@ function submit() {
 <template>
     <Head title="Connexion" />
     <AuthLayout>
-        <section class="w-full rounded-xl border border-separator bg-surface p-5 shadow-sm sm:p-8" aria-labelledby="login-title">
+        <section class="w-full rounded-2xl border border-separator bg-surface p-6 shadow-raised sm:p-8" aria-labelledby="login-title">
             <div class="mb-6 grid gap-2">
                 <h1 id="login-title" class="text-screen-title">Connexion</h1>
                 <p class="text-ink-secondary">Entrez votre numéro du Niger et votre mot de passe.</p>
@@ -38,6 +38,7 @@ function submit() {
                 <FormField ref="passwordField" v-model="form.password" id="password" label="Mot de passe" variant="password" autocomplete="current-password" :error="form.errors.password" required />
                 <AppButton type="submit" variant="principal" :busy="form.processing" busy-label="Connexion en cours">Se connecter</AppButton>
             </form>
+            <p class="mt-5 text-sm text-ink-secondary">Mot de passe oublié ? Demandez à la direction de le réinitialiser : elle vous remettra un mot de passe temporaire.</p>
         </section>
     </AuthLayout>
 </template>

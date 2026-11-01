@@ -1,23 +1,40 @@
 <script setup>
+import { computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
+import StatCard from '../../Components/StatCard.vue';
 import AppLayout from '../../Layouts/AppLayout.vue';
 
-defineProps({
+const props = defineProps({
     dailyReport: { type: Object, default: null },
     blockerBlock: { type: Object, default: null },
     approvalQueue: { type: Object, default: null },
     workBlocks: { type: Object, required: true },
     lastEvaluation: { type: Object, default: null },
 });
+
+// Chiffres clés : ils ne font que résumer les blocs envoyés par le serveur. Un bloc non autorisé
+// n'arrive jamais, et son chiffre n'apparaît donc pas non plus.
+const stats = computed(() => [
+    props.workBlocks.todayTasks && { key: 'tasks', label: 'Tâches du jour', value: props.workBlocks.todayTasks.items.length, icon: 'tasks', href: props.workBlocks.todayTasks.url, hint: props.workBlocks.todayTasks.items.length ? 'À faire aujourd’hui' : 'Rien de prévu aujourd’hui' },
+    props.workBlocks.objectives && { key: 'objectives', label: 'Objectifs du mois', value: props.workBlocks.objectives.items.length, icon: 'target', href: props.workBlocks.objectives.url, hint: 'Validés pour ce mois' },
+    props.blockerBlock && { key: 'blockers', label: 'Blocages ouverts', value: props.blockerBlock.items.length, icon: 'blocker', tone: props.blockerBlock.items.length ? 'warning' : 'success', href: props.blockerBlock.url, hint: props.blockerBlock.items.length ? 'En attente de solution' : 'Aucun blocage' },
+    props.workBlocks.notifications && { key: 'notifications', label: 'Notifications', value: props.workBlocks.notifications.count, icon: 'bell', tone: 'neutral', href: props.workBlocks.notifications.url, hint: props.workBlocks.notifications.count > 1 ? 'Non lues' : 'Non lue' },
+].filter(Boolean));
+
+// Seule la première lettre prend une majuscule : `capitalize` en CSS écrirait « Octobre ».
+const todayLabel = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Niamey' }).format(new Date());
+const today = todayLabel.charAt(0).toUpperCase() + todayLabel.slice(1);
 </script>
 
 <template>
     <Head title="Accueil" />
     <AppLayout title="Accueil" active-navigation="home">
         <div class="grid min-w-0 gap-6">
-            <section v-if="dailyReport && !dailyReport.after_approval" class="grid min-w-0 gap-3 rounded-xl border-2 border-primary bg-surface p-4" aria-labelledby="daily-report-home-title" data-testid="daily-report-block">
+            <p class="text-sm font-medium text-ink-muted">{{ today }}</p>
+
+            <section v-if="dailyReport && !dailyReport.after_approval" class="grid min-w-0 gap-3 rounded-xl border border-l-4 border-separator border-l-primary bg-surface p-4" aria-labelledby="daily-report-home-title" data-testid="daily-report-block">
                 <div class="flex min-w-0 flex-wrap items-start justify-between gap-2">
-                    <h1 id="daily-report-home-title" class="break-words text-page-title">{{ dailyReport.title }}</h1>
+                    <h1 id="daily-report-home-title" class="break-words text-screen-title">{{ dailyReport.title }}</h1>
                     <span class="rounded-full border border-primary px-3 py-1 font-semibold">{{ dailyReport.status }}</span>
                 </div>
                 <Link :href="dailyReport.action_url" class="touch-target inline-flex w-fit items-center font-semibold text-primary">{{ dailyReport.action_label }}</Link>
@@ -25,13 +42,13 @@ defineProps({
 
             <section
                 v-if="approvalQueue"
-                class="grid min-w-0 gap-4 rounded-xl border-2 border-primary bg-surface p-4 sm:p-6"
+                class="grid min-w-0 gap-4 rounded-xl border border-l-4 border-separator border-l-primary bg-surface p-4 sm:p-6"
                 aria-labelledby="approval-queue-title"
                 data-testid="approval-queue-block"
             >
                 <div class="flex min-w-0 flex-wrap items-start justify-between gap-3">
                     <div class="grid min-w-0 gap-1">
-                        <h1 id="approval-queue-title" class="break-words text-page-title">En attente de mon approbation</h1>
+                        <h1 id="approval-queue-title" class="break-words text-screen-title">En attente de mon approbation</h1>
                         <p v-if="approvalQueue.count > 0" class="text-ink-secondary">
                             {{ approvalQueue.count }} dépense{{ approvalQueue.count > 1 ? 's' : '' }} · plus ancienne : {{ approvalQueue.oldest_age_label }}
                         </p>
@@ -67,7 +84,7 @@ defineProps({
                 </div>
             </section>
 
-            <section v-if="dailyReport && dailyReport.after_approval" class="grid min-w-0 gap-3 rounded-xl border-2 border-primary bg-surface p-4" aria-labelledby="daily-report-direction-title" data-testid="daily-report-block">
+            <section v-if="dailyReport && dailyReport.after_approval" class="grid min-w-0 gap-3 rounded-xl border border-l-4 border-separator border-l-primary bg-surface p-4" aria-labelledby="daily-report-direction-title" data-testid="daily-report-block">
                 <div class="flex min-w-0 flex-wrap items-start justify-between gap-2">
                     <h2 id="daily-report-direction-title" class="break-words text-section-title">{{ dailyReport.title }}</h2>
                     <span class="rounded-full border border-primary px-3 py-1 font-semibold">{{ dailyReport.status }}</span>
@@ -75,6 +92,11 @@ defineProps({
                 <Link :href="dailyReport.action_url" class="touch-target inline-flex w-fit items-center font-semibold text-primary">{{ dailyReport.action_label }}</Link>
             </section>
 
+            <section v-if="stats.length" class="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Chiffres clés">
+                <StatCard v-for="stat in stats" :key="stat.key" :label="stat.label" :value="stat.value" :icon="stat.icon" :tone="stat.tone ?? 'primary'" :hint="stat.hint" :href="stat.href" />
+            </section>
+
+            <div class="grid min-w-0 items-start gap-6 lg:grid-cols-2">
             <section v-if="workBlocks.objectives" class="grid min-w-0 gap-4 rounded-xl border border-separator bg-surface p-4" aria-labelledby="monthly-objectives-title">
                 <div class="flex min-w-0 flex-wrap items-start justify-between gap-2">
                     <h2 id="monthly-objectives-title" class="break-words text-section-title">{{ workBlocks.objectives.title }}</h2>
@@ -82,9 +104,8 @@ defineProps({
                 </div>
                 <ul v-if="workBlocks.objectives.items.length" class="grid min-w-0 gap-3">
                     <li v-for="objective in workBlocks.objectives.items" :key="objective.id" class="grid min-w-0 gap-2 rounded-lg bg-neutral-soft p-3">
-                        <div class="flex min-w-0 flex-wrap justify-between gap-2"><span class="break-words font-semibold">{{ objective.title }}</span><span>● {{ objective.state_label }} — {{ objective.tone }}</span></div>
-                        <progress :value="objective.progress" max="100" class="h-3 w-full" :aria-label="`Progression ${objective.progress} %`" />
-                        <span>{{ objective.progress }} %</span>
+                        <div class="flex min-w-0 flex-wrap justify-between gap-2"><span class="break-words font-semibold">{{ objective.title }}</span><span class="text-sm text-ink-secondary">{{ objective.state_label }} — {{ objective.tone }}</span></div>
+                        <div class="flex items-center gap-3"><progress :value="objective.progress" max="100" class="h-2 w-full" :aria-label="`Progression ${objective.progress} %`" /><span class="text-sm font-semibold">{{ objective.progress }} %</span></div>
                     </li>
                 </ul>
                 <p v-else>{{ workBlocks.objectives.empty_message }}</p>
@@ -92,7 +113,7 @@ defineProps({
 
             <section v-if="workBlocks.todayTasks" class="grid min-w-0 gap-4 rounded-xl border border-separator bg-surface p-4" aria-labelledby="today-tasks-title">
                 <div class="flex min-w-0 flex-wrap items-start justify-between gap-2"><h2 id="today-tasks-title" class="text-section-title">{{ workBlocks.todayTasks.title }}</h2><Link :href="workBlocks.todayTasks.url" class="touch-target inline-flex items-center px-3 font-semibold text-primary">Ouvrir la liste du jour</Link></div>
-                <ul v-if="workBlocks.todayTasks.items.length" class="grid min-w-0 gap-2"><li v-for="task in workBlocks.todayTasks.items" :key="task.id" class="rounded-lg bg-neutral-soft p-3"><strong class="break-words">{{ task.title }}</strong><p>{{ task.status_label }} · {{ task.priority_label }}</p></li></ul>
+                <ul v-if="workBlocks.todayTasks.items.length" class="grid min-w-0 gap-2"><li v-for="task in workBlocks.todayTasks.items" :key="task.id" class="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-separator p-3"><strong class="min-w-0 break-words">{{ task.title }}</strong><span class="text-sm text-ink-secondary">{{ task.status_label }} · {{ task.priority_label }}</span></li></ul>
                 <p v-else>{{ workBlocks.todayTasks.empty_message }}</p>
             </section>
 
@@ -117,13 +138,9 @@ defineProps({
                 </Link>
             </section>
 
-            <section v-if="workBlocks.notifications" class="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-separator bg-surface p-4" aria-labelledby="notifications-title"><div><h2 id="notifications-title" class="text-section-title">Notifications</h2><p>{{ workBlocks.notifications.count }} non lue{{ workBlocks.notifications.count > 1 ? 's' : '' }}</p></div><Link :href="workBlocks.notifications.url" class="touch-target inline-flex items-center px-3 font-semibold text-primary">Consulter</Link></section>
-
-            <section class="grid gap-4" aria-labelledby="home-title">
-            <h1 id="home-title" class="text-screen-title">Bienvenue dans PTR Staff</h1>
-            <p class="text-ink-secondary">Votre espace est prêt. Les modules métier apparaîtront ici selon vos droits.</p>
-            <Link href="/deconnexion" method="post" as="button" class="touch-target justify-self-start rounded-lg px-3 font-semibold text-primary underline-offset-4 hover:underline">Se déconnecter</Link>
-            </section>
+            </div>
+            <!-- Après le bloc d'approbation, toujours premier (cahier d'interface § 5.4). -->
+            <h1 id="home-title" class="pt-2 text-section-title text-ink-secondary">Bienvenue dans PTR Staff</h1>
         </div>
     </AppLayout>
 </template>

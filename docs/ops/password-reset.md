@@ -35,9 +35,19 @@ Avant mise en service, vérifier que l’instance Evolution répond à
    **Le mot de passe temporaire ne doit jamais être envoyé par Evolution API ou WhatsApp.**
 
 La procédure reste identique pour toutes les cibles, y compris lorsqu’un `super_admin`
-réinitialise un compte `direction`. Si Evolution API est indisponible, déconnectée ou refuse
-l’envoi, la réinitialisation est bloquée sans aucun contournement. L’exploitant rétablit le service,
-contrôle l’état `open`, puis l’auteur recommence depuis l’envoi d’un nouveau code.
+réinitialise un compte `direction`.
+
+### Réinitialisation sans code WhatsApp (décision du propriétaire, 2026-11-01)
+
+Si Evolution API est indisponible, déconnectée ou refuse l’envoi, un compte `direction` (jamais un
+`super_admin`, jamais sur son propre compte) peut réinitialiser sans code via
+`POST /comptes/{user}/reinitialisation/directe` (bouton « WhatsApp indisponible ? Réinitialiser
+sans code »). L’auteur vérifie l’identité hors application (face à face ou appel au numéro
+enregistré) et saisit obligatoirement comment il l’a vérifiée (10 à 500 caractères). Les effets
+sont ceux de l’étape 4 ; l’audit porte l’action `password_reset_without_whatsapp`, l’auteur, la
+cible et le motif. Ce chemin remplace l’ancienne règle « bloquée sans aucun contournement » : il
+abaisse le niveau de preuve, d’où le contrôle a posteriori du journal d’audit par l’autre
+dirigeant.
 
 ## Mot de passe perdu et récupération
 

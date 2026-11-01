@@ -19,7 +19,9 @@ const props = defineProps({
 const now = new Date();
 const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const refusalId = ref(null);
-const refusalField = ref(null);
+// Le champ du motif est rendu dans une boucle : on le retrouve par son identifiant, une référence
+// de modèle y vaudrait un tableau sans méthode `focus`.
+const focusRefusalField = () => document.getElementById(`refusal-${refusalId.value}`)?.focus();
 const form = useForm({ type: 'conge', start_date: today, end_date: today, reason: '', attachment_ulid: null });
 const refusalForm = useForm({ decision_reason: '' });
 
@@ -37,14 +39,14 @@ async function prepareRefusal(absence) {
     refusalId.value = absence.id;
     refusalForm.reset();
     await nextTick();
-    refusalField.value?.focus();
+    focusRefusalField();
 }
 
 function refuse() {
     refusalForm.patch(`/absences/${refusalId.value}/refuser`, {
         preserveScroll: true,
         onSuccess: () => { refusalId.value = null; },
-        onError: () => nextTick(() => refusalField.value?.focus()),
+        onError: () => nextTick(focusRefusalField),
     });
 }
 
@@ -108,7 +110,7 @@ function cancel(absence) {
 
             <section class="grid min-w-0 gap-4" aria-labelledby="approvals-title">
                 <h2 id="approvals-title" class="text-section-title">Demandes à approuver</h2>
-                <EmptyState v-if="pendingApprovals.length === 0" title="Aucune demande à approuver." reason="Les demandes de votre équipe apparaîtront ici." />
+                <EmptyState v-if="pendingApprovals.length === 0" title="Aucune demande à approuver." reason="Les demandes de votre équipe apparaîtront ici, ainsi que, pour la direction, celles des personnes sans responsable direct." />
                 <ul v-else class="grid min-w-0 gap-3">
                     <li v-for="absence in pendingApprovals" :key="absence.id" class="grid min-w-0 gap-3 rounded-xl border border-separator bg-surface p-4">
                         <div class="flex min-w-0 flex-wrap items-start justify-between gap-2">
@@ -116,6 +118,7 @@ function cancel(absence) {
                             <StatusBadge :status="absence.state" />
                         </div>
                         <p class="break-words">{{ absence.reason }}</p>
+                        <p v-if="absence.decision_route_label" class="text-sm font-semibold text-ink-secondary">{{ absence.decision_route_label }}</p>
                         <div v-if="absence.can_approve" class="flex flex-wrap gap-2">
                             <AppButton variant="principal" @click="approve(absence)">Approuver</AppButton>
                             <AppButton variant="destructeur" @click="prepareRefusal(absence)">Refuser</AppButton>
@@ -123,7 +126,7 @@ function cancel(absence) {
                         <form v-if="refusalId === absence.id" class="grid min-w-0 gap-3 rounded-lg bg-danger-soft p-3" @submit.prevent="refuse">
                             <label class="grid gap-2" :for="`refusal-${absence.id}`">
                                 <span class="font-semibold">Motif du refus</span>
-                                <textarea :id="`refusal-${absence.id}`" ref="refusalField" v-model="refusalForm.decision_reason" rows="3" required maxlength="500" class="min-h-24 min-w-0 rounded-lg border border-danger bg-surface p-3 text-base" :aria-invalid="refusalForm.errors.decision_reason ? 'true' : 'false'" />
+                                <textarea :id="`refusal-${absence.id}`" v-model="refusalForm.decision_reason" rows="3" required maxlength="500" class="min-h-24 min-w-0 rounded-lg border border-danger bg-surface p-3 text-base" :aria-invalid="refusalForm.errors.decision_reason ? 'true' : 'false'" />
                                 <span v-if="refusalForm.errors.decision_reason" class="text-sm font-semibold text-danger">⚠ {{ refusalForm.errors.decision_reason }}</span>
                             </label>
                             <div class="flex flex-wrap gap-2"><AppButton type="submit" variant="destructeur" :busy="refusalForm.processing">Confirmer le refus</AppButton><AppButton variant="secondaire" @click="refusalId = null">Fermer</AppButton></div>

@@ -16,12 +16,13 @@ use Illuminate\Validation\ValidationException;
 
 class ExpenseApprovalService
 {
-    public const REQUESTER_MESSAGE = 'Vous êtes le demandeur de cette dépense. Elle doit être approuvée par les deux autres comptes de direction.';
+    public const REQUESTER_MESSAGE = 'Vous êtes le demandeur de cette dépense. Personne n\'approuve sa propre dépense : elle doit être approuvée par un autre compte de direction.';
 
     public function __construct(
         private readonly AuditLogger $auditLogger,
         private readonly ExpenseApprovalReadiness $readiness,
         private readonly AlertLevelExpenseNotice $alertLevelNotice,
+        private readonly ExpenseApprovalRequirement $requirement,
     ) {}
 
     public function approve(Expense $expense, User $approver): Expense
@@ -62,11 +63,16 @@ class ExpenseApprovalService
                 ->where('decision', ExpenseApproval::DECISION_APPROVE)
                 ->distinct('approver_id')
                 ->count('approver_id');
+            // RM-09 (décision du 2026-11-01) : min(2, dirigeants actifs hors demandeur), au moins 1.
+            $requiredApprovals = $this->requirement->requiredFor($lockedExpense);
             $nextState = match (true) {
                 $decision === ExpenseApproval::DECISION_REJECT => ExpenseState::Refusee,
-                $approvalCount + 1 >= 2 => ExpenseState::Approuvee,
+                $approvalCount + 1 >= $requiredApprovals => ExpenseState::Approuvee,
                 default => ExpenseState::Demandee,
             };
+            $approvalRule = $decision === ExpenseApproval::DECISION_APPROVE
+                ? $this->requirement->auditRule($lockedExpense, $requiredApprovals)
+                : null;
             $approval = new ExpenseApproval;
             $approval->setConnection($lockedExpense->getConnectionName());
             $approval->fill([
@@ -79,11 +85,16 @@ class ExpenseApprovalService
 
             $this->auditLogger->runExplicitly(
                 auditable: $lockedExpense,
-                operation: function () use ($approval, $lockedExpense, $nextState): bool {
+                operation: function () use ($approval, $lockedExpense, $nextState, $requiredApprovals): bool {
                     $approval->saveOrFail();
 
                     if ($lockedExpense->state !== $nextState) {
-                        $lockedExpense->forceFill(['state' => $nextState->value])->saveOrFail();
+                        $lockedExpense->forceFill([
+                            'state' => $nextState->value,
+                            // Figé au passage à « approuvée » : le paiement et les invariants relisent
+                            // la règle effectivement appliquée.
+                            ...($nextState === ExpenseState::Approuvee ? ['approvals_required' => $requiredApprovals] : []),
+                        ])->saveOrFail();
                     }
 
                     return true;
@@ -99,6 +110,9 @@ class ExpenseApprovalService
                     'approval_decision' => $decision,
                     'approver_id' => (int) $approver->getKey(),
                     'decided_at' => $decidedAt->toISOString(),
+                    ...($approvalRule !== null
+                        ? ['approvals_required' => $requiredApprovals, 'approval_rule' => $approvalRule]
+                        : []),
                     // AC 13 : quand l'effet du niveau rouge s'est manifesté — un avertissement
                     // affiché sur une dépense non essentielle — l'audit nomme le niveau et
                     // l'objet. L'approbation, elle, n'a jamais été empêchée (AC 9).

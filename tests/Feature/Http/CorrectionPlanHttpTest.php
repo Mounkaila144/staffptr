@@ -154,6 +154,19 @@ class CorrectionPlanHttpTest extends IdentityTestCase
                 ->has('alert.level_label'));
     }
 
+    /** Seule la direction voit les actions d'écriture ; `finance` consulte sans bouton inopérant. */
+    public function test_the_screen_tells_whether_the_viewer_can_record_validate_or_revise(): void
+    {
+        $this->actingAs($this->userWithRole('direction'))
+            ->get('/finances/plans-correctifs')
+            ->assertInertia(fn ($page) => $page->where('canManage', true));
+
+        session()->flush();
+        $this->actingAs($this->userWithRole('finance'))
+            ->get('/finances/plans-correctifs')
+            ->assertInertia(fn ($page) => $page->where('canManage', false));
+    }
+
     private function userWithRole(string $role): User
     {
         return User::factory()->active()->withRole($role)->create();

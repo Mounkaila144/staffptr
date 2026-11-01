@@ -1,11 +1,13 @@
 <?php
 
+use App\Notifications\AbsenceDecidedNotification;
 use App\Notifications\BlockerNotification;
 use App\Notifications\CorrectionPlanReminderNotification;
 use App\Notifications\DailyReportReminderNotification;
 use App\Notifications\ExpenseApprovalReminderNotification;
 use App\Notifications\ExpenseRequestedNotification;
 use App\Notifications\GroupedSupportRequestNotification;
+use App\Notifications\TaskAssignedNotification;
 
 return [
 
@@ -56,6 +58,14 @@ return [
             // Déjà groupée par conception (epic 7) : un message par tuteur et
             // par créneau, jamais un par demande.
             GroupedSupportRequestNotification::class,
+
+            // Décision du propriétaire (2026-11-01) : la personne concernée doit
+            // être prévenue sans avoir à ouvrir l'application. Un message par
+            // tâche confiée à autrui (jamais à soi-même) et un par décision
+            // d'absence : volume faible, et un retard ferait manquer une
+            // échéance ou organiser son absence à l'aveugle.
+            TaskAssignedNotification::class,
+            AbsenceDecidedNotification::class,
         ],
 
         /*

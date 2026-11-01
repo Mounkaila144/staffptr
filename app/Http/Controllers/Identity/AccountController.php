@@ -50,7 +50,9 @@ class AccountController extends Controller
             throw ValidationException::withMessages(['roles' => $exception->getMessage()]);
         }
 
-        return Inertia::render('Identity/Accounts/Index', [
+        // Rendue en réponse au POST, la page garde l'adresse de la liste (voir PasswordResetController).
+        Inertia::resolveUrlUsing(static fn (): string => route('accounts.index', absolute: false));
+        $response = Inertia::render('Identity/Accounts/Index', [
             ...$this->accountAdministrationService->indexData($actor, []),
             'createdAccount' => [
                 'person_name' => $created['user']->person()->value('full_name'),
@@ -58,6 +60,9 @@ class AccountController extends Controller
                 'temporary_password' => $created['temporary_password'],
             ],
         ]);
+        Inertia::resolveUrlUsing(null);
+
+        return $response;
     }
 
     public function syncRoles(SyncAccountRolesRequest $request, User $user): RedirectResponse
@@ -77,7 +82,7 @@ class AccountController extends Controller
             throw ValidationException::withMessages(['roles' => $exception->getMessage()]);
         }
 
-        return redirect()->route('accounts.index');
+        return redirect()->route('accounts.index')->with('success', 'Rôles mis à jour.');
     }
 
     public function archive(ArchiveAccountRequest $request, User $user): RedirectResponse
@@ -92,7 +97,7 @@ class AccountController extends Controller
             reason: (string) $request->validated('reason'),
         );
 
-        return redirect()->route('accounts.index');
+        return redirect()->route('accounts.index')->with('success', 'Compte archivé. La fiche personne reste consultable.');
     }
 
     private function actor(FormRequest $request): User

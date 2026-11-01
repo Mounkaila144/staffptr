@@ -19,4 +19,10 @@ class CommentDailyReportRequest extends FormRequest
     {
         return ['body' => ['required', 'string', 'max:5000']];
     }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return ['body.required' => 'Écrivez votre commentaire avant de l’ajouter.'];
+    }
 }

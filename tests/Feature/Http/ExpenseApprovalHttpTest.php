@@ -147,7 +147,7 @@ class ExpenseApprovalHttpTest extends TestCase
             ->assertInertia(fn (Assert $page): Assert => $page
                 ->component('Finance/Expenses/Approvals/Index')
                 ->where('expenses.0.approval_count', 1)
-                ->where('expenses.0.approval_progress', 'Demandée — 1 approbation sur deux')
+                ->where('expenses.0.approval_progress', 'Demandée — 1 approbation sur 2')
                 ->where('expenses.0.formatted_amount', $expense->formattedAmount())
                 ->where('expenses.0.can_decide', true));
     }

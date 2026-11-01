@@ -7,7 +7,7 @@ import AuthLayout from '../../Layouts/AuthLayout.vue';
     <Head title="Page introuvable" />
 
     <AuthLayout>
-        <section class="w-full rounded-xl border border-separator bg-surface p-6 shadow-sm sm:p-10">
+        <section class="w-full rounded-2xl border border-separator bg-surface p-6 shadow-raised sm:p-10">
             <p class="text-sm font-semibold uppercase tracking-widest text-primary">PTR Staff</p>
             <h1 class="mt-3 text-screen-title">Page introuvable</h1>
             <p class="mt-4 text-ink-secondary">

@@ -206,6 +206,9 @@ class CorrectionPlanTest extends TestCase
     /** Un nouveau jour relance, tant que le plan manque : l'exigence ne s'oublie pas. */
     public function test_a_new_day_produces_a_new_reminder_while_the_plan_is_missing(): void
     {
+        // Milieu du mois : lancé un dernier jour du mois, « le lendemain » changeait de mois et
+        // le niveau orange, posé sur le mois courant, ne s'appliquait plus.
+        $this->travelTo($this->month->addDays(14)->setTime(12, 0));
         $this->putCompanyInOrange();
         $this->direction();
 

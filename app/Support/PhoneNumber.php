@@ -20,6 +20,12 @@ final class PhoneNumber
             $normalized = '+'.substr($normalized, 2);
         }
 
+        // « 227 » suivi de 8 chiffres est le numéro complet saisi sans « + » : sur 11 chiffres, il
+        // ne peut pas être confondu avec un numéro local, qui n'en compte que 8.
+        if (preg_match('/^227[0-9]{8}$/', $normalized) === 1) {
+            $normalized = '+'.$normalized;
+        }
+
         if (! str_starts_with($normalized, '+')) {
             $normalized = '+227'.$normalized;
         }

@@ -58,6 +58,8 @@ final readonly class PaymentService
                 'state' => $payment->state->value,
                 'late_recording' => $payment->late_recording,
                 'has_attachment' => $payment->attachment !== null,
+                // Lien vers le justificatif privé : la route vérifie elle-même le droit de le voir.
+                'attachment_url' => $payment->attachment === null ? null : route('attachments.show', $payment->attachment, absolute: false),
                 'correction_of_id' => $payment->correction_of_id,
                 'reversal_of_id' => $payment->reversal_of_id,
             ])->all();
@@ -101,6 +103,8 @@ final readonly class PaymentService
     {
         $existing = $this->idempotentPayment($data['idempotency_key'], $actor);
         if ($existing !== null) {
+            $this->assertSameTarget((int) $existing->correction_of_id, $original);
+
             return $existing;
         }
 
@@ -130,6 +134,8 @@ final readonly class PaymentService
     {
         $existing = $this->idempotentPayment($idempotencyKey, $actor);
         if ($existing !== null) {
+            $this->assertSameTarget((int) $existing->reversal_of_id, $original);
+
             return $existing;
         }
 
@@ -325,6 +331,18 @@ final readonly class PaymentService
         }
 
         return $attachment;
+    }
+
+    /**
+     * Une clé d'envoi déjà consommée ne rejoue que l'opération qu'elle a servie : réutilisée pour
+     * un autre reçu, elle renverrait l'ancienne contre-écriture (ou correction) et laisserait
+     * croire que le second reçu a été traité alors qu'il ne l'est pas.
+     */
+    private function assertSameTarget(int $targetId, Payment $original): void
+    {
+        if ($targetId !== (int) $original->getKey()) {
+            throw ValidationException::withMessages(['idempotency_key' => 'Cette demande a déjà servi pour un autre reçu. Rechargez la page puis recommencez.']);
+        }
     }
 
     private function idempotentPayment(string $key, User $actor): ?Payment

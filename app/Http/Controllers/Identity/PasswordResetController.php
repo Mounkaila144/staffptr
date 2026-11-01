@@ -6,6 +6,7 @@ use App\Exceptions\Identity\EvolutionApiUnavailable;
 use App\Exceptions\Identity\PasswordResetVerificationFailed;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Identity\ConfirmPasswordResetRequest;
+use App\Http\Requests\Identity\DirectPasswordResetRequest;
 use App\Http\Requests\Identity\InitiatePasswordResetRequest;
 use App\Models\Identity\User;
 use App\Services\Identity\AccountAdministrationService;
@@ -37,11 +38,7 @@ class PasswordResetController extends Controller
         }
 
         return $this->renderAccounts($actor, [
-            'passwordResetChallenge' => [
-                'user_id' => (int) $user->getKey(),
-                'person_name' => $this->label($user),
-                'expires_in_minutes' => PasswordResetVerificationService::EXPIRATION_MINUTES,
-            ],
+            'passwordResetChallenge' => $this->challenge($user),
         ]);
     }
 
@@ -57,7 +54,16 @@ class PasswordResetController extends Controller
                 (string) $request->validated('confirmation_code'),
             );
         } catch (PasswordResetVerificationFailed $exception) {
-            throw ValidationException::withMessages(['confirmation_code' => $exception->getMessage()]);
+            // Un code erroné laisse le défi en attente : la saisie reste affichée avec son erreur,
+            // au lieu d'un retour sur la liste qui obligerait à redemander un code.
+            if (! $this->verificationService->isPending($actor, $user)) {
+                throw ValidationException::withMessages(['confirmation_code' => $exception->getMessage()]);
+            }
+
+            return $this->renderAccounts($actor, [
+                'passwordResetChallenge' => $this->challenge($user),
+                'errors' => ['confirmation_code' => $exception->getMessage()],
+            ]);
         }
 
         return $this->renderAccounts($actor, [
@@ -69,13 +75,46 @@ class PasswordResetController extends Controller
         ]);
     }
 
+    public function direct(DirectPasswordResetRequest $request, User $user): Response
+    {
+        $result = $this->passwordResetService->resetWithoutWhatsApp(
+            $this->actor($request),
+            $user,
+            (string) $request->validated('verification'),
+        );
+
+        return $this->renderAccounts($this->actor($request), [
+            'resetAccount' => [
+                'person_name' => $this->label($result['user']),
+                'phone' => $result['user']->phone,
+                'temporary_password' => $result['temporary_password'],
+            ],
+        ]);
+    }
+
     /** @param array<string, mixed> $additionalProps */
     private function renderAccounts(User $actor, array $additionalProps): Response
     {
-        return Inertia::render('Identity/Accounts/Index', [
+        // La page est rendue en réponse à un POST : sans cette adresse, l'historique retiendrait
+        // l'URL de l'action, qu'un rechargement ou un retour arrière demanderait en GET (405).
+        Inertia::resolveUrlUsing(static fn (): string => route('accounts.index', absolute: false));
+        $response = Inertia::render('Identity/Accounts/Index', [
             ...$this->accountAdministrationService->indexData($actor, []),
             ...$additionalProps,
         ]);
+        Inertia::resolveUrlUsing(null);
+
+        return $response;
+    }
+
+    /** @return array{user_id: int, person_name: string, expires_in_minutes: int} */
+    private function challenge(User $user): array
+    {
+        return [
+            'user_id' => (int) $user->getKey(),
+            'person_name' => $this->label($user),
+            'expires_in_minutes' => PasswordResetVerificationService::EXPIRATION_MINUTES,
+        ];
     }
 
     private function actor(FormRequest $request): User

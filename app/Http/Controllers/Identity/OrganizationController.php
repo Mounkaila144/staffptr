@@ -66,7 +66,7 @@ class OrganizationController extends Controller
 
         $this->organizationService->updateCompany($company, $attributes, $this->actor($request));
 
-        return redirect()->route('organisation.index');
+        return redirect()->route('organisation.index')->with('success', 'Fiche entreprise enregistrée.');
     }
 
     public function storeDepartment(StoreDepartmentRequest $request): RedirectResponse
@@ -77,7 +77,7 @@ class OrganizationController extends Controller
             $this->actor($request),
         );
 
-        return redirect()->route('organisation.index');
+        return redirect()->route('organisation.index')->with('success', 'Service créé.');
     }
 
     public function updateDepartment(UpdateDepartmentRequest $request, Department $department): RedirectResponse
@@ -89,7 +89,7 @@ class OrganizationController extends Controller
             $this->actor($request),
         );
 
-        return redirect()->route('organisation.index');
+        return redirect()->route('organisation.index')->with('success', 'Service renommé.');
     }
 
     public function deactivateDepartment(Request $request, Department $department): RedirectResponse
@@ -97,7 +97,7 @@ class OrganizationController extends Controller
         Gate::authorize('update', $department);
         $this->organizationService->deactivateDepartment($department, $this->actor($request));
 
-        return redirect()->route('organisation.index');
+        return redirect()->route('organisation.index')->with('success', 'Service désactivé.');
     }
 
     public function reactivateDepartment(Request $request, Department $department): RedirectResponse
@@ -105,7 +105,7 @@ class OrganizationController extends Controller
         Gate::authorize('update', $department);
         $this->organizationService->reactivateDepartment($department, $this->actor($request));
 
-        return redirect()->route('organisation.index');
+        return redirect()->route('organisation.index')->with('success', 'Service réactivé.');
     }
 
     public function storeJobFunction(StoreJobFunctionRequest $request): RedirectResponse
@@ -116,7 +116,7 @@ class OrganizationController extends Controller
             $this->actor($request),
         );
 
-        return redirect()->route('organisation.index');
+        return redirect()->route('organisation.index')->with('success', 'Fonction créée.');
     }
 
     public function updateJobFunction(UpdateJobFunctionRequest $request, JobFunction $jobFunction): RedirectResponse
@@ -128,7 +128,7 @@ class OrganizationController extends Controller
             $this->actor($request),
         );
 
-        return redirect()->route('organisation.index');
+        return redirect()->route('organisation.index')->with('success', 'Fonction renommée.');
     }
 
     public function deactivateJobFunction(Request $request, JobFunction $jobFunction): RedirectResponse
@@ -136,7 +136,7 @@ class OrganizationController extends Controller
         Gate::authorize('update', $jobFunction);
         $this->organizationService->deactivateJobFunction($jobFunction, $this->actor($request));
 
-        return redirect()->route('organisation.index');
+        return redirect()->route('organisation.index')->with('success', 'Fonction désactivée.');
     }
 
     public function reactivateJobFunction(Request $request, JobFunction $jobFunction): RedirectResponse
@@ -144,7 +144,7 @@ class OrganizationController extends Controller
         Gate::authorize('update', $jobFunction);
         $this->organizationService->reactivateJobFunction($jobFunction, $this->actor($request));
 
-        return redirect()->route('organisation.index');
+        return redirect()->route('organisation.index')->with('success', 'Fonction réactivée.');
     }
 
     private function actor(Request $request): User

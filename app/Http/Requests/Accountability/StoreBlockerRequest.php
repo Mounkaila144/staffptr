@@ -28,4 +28,23 @@ class StoreBlockerRequest extends FormRequest
             'attempted_action' => ['required', 'string', 'max:5000'],
         ];
     }
+
+    /**
+     * Les erreurs s'affichent groupées sous le formulaire : chacune doit nommer son champ.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'origin_type.required' => 'Choisissez ce qui est bloqué : une tâche, un objectif ou un rapport.',
+            'origin_id.required' => 'Choisissez ce qui est bloqué : une tâche, un objectif ou un rapport.',
+            'problem.required' => 'Décrivez le problème rencontré.',
+            'urgency.required' => "Indiquez l'urgence du blocage.",
+            'solicited_user_id.required' => 'Choisissez la personne dont vous sollicitez l’aide.',
+            'reported_on.required' => 'Indiquez la date du blocage.',
+            'deadline_impact.required' => "Indiquez l'effet du blocage sur l'échéance.",
+            'attempted_action.required' => 'Indiquez ce que vous avez déjà essayé.',
+        ];
+    }
 }

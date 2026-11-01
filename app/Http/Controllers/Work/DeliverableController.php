@@ -26,7 +26,9 @@ class DeliverableController extends Controller
         Gate::authorize('viewAny', Deliverable::class);
         $items = Deliverable::query()->select(['id', 'project_id', 'owner_id', 'title', 'planned_date', 'actual_date', 'status'])->with(['project:id,name,manager_id', 'owner.person'])->orderBy('planned_date')->paginate(25);
 
-        return Inertia::render('Work/Deliverables/Index', ['deliverables' => $items->through(fn (Deliverable $d): array => $this->serialize($d))->toArray(), 'statuses' => $this->options(DeliverableStatus::cases()), 'assignablePeople' => AssignablePeople::options(), 'projects' => $this->projectOptions($this->actor($request))]);
+        $actor = $this->actor($request);
+
+        return Inertia::render('Work/Deliverables/Index', ['deliverables' => $items->through(fn (Deliverable $d): array => $this->serialize($d, $actor))->toArray(), 'canCreate' => $actor->can('create', Deliverable::class), 'statuses' => $this->options(DeliverableStatus::cases()), 'assignablePeople' => AssignablePeople::options(), 'projects' => $this->projectOptions($actor)]);
     }
 
     public function store(StoreDeliverableRequest $request): RedirectResponse
@@ -56,9 +58,13 @@ class DeliverableController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function serialize(Deliverable $d): array
+    private function serialize(Deliverable $d, User $actor): array
     {
-        return ['id' => $d->getKey(), 'title' => $d->title, 'project' => $d->project->name, 'owner' => $d->owner->person->full_name, 'planned_date' => $d->planned_date->format('d/m/Y'), 'actual_date' => $d->actual_date?->format('d/m/Y'), 'status' => $d->status->value, 'status_label' => $d->status->label(), 'variance_label' => $d->scheduleVarianceLabel()];
+        // Seuls les passages possibles depuis l'état actuel, et « Validé » seulement pour qui peut valider :
+        // proposer un choix que le serveur refuserait ensuite serait un piège.
+        $transitions = $actor->can('update', $d) ? array_values(array_filter($d->status->allowedTransitions(), fn (DeliverableStatus $status): bool => $status !== DeliverableStatus::Valide || $actor->can('validate', $d))) : [];
+
+        return ['id' => $d->getKey(), 'title' => $d->title, 'project' => $d->project->name, 'owner' => $d->owner->person->full_name, 'planned_date' => $d->planned_date->format('d/m/Y'), 'actual_date' => $d->actual_date?->format('d/m/Y'), 'status' => $d->status->value, 'status_label' => $d->status->label(), 'variance_label' => $d->scheduleVarianceLabel(), 'transitions' => $this->options($transitions)];
     }
 
     /**

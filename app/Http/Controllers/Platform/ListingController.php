@@ -42,7 +42,7 @@ class ListingController extends Controller
                 $request->query('direction') === null ? null : (string) $request->query('direction'),
                 (int) ($request->query('page') ?? 1),
             ),
-            'filterFields' => array_keys($this->registry->get($listKey)->filterRules()),
+            'filterFields' => $this->registry->get($listKey)->filterFields(),
             'appliedFilters' => $filters,
             // Filtres enregistrés du **demandeur seul** : le scope l'impose, pas le contrôleur.
             'savedFilters' => $viewer->can('tableau_bord_global.consulter')

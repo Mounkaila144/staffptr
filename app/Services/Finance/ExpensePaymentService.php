@@ -13,6 +13,7 @@ use App\Models\Identity\User;
 use App\Models\Platform\Attachment;
 use App\Services\Platform\AttachmentService;
 use App\Support\Auditing\AuditLogger;
+use App\Support\DateTimeFormatter;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ final readonly class ExpensePaymentService
         private AuditLogger $auditLogger,
         private AttachmentService $attachments,
         private MonthGuard $monthGuard,
+        private ExpenseApprovalRequirement $approvalRequirement,
     ) {}
 
     /** @return array{expenses: list<array<string, mixed>>, missing_attachments: list<array<string, mixed>>} */
@@ -41,7 +43,7 @@ final readonly class ExpensePaymentService
                 'requested_amount_label' => Money::from($expense->requested_amount)->format(),
                 'state' => $expense->state->value,
                 'account_label' => $expense->account?->label,
-                'paid_at' => $expense->paid_at?->setTimezone('Africa/Niamey')->format('Y-m-d H:i'),
+                'paid_at' => $expense->paid_at !== null ? DateTimeFormatter::format($expense->paid_at) : null,
                 'contract_reference' => $expense->contract?->reference,
                 'project_name' => $expense->project?->name,
                 'has_payment_attachment' => $expense->payment_attachment_id !== null,
@@ -190,14 +192,53 @@ final readonly class ExpensePaymentService
         });
     }
 
+    /**
+     * Régularisation d'un paiement enregistré sans justificatif (FR124) : le justificatif est
+     * rattaché après coup et la dépense quitte la liste « Paiements sans justificatif ».
+     */
+    public function attachPaymentProof(Expense $expense, string $attachmentUlid, User $actor): Expense
+    {
+        return DB::transaction(function () use ($expense, $attachmentUlid, $actor): Expense {
+            $locked = Expense::query()->whereKey($expense->getKey())->lockForUpdate()->firstOrFail();
+            if ($locked->state !== ExpenseState::Payee || $locked->counter_entry_of_id !== null || $locked->payment_attachment_id !== null) {
+                throw ValidationException::withMessages(['attachment_ulid' => 'Seul un paiement enregistré sans justificatif peut être régularisé.']);
+            }
+            $attachment = $this->stagedAttachment($attachmentUlid, $actor);
+            $locked->forceFill(['payment_attachment_id' => $attachment?->getKey()]);
+
+            $this->auditLogger->runExplicitly(
+                auditable: $locked,
+                operation: function () use ($locked, $attachment, $actor): bool {
+                    $locked->saveOrFail();
+                    if ($attachment !== null) {
+                        $this->attachments->attachExisting($attachment, $locked, $actor);
+                    }
+
+                    return true;
+                },
+                actorId: (int) $actor->getKey(),
+                actorLabel: $this->actorLabel($actor),
+                action: 'expense_payment_proof_attached',
+                newValues: ['payment_attachment_id' => $locked->payment_attachment_id],
+                reason: 'Régularisation du justificatif de paiement.',
+            );
+
+            return $locked;
+        });
+    }
+
     /** @param array<string, mixed> $data */
     private function assertPayable(Expense $expense, Account $account, array $data): void
     {
         if (! $expense->isPayable()) {
             throw ValidationException::withMessages(['state' => 'Seule une dépense approuvée est payable.']);
         }
-        if ($expense->approvals()->where('decision', 'approve')->distinct('approver_id')->count('approver_id') !== 2) {
-            throw ValidationException::withMessages(['state' => 'Le paiement exige deux approbations de direction distinctes.']);
+        // RM-09 (décision du 2026-11-01) : le nombre requis est celui figé au passage à « approuvée ».
+        $requiredApprovals = $this->approvalRequirement->requiredFor($expense);
+        if ($expense->approvals()->where('decision', 'approve')->distinct('approver_id')->count('approver_id') < $requiredApprovals) {
+            throw ValidationException::withMessages(['state' => $requiredApprovals > 1
+                ? 'Le paiement exige deux approbations de direction distinctes.'
+                : 'Le paiement exige l’approbation d’un compte de direction autre que le demandeur.']);
         }
         if ($account->state !== FinancialAccountState::Active) {
             throw ValidationException::withMessages(['account_id' => 'Le compte débité doit être actif.']);

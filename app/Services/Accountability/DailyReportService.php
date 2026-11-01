@@ -2,9 +2,11 @@
 
 namespace App\Services\Accountability;
 
+use App\Enums\DailyReportDecisionType;
 use App\Enums\DailyReportState;
 use App\Enums\UserState;
 use App\Models\Accountability\DailyReport;
+use App\Models\Accountability\DailyReportComment;
 use App\Models\Accountability\DailyReportVersion;
 use App\Models\Identity\User;
 use App\Models\Platform\Attachment;
@@ -14,6 +16,7 @@ use App\Services\Platform\CalendarService;
 use App\Services\Platform\SettingsService;
 use App\Services\Work\TodayTaskService;
 use App\Support\Auditing\AuditLogger;
+use App\Support\DateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -35,21 +38,28 @@ final class DailyReportService
     ) {}
 
     /**
-     * @return array{date: string, expected: bool, unavailable_message: string|null, planned_task: string, report: array<string, mixed>|null}
+     * @return array{date: string, date_label: string, deadline_time: string, deadline_passed: bool, expected: bool, unavailable_message: string|null, planned_task: string, report: array<string, mixed>|null}
      */
     public function formFor(User $actor, ?CarbonImmutable $now = null): array
     {
-        $day = ($now ?? CarbonImmutable::now(self::TIMEZONE))->setTimezone(self::TIMEZONE)->startOfDay();
+        $moment = ($now ?? CarbonImmutable::now(self::TIMEZONE))->setTimezone(self::TIMEZONE);
+        $day = $moment->startOfDay();
         $date = $day->toDateString();
         $expected = $this->isExpected($actor, $day);
         $report = DailyReport::query()
-            ->with(['currentVersion.attachment'])
+            ->with(['currentVersion.attachment', 'decisions', 'comments.author.person'])
             ->where('author_id', $actor->getKey())
             ->whereDate('report_date', $date)
             ->first();
 
         return [
             'date' => $date,
+            // La date s'affiche en toutes lettres : « 2026-10-31 » n'est pas lisible pour l'équipe.
+            'date_label' => ucfirst($day->locale('fr')->isoFormat('dddd D MMMM YYYY')),
+            'deadline_time' => $this->settingsService->reportDeadlineTime(),
+            // L'heure limite passée, l'explication facultative du retard est proposée dès le
+            // premier envoi, et pas seulement après coup (FR71).
+            'deadline_passed' => $moment->utc()->greaterThan($this->deadlineFor($day)),
             'expected' => $expected,
             'unavailable_message' => $expected ? null : "Aucun rapport n'est attendu aujourd'hui : ce jour est fermé ou couvert par une absence approuvée.",
             'planned_task' => $this->todayTaskService->forUser($actor, $day)->pluck('title')->implode("\n"),
@@ -275,6 +285,24 @@ final class DailyReportService
                 'help_requested' => $version->help_requested,
                 'help_details' => $version->help_details,
             ] : null,
+            // L'auteur doit savoir pourquoi son rapport lui revient et lire les commentaires de
+            // son responsable sans passer par la notification.
+            'return_reason' => $report->state === DailyReportState::Retourne
+                ? $report->decisions
+                    ->where('decision', DailyReportDecisionType::Retourner)
+                    ->sortByDesc('decided_at')
+                    ->first()?->reason
+                : null,
+            'comments' => $report->comments
+                ->sortBy('created_at')
+                ->map(fn (DailyReportComment $comment): array => [
+                    'id' => $comment->getKey(),
+                    'author' => $comment->author->person->full_name,
+                    'body' => $comment->body,
+                    'created_at' => DateTimeFormatter::format($comment->created_at),
+                ])
+                ->values()
+                ->all(),
         ];
     }
 }

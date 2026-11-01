@@ -10,6 +10,7 @@ defineProps({
     forms: { type: Object, required: true },
     canCreate: { type: Boolean, default: false },
     candidates: { type: Array, default: () => [] },
+    awaiting: { type: Array, default: () => [] },
     managers: { type: Array, default: () => [] },
     tutors: { type: Array, default: () => [] },
     success: { type: String, default: null },
@@ -40,6 +41,13 @@ function removeOutcome(index) {
     if (form.outcomes.length > 3) {
         form.outcomes.splice(index, 1);
     }
+}
+
+// « Rédiger sa fiche » ouvre le formulaire avec le bon compte déjà choisi : c'est la confusion
+// entre deux prénoms voisins qui laissait un nouveau stagiaire sans fiche.
+function draftFor(userId) {
+    form.candidate_user_id = userId;
+    drafting.value = true;
 }
 
 function submit() {
@@ -176,6 +184,27 @@ function submit() {
                         <AppButton variant="secondaire" @click="drafting = false">Annuler</AppButton>
                     </div>
                 </form>
+            </section>
+
+            <section v-if="awaiting.length && !drafting" class="grid min-w-0 gap-3 rounded-xl border border-warning bg-warning-soft p-4" aria-labelledby="awaiting-title">
+                <h2 id="awaiting-title" class="text-section-title">Stagiaires en attente d’activation</h2>
+                <p class="text-ink-secondary">Ces comptes ne peuvent pas encore se connecter. Il leur faut une fiche approuvée, un tuteur et trois objectifs.</p>
+                <ul class="grid min-w-0 gap-2">
+                    <li v-for="intern in awaiting" :key="intern.id" class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-separator bg-surface p-3">
+                        <span class="grid gap-0.5">
+                            <span class="font-semibold">{{ intern.name }} <span class="font-normal text-ink-muted">· {{ intern.phone }}</span></span>
+                            <span class="text-sm text-ink-secondary">{{ intern.step }}</span>
+                        </span>
+                        <span class="flex flex-wrap gap-2">
+                            <AppButton v-if="intern.form_id" variant="secondaire" :href="`/stages/fiches-entree/${intern.form_id}`">
+                                {{ intern.form_refused ? 'Voir la fiche refusée' : 'Ouvrir sa fiche' }}
+                            </AppButton>
+                            <AppButton v-if="!intern.form_id || intern.form_refused" variant="principal" @click="draftFor(intern.id)">
+                                {{ intern.form_refused ? 'Rédiger une nouvelle fiche' : 'Rédiger sa fiche' }}
+                            </AppButton>
+                        </span>
+                    </li>
+                </ul>
             </section>
 
             <ul v-if="forms.data.length" class="grid min-w-0 gap-3">

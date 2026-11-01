@@ -135,6 +135,17 @@ class LoginAttemptHistoryTest extends IdentityTestCase
         $this->assertStringContainsString('sm:grid-cols-2', $pageSource);
     }
 
+    public function test_an_inverted_period_is_refused_with_a_readable_french_message(): void
+    {
+        $direction = $this->userWithRole('direction');
+
+        $this->actingAs($direction)
+            ->from(route('login-attempts.index'))
+            ->get(route('login-attempts.index', ['from' => '2026-10-20', 'to' => '2026-10-01']))
+            ->assertRedirect(route('login-attempts.index'))
+            ->assertSessionHasErrors(['to' => 'Cette date doit être égale ou postérieure à la date de début.']);
+    }
+
     public function test_ac_4_all_five_non_direction_roles_receive_403_on_direct_url(): void
     {
         foreach (['super_admin', 'finance', 'tuteur', 'employe', 'stagiaire'] as $role) {

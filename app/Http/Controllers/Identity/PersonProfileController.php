@@ -32,10 +32,14 @@ class PersonProfileController extends Controller
     {
         Gate::authorize('view', $person);
         $actor = $this->actor($request);
-        $account = $this->personProfileService->currentAccount($person);
+        // Une fiche dont le seul compte est archivé reste consultable, comme l'annonce l'écran
+        // d'archivage ; elle s'affiche alors en lecture seule, à partir du dernier compte connu.
+        $account = $this->personProfileService->currentAccountOrNull($person)
+            ?? $person->users()->latest('id')->firstOrFail();
         $account->load(['department', 'jobFunction', 'roles']);
         $hierarchy = $this->hierarchyService->directRelations($account);
-        $canEdit = Gate::forUser($actor)->allows('update', $person);
+        $canEdit = $account->state !== UserState::Archive
+            && Gate::forUser($actor)->allows('update', $person);
 
         return Inertia::render('Identity/People/Show', [
             'profile' => [
@@ -67,6 +71,8 @@ class PersonProfileController extends Controller
                 'relation_type_label' => $account->relation_type->label(),
                 'contract_start_date' => $account->contract_start_date?->toDateString(),
                 'contract_end_date' => $account->contract_end_date?->toDateString(),
+                'contract_start_date_label' => $account->contract_start_date?->format('d/m/Y'),
+                'contract_end_date_label' => $account->contract_end_date?->format('d/m/Y'),
             ],
             'manager' => $hierarchy['manager'] === null
                 ? null
@@ -112,7 +118,7 @@ class PersonProfileController extends Controller
 
         $this->personProfileService->update($person, $account, $attributes, $this->actor($request));
 
-        return redirect()->route('people.show', $person);
+        return redirect()->route('people.show', $person)->with('success', 'Fiche enregistrée.');
     }
 
     public function history(Request $request, Person $person): Response

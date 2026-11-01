@@ -10,7 +10,7 @@ const draft = useDraft('session-expired', 'anonymous', 'current');
     <Head title="Session expirée" />
 
     <AuthLayout>
-        <section class="w-full rounded-xl border border-separator bg-surface p-6 shadow-sm sm:p-10" :data-local-draft="draft.hasStoredDrafts.value ? 'preserved' : 'available'">
+        <section class="w-full rounded-2xl border border-separator bg-surface p-6 shadow-raised sm:p-10" :data-local-draft="draft.hasStoredDrafts.value ? 'preserved' : 'available'">
             <p class="text-sm font-semibold uppercase tracking-widest text-primary">PTR Staff</p>
             <h1 class="mt-3 text-screen-title">Votre session a expiré</h1>
             <p class="mt-4 text-ink-secondary">

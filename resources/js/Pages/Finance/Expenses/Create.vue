@@ -9,6 +9,7 @@ import AttachmentUploader from '../../../Components/AttachmentUploader.vue';
 
 const props = defineProps({
     categories: { type: Array, required: true },
+    attachment: { type: Object, required: true },
 });
 
 const form = useForm({
@@ -41,7 +42,7 @@ const formattedAmount = computed({
 <template>
     <Head title="Nouvelle demande de dépense" />
 
-    <AppLayout title="Nouvelle demande de dépense" back-label="Retour au registre" back-href="/depenses" active-navigation="settings">
+    <AppLayout title="Nouvelle demande de dépense" back-label="Retour au registre" back-href="/depenses" active-navigation="expenses">
         <div class="grid min-w-0 gap-6">
             <header class="grid min-w-0 gap-2">
                 <h1 class="break-words text-page-title">Nouvelle demande de dépense</h1>
@@ -57,7 +58,7 @@ const formattedAmount = computed({
                             id="expense-category"
                             v-model="form.category_id"
                             label="Catégorie"
-                            type="select"
+                            as="select"
                             required
                             :options="categories.map(c => ({ value: c.id, label: c.name }))"
                             :error="form.errors.category_id"
@@ -67,7 +68,7 @@ const formattedAmount = computed({
                             id="expense-reason"
                             v-model="form.reason"
                             label="Motif de la dépense"
-                            type="text"
+                           
                             required
                             :error="form.errors.reason"
                             placeholder="Ex: Achat de matériel pour le projet..."
@@ -76,10 +77,8 @@ const formattedAmount = computed({
                         <FormField
                             id="expense-amount"
                             v-model.number="form.requested_amount"
-                            label="Montant (FCFA, entier)"
-                            type="number"
+                            label="Montant (FCFA, entier)" variant="money"
                             required
-                            min="1"
                             :error="form.errors.requested_amount"
                             placeholder="Ex: 50000"
                         />
@@ -88,7 +87,7 @@ const formattedAmount = computed({
                             id="expense-beneficiary"
                             v-model="form.beneficiary"
                             label="Bénéficiaire"
-                            type="text"
+                           
                             required
                             :error="form.errors.beneficiary"
                             placeholder="Nom du bénéficiaire ou fournisseur"
@@ -98,7 +97,7 @@ const formattedAmount = computed({
                             id="expense-project"
                             v-model="form.project_or_contract_note"
                             label="Projet ou contrat (optionnel)"
-                            type="text"
+                           
                             :error="form.errors.project_or_contract_note"
                             placeholder="Référence libre au projet ou contrat"
                         />
@@ -112,11 +111,11 @@ const formattedAmount = computed({
                         id="expense-expected-result"
                         v-model="form.expected_result"
                         label="Décrivez le résultat attendu de cette dépense"
-                        type="textarea"
+                        as="textarea"
                         required
                         rows="4"
                         :error="form.errors.expected_result"
-                        placeholder="Ex: Permettre à l'équipe de terminer le livraison dans les délais..."
+                        placeholder="Ex: Permettre à l'équipe de terminer la livraison dans les délais..."
                     />
                 </div>
 
@@ -124,10 +123,12 @@ const formattedAmount = computed({
                     <h2 class="text-section-title">Justificatif (optionnel)</h2>
 
                     <AttachmentUploader
-                        v-model="form.attachment_ulid"
-                        :error="form.errors.attachment_ulid"
-                        label="Justificatif prévisionnel (devis, facture proforma, etc.)"
+                        :attachable-id="attachment.attachable_id"
+                        :allowed-types="attachment.allowed_types"
+                        :max-size-bytes="attachment.max_size_bytes"
+                        @uploaded="form.attachment_ulid = $event.ulid"
                     />
+                    <p v-if="form.errors.attachment_ulid" class="text-sm font-semibold text-danger">⚠ {{ form.errors.attachment_ulid }}</p>
                 </div>
 
                 <div class="flex flex-wrap gap-2">

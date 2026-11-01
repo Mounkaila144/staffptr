@@ -44,6 +44,7 @@ const inputType = computed(
             password: "password",
             phone: "tel",
             date: "date",
+            month: "month",
             time: "time",
             number: "number",
             "datetime-local": "datetime-local",
@@ -55,7 +56,9 @@ const inputMode = computed(() => {
     return undefined;
 });
 const borderClass = computed(() =>
-    props.error ? "border-2 border-danger" : "border-separator",
+    props.error
+        ? "border-2 border-danger focus-within:ring-4 focus-within:ring-danger/15"
+        : "border-separator-strong hover:border-ink-muted focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/15",
 );
 
 defineExpose({ focus: () => input.value?.focus() });
@@ -63,7 +66,10 @@ defineExpose({ focus: () => input.value?.focus() });
 function update(event) {
     const value =
         props.variant === "money"
-            ? event.target.value.split(",")[0].replace(/\D/g, "")
+            ? event.target.value
+                  .split(",")[0]
+                  .replace(/\D/g, "")
+                  .replace(/^0+(?=\d)/, "")
             : event.target.value;
     emit("update:modelValue", value);
 }
@@ -102,7 +108,7 @@ function update(event) {
             :placeholder="placeholder || undefined"
             :aria-invalid="error ? 'true' : 'false'"
             :aria-describedby="describedBy"
-            class="min-w-0 rounded-lg border bg-surface p-3 text-base"
+            class="min-w-0 rounded-lg border bg-surface p-3 text-base transition-shadow outline-none"
             :class="borderClass"
             @input="emit('update:modelValue', $event.target.value)"
             @blur="emit('blur')"
@@ -117,7 +123,7 @@ function update(event) {
             :required="required"
             :aria-invalid="error ? 'true' : 'false'"
             :aria-describedby="describedBy"
-            class="min-h-12 min-w-0 rounded-lg border bg-surface px-3 text-base"
+            class="min-h-12 min-w-0 rounded-lg border bg-surface px-3 text-base transition-shadow outline-none"
             :class="borderClass"
             @change="emit('update:modelValue', $event.target.value)"
             @blur="emit('blur')"
@@ -136,10 +142,10 @@ function update(event) {
 
         <div
             v-else
-            class="flex min-h-12 items-center rounded-lg border bg-surface"
+            class="flex min-h-12 items-center rounded-lg border bg-surface transition-shadow"
             :class="borderClass"
         >
-            <span v-if="variant === 'phone'" class="pl-3 text-ink-secondary"
+            <span v-if="variant === 'phone'" class="border-r border-separator py-1 pl-3 pr-3 text-ink-secondary"
                 >+227</span
             >
             <input
@@ -154,16 +160,16 @@ function update(event) {
                 :type="inputType"
                 :aria-invalid="error ? 'true' : 'false'"
                 :aria-describedby="describedBy"
-                class="min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-3 text-base"
+                class="min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-3 text-base outline-none"
                 @input="update"
                 @blur="emit('blur')"
             />
-            <span v-if="variant === 'money'" class="pr-3 text-ink-secondary"
+            <span v-if="variant === 'money'" class="pr-3 text-sm font-medium text-ink-muted"
                 >F CFA</span
             >
         </div>
 
-        <p v-if="error" :id="errorId" class="text-sm font-semibold text-danger">
+        <p v-if="error" :id="errorId" class="text-sm font-medium text-danger">
             ⚠ {{ error }}
         </p>
     </div>

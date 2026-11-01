@@ -2,8 +2,11 @@
 
 namespace Tests\Feature\Http;
 
+use App\Models\Accountability\AttendanceRecord;
+use App\Models\Finance\CapitalContribution;
 use App\Models\Identity\User;
 use App\Models\Platform\AuditLog;
+use App\Models\Work\Task;
 use App\Services\Identity\RoleAssignmentService;
 use Carbon\CarbonImmutable;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -120,6 +123,39 @@ class AuditLogConsultationTest extends IdentityTestCase
         $this->assertStringNotContainsString('secret-nouveau', $response->getContent());
         $this->assertStringNotContainsString('secret-imbriqué', $response->getContent());
         $this->assertStringNotContainsString('password_hash', $response->getContent());
+    }
+
+    public function test_work_accountability_and_finance_entries_are_labelled_in_french(): void
+    {
+        $direction = $this->userWithRole('direction');
+        $samples = [
+            [Task::class, 'work_task_status_changed', ['status' => 'a_faire'], ['status' => 'en_cours'], 'Tâche #7', "Changement d'état de la tâche", 'État'],
+            [AttendanceRecord::class, 'attendance_arrival_recorded', [], ['late_minutes' => 4], 'Pointage de présence #7', "Pointage d'arrivée", 'Minutes de retard'],
+            [CapitalContribution::class, 'capital_contribution_recorded', [], ['contribution_amount' => 50000], 'Apport en capital #7', "Enregistrement de l'apport en capital", "Montant de l'apport"],
+            [Task::class, 'work_task_created', [], ['due_date' => '2026-12-30'], 'Tâche #7', 'Création de la tâche', 'Échéance'],
+        ];
+
+        foreach ($samples as [$type, $action, $old, $new, $object, $actionLabel, $fieldLabel]) {
+            AuditLog::factory()->create([
+                'auditable_type' => $type,
+                'auditable_id' => 7,
+                'action' => $action,
+                'old_values' => $old,
+                'new_values' => $new,
+            ]);
+
+            $this->actingAs($direction)
+                ->get(route('audit.index', ['action' => $action]))
+                ->assertOk()
+                ->assertInertia(fn (Assert $page) => $page
+                    ->where('entries.data.0.object', $object)
+                    ->where('entries.data.0.action', $actionLabel)
+                    ->where('entries.data.0.changes.0.label', $fieldLabel));
+        }
+
+        $this->actingAs($direction)
+            ->get(route('audit.index', ['action' => 'work_task_created']))
+            ->assertInertia(fn (Assert $page) => $page->where('entries.data.0.changes.0.new', '30/12/2026'));
     }
 
     public function test_ac_4_filtered_export_contains_the_same_entries_and_audits_nature_and_row_count(): void

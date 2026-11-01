@@ -19,6 +19,10 @@ const props = defineProps({
 
 const from = ref(props.filters.from ?? '');
 const to = ref(props.filters.to ?? '');
+// `v-model` plutôt que `:value` : la sélection reste affichée quelle que soit l'arrivée des options.
+const actorId = ref(props.filters.actor_id == null ? '' : String(props.filters.actor_id));
+const auditableType = ref(props.filters.auditable_type ?? '');
+const actionFilter = ref(props.filters.action ?? '');
 const exportFields = computed(() => Object.entries(props.filters)
     .filter(([, value]) => value !== null && value !== ''));
 
@@ -39,21 +43,21 @@ function resetFilters() {
             <form method="get" action="/journal-audit" class="grid min-w-0 gap-4 rounded-xl border border-separator bg-surface p-4" aria-label="Filtrer le journal d’audit">
                 <div class="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <label class="grid min-w-0 gap-2 text-field-label font-semibold">Auteur
-                        <select name="actor_id" :value="filters.actor_id ?? ''" class="touch-target min-w-0 max-w-full rounded-lg border border-separator bg-surface px-3 font-normal">
+                        <select v-model="actorId" name="actor_id" class="touch-target min-w-0 max-w-full rounded-lg border border-separator bg-surface px-3 font-normal">
                             <option value="">Tous les auteurs</option>
-                            <option v-for="author in authors" :key="author.value" :value="author.value">{{ author.label }}</option>
+                            <option v-for="author in authors" :key="author.value" :value="String(author.value)">{{ author.label }}</option>
                         </select>
                     </label>
-                    <FormField id="from" v-model="from" label="Du" variant="date" />
-                    <FormField id="to" v-model="to" label="Au" variant="date" />
+                    <FormField id="from" v-model="from" label="Du" variant="date" :error="$page.props.errors?.from ?? ''" />
+                    <FormField id="to" v-model="to" label="Au" variant="date" :error="$page.props.errors?.to ?? ''" />
                     <label class="grid min-w-0 gap-2 text-field-label font-semibold">Type d’objet
-                        <select name="auditable_type" :value="filters.auditable_type ?? ''" class="touch-target min-w-0 max-w-full rounded-lg border border-separator bg-surface px-3 font-normal">
+                        <select v-model="auditableType" name="auditable_type" class="touch-target min-w-0 max-w-full rounded-lg border border-separator bg-surface px-3 font-normal">
                             <option value="">Tous les objets</option>
                             <option v-for="type in objectTypes" :key="type.value" :value="type.value">{{ type.label }}</option>
                         </select>
                     </label>
                     <label class="grid min-w-0 gap-2 text-field-label font-semibold">Action
-                        <select name="action" :value="filters.action ?? ''" class="touch-target min-w-0 max-w-full rounded-lg border border-separator bg-surface px-3 font-normal">
+                        <select v-model="actionFilter" name="action" class="touch-target min-w-0 max-w-full rounded-lg border border-separator bg-surface px-3 font-normal">
                             <option value="">Toutes les actions</option>
                             <option v-for="action in actions" :key="action.value" :value="action.value">{{ action.label }}</option>
                         </select>

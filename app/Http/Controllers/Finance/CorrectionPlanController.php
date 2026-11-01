@@ -41,6 +41,8 @@ class CorrectionPlanController extends Controller
             'alert' => $this->alertLevelService->assess($month)->toArray(),
             'plans' => $this->plans->historyFor($month)->map(fn (CorrectionPlan $plan): array => $this->present($plan))->all(),
             'dueLabel' => $this->dueLabel($month),
+            // Enregistrer, valider et réviser relèvent de la direction : `finance` consulte seulement.
+            'canManage' => $this->actor($request)->can('create', CorrectionPlan::class),
         ]);
     }
 

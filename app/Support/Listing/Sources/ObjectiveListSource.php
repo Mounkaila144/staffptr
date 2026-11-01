@@ -83,14 +83,23 @@ final class ObjectiveListSource extends AbstractListSource
         }
 
         if (($from = $this->filterValue($filters, 'from')) !== null) {
-            $labels[] = ['key' => 'from', 'label' => "Échéance à partir du {$from}"];
+            $labels[] = ['key' => 'from', 'label' => 'Échéance à partir du '.$this->displayDate($from)];
         }
 
         if (($to = $this->filterValue($filters, 'to')) !== null) {
-            $labels[] = ['key' => 'to', 'label' => "Échéance jusqu'au {$to}"];
+            $labels[] = ['key' => 'to', 'label' => "Échéance jusqu'au ".$this->displayDate($to)];
         }
 
         return $labels;
+    }
+
+    public function filterFields(): array
+    {
+        return [
+            $this->enumField('state', 'État', ObjectiveState::cases()),
+            $this->dateField('from', 'Échéance à partir du'),
+            $this->dateField('to', "Échéance jusqu'au"),
+        ];
     }
 
     /** @return list<string> */
@@ -121,7 +130,7 @@ final class ObjectiveListSource extends AbstractListSource
             (int) $record->getKey(),
             (string) $record->title,
             $record->owner->person->full_name,
-            $record->state->value,
+            $record->state->label(),
             (int) $record->progress,
             $record->due_date->toDateString(),
         ];

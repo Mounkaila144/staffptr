@@ -2,6 +2,9 @@
 
 namespace App\Support\Listing;
 
+use BackedEnum;
+use DateTimeImmutable;
+
 /**
  * Comportement commun à toutes les listes principales.
  *
@@ -22,5 +25,41 @@ abstract class AbstractListSource implements ListSource
         }
 
         return trim((string) $value);
+    }
+
+    /**
+     * Champ de liste fermée construit à partir d'un enum doté de `label()`.
+     *
+     * @param  list<BackedEnum>  $cases
+     * @return array{key: string, label: string, type: string, options: list<array{value: string, label: string}>}
+     */
+    protected function enumField(string $key, string $label, array $cases): array
+    {
+        return [
+            'key' => $key,
+            'label' => $label,
+            'type' => 'select',
+            'options' => array_map(
+                static fn (BackedEnum $case): array => [
+                    'value' => (string) $case->value,
+                    'label' => method_exists($case, 'label') ? (string) $case->label() : (string) $case->value,
+                ],
+                $cases,
+            ),
+        ];
+    }
+
+    /** @return array{key: string, label: string, type: string, options: list<array{value: string, label: string}>} */
+    protected function dateField(string $key, string $label): array
+    {
+        return ['key' => $key, 'label' => $label, 'type' => 'date', 'options' => []];
+    }
+
+    /** Date de filtre lisible (« 01/08/2026 ») ; une valeur mal formée est rendue telle quelle. */
+    protected function displayDate(string $value): string
+    {
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+
+        return $date === false ? $value : $date->format('d/m/Y');
     }
 }

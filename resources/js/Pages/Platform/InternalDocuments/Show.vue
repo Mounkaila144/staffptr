@@ -34,6 +34,10 @@ function acknowledge() {
 
 function publishVersion() {
     versionForm.post(`/documents-internes/${props.document.id}/versions`, {
+        onSuccess: () => {
+            showingVersionForm.value = false;
+            versionForm.reset('body', 'attachment_ulid');
+        },
         onError: () => nextTick(() => document.querySelector('[aria-invalid="true"]')?.focus()),
     });
 }

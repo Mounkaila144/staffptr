@@ -2,6 +2,7 @@
 import { computed, nextTick, ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppButton from '../../../Components/AppButton.vue';
+import AppModal from '../../../Components/AppModal.vue';
 import EmptyState from '../../../Components/EmptyState.vue';
 import FormField from '../../../Components/FormField.vue';
 import StatusBadge from '../../../Components/StatusBadge.vue';
@@ -53,14 +54,14 @@ function closeContract(contract) {
                 <AppButton variant="principal" :disabled="clients.length === 0" @click="openForm()">Créer un contrat</AppButton>
             </header>
 
-            <form v-if="formOpen" class="grid min-w-0 gap-4 rounded-xl border border-primary bg-surface p-4" @submit.prevent="submit">
-                <h2 class="text-section-title">{{ editingId ? 'Modifier le contrat' : 'Nouveau contrat' }}</h2>
+            <AppModal :open="formOpen" size="lg" :title="editingId ? 'Modifier le contrat' : 'Nouveau contrat'" @update:open="(open) => !open && closeForm()">
+                <form class="grid min-w-0 gap-4" @submit.prevent="submit">
                 <label class="grid gap-2 font-semibold">Client<select v-model="form.client_id" class="touch-target rounded-lg border border-separator px-3" required><option value="" disabled>Choisir</option><option v-for="client in clients" :key="client.id" :value="client.id">{{ client.name }}</option></select></label>
                 <label class="grid gap-2 font-semibold">Projet facultatif<select v-model="form.project_id" class="touch-target rounded-lg border border-separator px-3"><option :value="null">Aucun projet</option><option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option></select></label>
                 <FormField ref="referenceField" id="contract-reference" v-model="form.reference" label="Référence" required :error="form.errors.reference" />
                 <FormField id="contract-title" v-model="form.title" label="Intitulé" required :error="form.errors.title" />
-                <FormField id="contract-total" v-model="form.expected_total_amount" label="Montant total prévu en XOF" type="number" min="0" required :error="form.errors.expected_total_amount" />
-                <FormField id="contract-profit" v-model="form.forecast_profit_amount" label="Bénéfice prévisionnel en XOF" type="number" min="0" required :error="form.errors.forecast_profit_amount" />
+                <FormField id="contract-total" v-model="form.expected_total_amount" label="Montant total prévu en XOF" variant="money" required :error="form.errors.expected_total_amount" />
+                <FormField id="contract-profit" v-model="form.forecast_profit_amount" label="Bénéfice prévisionnel en XOF" variant="money" required :error="form.errors.forecast_profit_amount" />
                 <label class="grid gap-2 font-semibold">Apporteur facultatif<select v-model="form.contributor_id" class="touch-target rounded-lg border border-separator px-3"><option :value="null">Aucun apporteur</option><option v-for="user in contributors" :key="user.id" :value="user.id">{{ personName(user) }}</option></select></label>
                 <label class="touch-target flex items-center gap-3 rounded-lg border border-separator px-3"><input v-model="form.has_execution" type="checkbox"> Le contrat comporte une exécution</label>
                 <fieldset v-if="form.has_execution && contributorSelected" class="grid gap-2 rounded-lg border border-separator p-3">
@@ -68,9 +69,10 @@ function closeContract(contract) {
                     <label v-for="user in executors" :key="user.id" class="touch-target flex items-center gap-3"><input type="checkbox" :checked="form.executor_ids.includes(user.id)" @change="toggleExecutor(user.id)">{{ personName(user) }}</label>
                     <p v-if="form.errors.executor_ids" class="text-sm font-semibold text-danger">⚠ {{ form.errors.executor_ids }}</p>
                 </fieldset>
-                <div class="grid gap-3 sm:grid-cols-2"><FormField id="contract-start" v-model="form.starts_on" label="Début" type="date" :error="form.errors.starts_on" /><FormField id="contract-end" v-model="form.ends_on" label="Fin prévue" type="date" :error="form.errors.ends_on" /></div>
+                <div class="grid gap-3 sm:grid-cols-2"><FormField id="contract-start" v-model="form.starts_on" label="Début" variant="date" :error="form.errors.starts_on" /><FormField id="contract-end" v-model="form.ends_on" label="Fin prévue" variant="date" :error="form.errors.ends_on" /></div>
                 <div class="flex flex-wrap gap-2"><AppButton type="submit" variant="principal" :busy="form.processing">Enregistrer</AppButton><AppButton type="button" variant="secondaire" @click="closeForm">Annuler</AppButton></div>
             </form>
+            </AppModal>
 
             <EmptyState v-if="contracts.length === 0" title="Aucun contrat enregistré." reason="Créez un contrat pour calculer sa répartition prévisionnelle." />
             <ul v-else class="grid min-w-0 gap-5">

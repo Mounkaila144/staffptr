@@ -25,15 +25,21 @@ class TutorSupportSlotController extends Controller
     public function index(Request $request): Response
     {
         $actor = $this->actor($request);
-        $next = $this->grouping->nextSlotFor($actor, CarbonImmutable::now('UTC'));
+        $canManage = $actor->can('viewCapacity', Internship::class);
+        // Un stagiaire n'a pas de créneaux à lui : ce sont ceux de son tuteur qui décident du
+        // moment où ses demandes sont examinées. Sans cela, l'écran lui disait « aucun créneau ».
+        $tutor = $canManage ? null : $this->tutorOf($actor);
+        $owner = $tutor ?? $actor;
+        $next = $this->grouping->nextSlotFor($owner, CarbonImmutable::now('UTC'));
 
         return Inertia::render('Accountability/Internships/Slots/Index', [
-            'slots' => $this->grouping->slotsFor($actor),
+            'slots' => $this->grouping->slotsFor($owner),
+            'tutorName' => $tutor?->person()->value('full_name'),
             'nextSlot' => $next instanceof CarbonImmutable
                 ? $next->setTimezone('Africa/Niamey')->format('d/m/Y H:i')
                 : null,
             'pendingRequests' => $this->grouping->pendingFor($actor),
-            'canManage' => $actor->can('viewCapacity', Internship::class),
+            'canManage' => $canManage,
             'success' => fn (): ?string => $request->session()->get('success'),
         ]);
     }
@@ -49,6 +55,18 @@ class TutorSupportSlotController extends Controller
         ]);
 
         return back()->with('success', 'Créneau de suivi enregistré.');
+    }
+
+    private function tutorOf(User $intern): ?User
+    {
+        $internship = Internship::query()
+            ->where('user_id', $intern->getKey())
+            ->occupyingTutorSlot()
+            ->with('tutor')
+            ->latest('id')
+            ->first();
+
+        return $internship?->tutor;
     }
 
     private function actor(Request $request): User

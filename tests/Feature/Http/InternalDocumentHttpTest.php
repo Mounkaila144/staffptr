@@ -36,7 +36,8 @@ class InternalDocumentHttpTest extends IdentityTestCase
                 'body' => 'Contenu de la charte.',
                 'effective_date' => '2026-08-01',
             ])
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Document publié. Les membres concernés sont prévenus.');
         $document = InternalDocument::query()->sole();
 
         $this->resetAuthentication();
@@ -73,7 +74,8 @@ class InternalDocumentHttpTest extends IdentityTestCase
 
         $this->actingAs($employee)
             ->post(route('internal-documents.acknowledge', $document))
-            ->assertRedirect(route('internal-documents.show', $document));
+            ->assertRedirect(route('internal-documents.show', $document))
+            ->assertSessionHas('success', 'Votre acceptation est enregistrée.');
         $this->actingAs($employee)
             ->post(route('internal-documents.acknowledge', $document))
             ->assertSessionHasErrors('acknowledgement');

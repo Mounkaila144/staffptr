@@ -4,6 +4,7 @@ namespace App\Services\Accountability;
 
 use App\Enums\InternshipChecklistType;
 use App\Enums\InternshipEvaluationType;
+use App\Enums\UserState;
 use App\Models\Accountability\Internship;
 use App\Models\Accountability\InternshipChecklistItem;
 use App\Models\Accountability\InternshipEvaluation;
@@ -194,6 +195,38 @@ final class InternshipEvaluationService
     }
 
     /**
+     * Coche un point de checklist (intégration ou sortie), une fois pour toutes et audité.
+     *
+     * Sans ce geste, la checklist d'intégration restait « à faire » pour toujours, et la
+     * condition d'attestation qui en dépend ne pouvait jamais être remplie.
+     */
+    public function completeChecklistItem(InternshipChecklistItem $item, User $actor): InternshipChecklistItem
+    {
+        if ($item->completed_at !== null) {
+            throw ValidationException::withMessages(['checklist' => 'Ce point est déjà marqué comme fait.']);
+        }
+
+        return DB::connection($item->getConnectionName())->transaction(function () use ($item, $actor): InternshipChecklistItem {
+            $locked = InternshipChecklistItem::query()->whereKey($item->getKey())->lockForUpdate()->firstOrFail();
+            $locked->completed_by = (int) $actor->getKey();
+            $locked->completed_at = CarbonImmutable::now('UTC');
+            $locked->saveOrFail();
+
+            $this->auditLogger->record(
+                actorId: $actor->getKey(),
+                actorLabel: $this->labelFor($actor),
+                auditable: $locked,
+                action: 'internship_checklist_item_completed',
+                oldValues: ['completed_at' => null],
+                newValues: ['completed_at' => $locked->completed_at->format('Y-m-d H:i:s.v')],
+                reason: 'Point de checklist effectué : '.$locked->label.'.',
+            );
+
+            return $locked;
+        });
+    }
+
+    /**
      * Conditions d'attestation : un plan de stage, au moins une évaluation hebdomadaire, et une
      * checklist d'intégration entièrement effectuée. L'application les **indique** sans produire
      * de document (AC 29, FR89).
@@ -283,6 +316,9 @@ final class InternshipEvaluationService
             'state_label' => $internship->state->label(),
             'start_date' => $internship->start_date->format('d/m/Y'),
             'end_date' => $internship->end_date?->format('d/m/Y'),
+            // Décision du 2026-11-01 : un stage terminé ferme l'accès d'un stagiaire « pur ».
+            'intern_access_closed' => ! $internship->state->occupiesTutorSlot()
+                && $internship->intern->state !== UserState::Actif,
             'plan' => $internship->plan instanceof InternshipPlan ? [
                 'skills_to_learn' => $internship->plan->skills_to_learn,
                 'objectives' => $internship->plan->objectives,
@@ -313,6 +349,7 @@ final class InternshipEvaluationService
                             'id' => $item->getKey(),
                             'label' => $item->label,
                             'completed' => $item->completed_at !== null,
+                            'completed_at' => $item->completed_at instanceof CarbonImmutable ? DateTimeFormatter::format($item->completed_at, 'd/m/Y') : null,
                         ])->values()->all(),
                 ])->all(),
             // L'attestation n'est jamais produite : l'application se borne à indiquer l'éligibilité.

@@ -1,5 +1,5 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import AppButton from '../../../Components/AppButton.vue';
 
@@ -26,6 +26,7 @@ function closePlan() {
                     Du {{ plan.start_date }} au {{ plan.end_date }}, soit {{ plan.duration_days }} jours.
                 </p>
                 <p class="text-ink-secondary">Mis en place par {{ plan.created_by }} — {{ plan.state_label }}.</p>
+                <Link :href="`/revues-hebdomadaires/${plan.weekly_review_id}`" class="touch-target inline-flex w-fit items-center font-semibold text-primary underline">Voir la revue d’origine</Link>
             </header>
 
             <p v-if="success" class="rounded-lg border border-success bg-success-soft p-3 text-success" role="status">
@@ -71,8 +72,8 @@ function closePlan() {
                         :aria-describedby="closeForm.errors.observed_result ? 'observed-result-error' : undefined"
                     />
                 </label>
-                <p v-if="closeForm.errors.observed_result" id="observed-result-error" class="text-danger" role="alert">
-                    {{ closeForm.errors.observed_result }}
+                <p v-if="closeForm.errors.observed_result || closeForm.errors.plan" id="observed-result-error" class="text-danger" role="alert">
+                    {{ closeForm.errors.observed_result || closeForm.errors.plan }}
                 </p>
                 <AppButton type="submit" :disabled="closeForm.processing">Terminer l’accompagnement</AppButton>
             </form>

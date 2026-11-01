@@ -15,6 +15,8 @@ use App\Http\Requests\Work\ValidateObjectiveRequest;
 use App\Models\Identity\User;
 use App\Models\Platform\Attachment;
 use App\Models\Work\Objective;
+use App\Models\Work\ObjectiveVersion;
+use App\Models\Work\WorkComment;
 use App\Services\Platform\SettingsService;
 use App\Services\Work\ObjectiveService;
 use App\Support\Work\AssignableOwners;
@@ -61,7 +63,14 @@ class ObjectiveController extends Controller
         Gate::authorize('view', $objective);
         $objective->load(['owner.person', 'companyPriority', 'project', 'attachments', 'comments.author.person', 'versions.author.person']);
 
-        return Inertia::render('Work/Objectives/Show', ['objective' => $this->serialize($objective), 'canUpdate' => $actor->can('update', $objective), 'canValidate' => $actor->can('validate', $objective), 'attachment' => $this->attachmentConfig($actor)]);
+        $detail = [
+            ...$this->serialize($objective),
+            'transitions' => $this->options($objective->state->allowedTransitions()),
+            'comments' => $objective->comments->sortBy('id')->map(fn (WorkComment $comment): array => ['id' => $comment->getKey(), 'author' => $comment->author->person->full_name, 'body' => $comment->body, 'correction_requested' => (bool) $comment->correction_requested, 'created_at' => $comment->created_at?->timezone('Africa/Niamey')->format('d/m/Y H:i')])->values()->all(),
+            'versions' => $objective->versions->sortByDesc('version_number')->map(fn (ObjectiveVersion $version): array => ['id' => $version->getKey(), 'version_number' => $version->version_number, 'reason' => $version->reason, 'author' => $version->author->person->full_name, 'created_at' => $version->created_at?->timezone('Africa/Niamey')->format('d/m/Y H:i')])->values()->all(),
+        ];
+
+        return Inertia::render('Work/Objectives/Show', ['objective' => $detail, 'canUpdate' => $actor->can('update', $objective), 'canValidate' => $actor->can('validate', $objective), 'canCopy' => $actor->can('create', Objective::class), 'priorities' => $this->options(WorkPriority::cases()), 'attachment' => $this->attachmentConfig($actor)]);
     }
 
     public function store(StoreObjectiveRequest $request): RedirectResponse
@@ -122,7 +131,7 @@ class ObjectiveController extends Controller
     /** @return array<string, mixed> */
     private function serialize(Objective $o): array
     {
-        return ['id' => $o->getKey(), 'title' => $o->title, 'description' => $o->description, 'indicator' => $o->indicator, 'target_value' => $o->target_value, 'expected_evidence' => $o->expected_evidence, 'required_means' => $o->required_means, 'owner' => $o->relationLoaded('owner') ? $o->owner->person->full_name : null, 'due_date' => $o->due_date->format('Y-m-d'), 'state' => $o->state->value, 'state_label' => $o->state->label(), 'tone' => $o->state->tone(), 'priority' => $o->priority->value, 'priority_label' => $o->priority->label(), 'progress' => $o->progress, 'project' => $o->project?->name, 'version_number' => $o->version_number, 'attachments' => $o->relationLoaded('attachments') ? $o->attachments->map(fn (Attachment $a): array => ['name' => $a->original_name, 'url' => route('attachments.show', $a)])->all() : []];
+        return ['id' => $o->getKey(), 'title' => $o->title, 'description' => $o->description, 'indicator' => $o->indicator, 'target_value' => $o->target_value, 'expected_evidence' => $o->expected_evidence, 'required_means' => $o->required_means, 'user_id' => (int) $o->user_id, 'company_priority_id' => $o->company_priority_id, 'project_id' => $o->project_id, 'owner' => $o->relationLoaded('owner') ? $o->owner->person->full_name : null, 'due_date' => $o->due_date->format('Y-m-d'), 'due_date_label' => $o->due_date->format('d/m/Y'), 'state' => $o->state->value, 'state_label' => $o->state->label(), 'tone' => $o->state->tone(), 'priority' => $o->priority->value, 'priority_label' => $o->priority->label(), 'progress' => $o->progress, 'project' => $o->project?->name, 'version_number' => $o->version_number, 'attachments' => $o->relationLoaded('attachments') ? $o->attachments->map(fn (Attachment $a): array => ['name' => $a->original_name, 'url' => route('attachments.show', $a)])->all() : []];
     }
 
     private function attachment(mixed $ulid): ?Attachment

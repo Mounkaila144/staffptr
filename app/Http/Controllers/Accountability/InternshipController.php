@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Accountability;
 
 use App\Enums\InternshipEvaluationType;
+use App\Enums\UserState;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Accountability\RecordInternshipEvaluationRequest;
 use App\Http\Requests\Accountability\SaveInternshipPlanRequest;
 use App\Models\Accountability\Internship;
+use App\Models\Accountability\InternshipChecklistItem;
 use App\Models\Accountability\InternshipEvaluation;
 use App\Models\Identity\User;
 use App\Services\Accountability\InternshipEvaluationService;
@@ -106,9 +108,21 @@ class InternshipController extends Controller
     public function exit(Request $request, Internship $internship): RedirectResponse
     {
         Gate::authorize('manage', $internship);
-        $this->evaluations->startExit($internship, $this->actor($request));
+        $ended = $this->evaluations->startExit($internship, $this->actor($request));
+        $intern = $ended->intern()->firstOrFail();
 
-        return back()->with('success', 'Stage terminé, checklist de sortie générée.');
+        return back()->with('success', $intern->state === UserState::Actif
+            ? 'Stage terminé, checklist de sortie générée. Le compte reste actif : la personne a un autre rôle que stagiaire.'
+            : 'Stage terminé, checklist de sortie générée. L’accès du stagiaire à l’application est fermé ; ses données sont conservées.');
+    }
+
+    public function completeChecklistItem(Request $request, Internship $internship, InternshipChecklistItem $item): RedirectResponse
+    {
+        Gate::authorize('manage', $internship);
+        abort_unless($item->internship_id === $internship->getKey(), 404);
+        $this->evaluations->completeChecklistItem($item, $this->actor($request));
+
+        return back()->with('success', 'Point de checklist marqué comme fait.');
     }
 
     private function actor(Request $request): User

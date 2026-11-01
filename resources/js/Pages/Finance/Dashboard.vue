@@ -40,11 +40,11 @@ defineProps({
                     reason="Votre rôle ne donne accès à aucun des blocs de ce tableau de bord."
                 />
 
-                <div v-else class="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div v-else class="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3 items-start">
                     <DashboardBlock v-if="blocks.account_balances" :block="blocks.account_balances" block-key="account_balances">
-                        <p class="text-card-title">{{ blocks.account_balances.total_label }}</p>
+                        <p class="text-tile">{{ blocks.account_balances.total_label }}</p>
                         <ul v-if="blocks.account_balances.items.length" class="grid min-w-0 gap-2">
-                            <li v-for="account in blocks.account_balances.items" :key="account.id" class="flex min-w-0 flex-wrap justify-between gap-2 rounded-lg bg-neutral-soft p-2">
+                            <li v-for="account in blocks.account_balances.items" :key="account.id" class="flex min-w-0 flex-wrap justify-between gap-2 rounded-lg bg-neutral-soft px-3 py-2 text-sm">
                                 <span class="break-words">{{ account.label }} · {{ account.state_label }}</span>
                                 <span class="font-semibold">
                                     <span v-if="account.is_negative">−</span>{{ account.amount_label }}
@@ -55,13 +55,13 @@ defineProps({
                     </DashboardBlock>
 
                     <DashboardBlock v-if="blocks.pending_expenses" :block="blocks.pending_expenses" block-key="pending_expenses">
-                        <p class="text-card-title">{{ blocks.pending_expenses.count }} en attente</p>
+                        <p class="text-tile">{{ blocks.pending_expenses.count }} en attente</p>
                         <p v-if="blocks.pending_expenses.count > 0">{{ blocks.pending_expenses.amount_label }}</p>
                         <p v-else>{{ blocks.pending_expenses.empty_message }}</p>
                     </DashboardBlock>
 
                     <DashboardBlock v-if="blocks.month_collections" :block="blocks.month_collections" block-key="month_collections">
-                        <p class="text-card-title">{{ blocks.month_collections.amount_label }}</p>
+                        <p class="text-tile">{{ blocks.month_collections.amount_label }}</p>
                         <p v-if="blocks.month_collections.count > 0">
                             {{ blocks.month_collections.count }} encaissement{{ blocks.month_collections.count > 1 ? 's' : '' }} · {{ blocks.month_collections.month_label }}
                         </p>
@@ -69,18 +69,18 @@ defineProps({
                     </DashboardBlock>
 
                     <DashboardBlock v-if="blocks.overdue_receivables" :block="blocks.overdue_receivables" block-key="overdue_receivables">
-                        <p class="text-card-title">{{ blocks.overdue_receivables.amount_label }}</p>
+                        <p class="text-tile">{{ blocks.overdue_receivables.amount_label }}</p>
                         <ul v-if="blocks.overdue_receivables.items.length" class="grid min-w-0 gap-2">
-                            <li v-for="invoice in blocks.overdue_receivables.items" :key="invoice.id" class="grid min-w-0 gap-1 rounded-lg bg-neutral-soft p-2">
+                            <li v-for="invoice in blocks.overdue_receivables.items" :key="invoice.id" class="grid min-w-0 gap-1 rounded-lg bg-neutral-soft px-3 py-2 text-sm">
                                 <span class="break-words font-semibold">{{ invoice.number }} · {{ invoice.client }}</span>
-                                <span class="text-sm">Échue le {{ invoice.due_on }} · {{ invoice.amount_label }}</span>
+                                <span class="text-sm">Échue le {{ invoice.due_on.split("-").reverse().join("/") }} · {{ invoice.amount_label }}</span>
                             </li>
                         </ul>
                         <p v-else>{{ blocks.overdue_receivables.empty_message }}</p>
                     </DashboardBlock>
 
                     <DashboardBlock v-if="blocks.reconciliation_gaps" :block="blocks.reconciliation_gaps" block-key="reconciliation_gaps">
-                        <p class="text-card-title">{{ blocks.reconciliation_gaps.amount_label }}</p>
+                        <p class="text-tile">{{ blocks.reconciliation_gaps.amount_label }}</p>
                         <p v-if="blocks.reconciliation_gaps.count > 0">
                             {{ blocks.reconciliation_gaps.count }} rapprochement{{ blocks.reconciliation_gaps.count > 1 ? 's' : '' }} avec écart
                         </p>
@@ -89,7 +89,7 @@ defineProps({
 
                     <DashboardBlock v-if="blocks.budget_versus_actual" :block="blocks.budget_versus_actual" block-key="budget_versus_actual">
                         <!-- Le dépassement est dit en toutes lettres, pas seulement coloré (SOC-10). -->
-                        <p class="text-card-title">{{ blocks.budget_versus_actual.status_label }}</p>
+                        <p class="text-tile">{{ blocks.budget_versus_actual.status_label }}</p>
                         <dl class="grid min-w-0 gap-1">
                             <div class="flex flex-wrap justify-between gap-2"><dt>Budget</dt><dd class="font-semibold">{{ blocks.budget_versus_actual.budget_amount_label }}</dd></div>
                             <div class="flex flex-wrap justify-between gap-2"><dt>Réalisé</dt><dd class="font-semibold">{{ blocks.budget_versus_actual.actual_amount_label }}</dd></div>
@@ -97,11 +97,11 @@ defineProps({
                     </DashboardBlock>
 
                     <DashboardBlock v-if="blocks.reserve" :block="blocks.reserve" block-key="reserve">
-                        <p class="text-card-title">{{ blocks.reserve.amount_label }}</p>
+                        <p class="text-tile">{{ blocks.reserve.amount_label }}</p>
                     </DashboardBlock>
 
                     <DashboardBlock v-if="blocks.share_commitments" :block="blocks.share_commitments" block-key="share_commitments">
-                        <p class="text-card-title">{{ blocks.share_commitments.amount_label }}</p>
+                        <p class="text-tile">{{ blocks.share_commitments.amount_label }}</p>
                         <p v-if="blocks.share_commitments.count > 0">
                             {{ blocks.share_commitments.count }} part{{ blocks.share_commitments.count > 1 ? 's' : '' }} sur contrats en cours
                         </p>

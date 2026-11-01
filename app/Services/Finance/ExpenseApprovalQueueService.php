@@ -22,6 +22,7 @@ class ExpenseApprovalQueueService
         private readonly AttachmentService $attachmentService,
         private readonly ExpenseApprovalReadiness $readiness,
         private readonly AlertLevelExpenseNotice $alertLevelNotice,
+        private readonly ExpenseApprovalRequirement $requirement,
     ) {}
 
     /**
@@ -95,6 +96,7 @@ class ExpenseApprovalQueueService
         $hasDecision = $expense->approvals
             ->contains(static fn (ExpenseApproval $approval): bool => (int) $approval->approver_id === (int) $actor->getKey());
         $attachment = $expense->attachment;
+        $requiredApprovals = $this->requirement->requiredFor($expense);
 
         return [
             'id' => (int) $expense->getKey(),
@@ -111,7 +113,9 @@ class ExpenseApprovalQueueService
             ],
             'category' => $expense->category->name,
             'approval_count' => $approvedCount,
-            'approval_progress' => $this->progressLabel($expense, $approvedCount),
+            'approvals_required' => $requiredApprovals,
+            'approval_progress' => $this->requirement->progressLabel($expense, $approvedCount, $requiredApprovals),
+            'approval_rule' => $this->requirement->explanation($expense, $requiredApprovals),
             'approvals' => $expense->approvals
                 ->sortBy('decided_at')
                 ->values()
@@ -171,6 +175,8 @@ class ExpenseApprovalQueueService
                 'expected_result',
                 'project_or_contract_note',
                 'state',
+                'approvals_required',
+                'beneficiary_user_id',
                 'cancel_reason',
                 'created_at',
                 'updated_at',
@@ -212,16 +218,6 @@ class ExpenseApprovalQueueService
             0 => "aujourd'hui",
             1 => '1 jour',
             default => "{$days} jours",
-        };
-    }
-
-    private function progressLabel(Expense $expense, int $approvedCount): string
-    {
-        return match ($expense->state->value) {
-            'approuvee' => 'Approuvée — deux approbations sur deux',
-            'refusee' => 'Refusée — une décision de refus suffit',
-            'annulee' => 'Annulée',
-            default => "Demandée — {$approvedCount} approbation".($approvedCount > 1 ? 's' : '').' sur deux',
         };
     }
 }

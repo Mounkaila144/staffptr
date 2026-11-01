@@ -20,7 +20,7 @@ const navigationByRole = {
             ['Mon stage', 'internship', '◇', 'stagiaire.consulter'],
             ['Tâches', 'tasks', '✓', 'projet.consulter'],
         ],
-        more: ['Recherche', 'Objectifs', 'Projets', 'Livrables', 'Mes blocages', 'Mes absences', 'Mes demandes', 'Ma revue', 'Documents internes', 'Mon profil', 'Déconnexion'],
+        more: ['Recherche', 'Objectifs', 'Projets', 'Livrables', 'Arrivées et départs', 'Mes blocages', 'Mes absences', 'Mes demandes', 'Ma revue', 'Documents internes', 'Mon profil', 'Déconnexion'],
     },
     tuteur: {
         primary: [
@@ -29,7 +29,7 @@ const navigationByRole = {
             ['Rapport', 'report', '▤', 'rapport_quotidien.consulter'],
             ['Objectifs', 'objectives', '◎', 'objectif_individuel.consulter'],
         ],
-        more: ['Tâches', 'Projets', 'Livrables', 'Mes stagiaires', 'Créneaux de suivi', 'Revues hebdomadaires', 'Mes blocages', 'Mes absences', 'Mes demandes', 'Recherche', 'Documents', 'Profil', 'Déconnexion'],
+        more: ['Tâches', 'Projets', 'Livrables', 'Mes stagiaires', 'Arrivées et départs', 'Créneaux de suivi', 'Revues hebdomadaires', 'Plans d’accompagnement', 'Mes blocages', 'Mes absences', 'Mes demandes', 'Recherche', 'Documents', 'Profil', 'Déconnexion'],
     },
     direction: {
         primary: [
@@ -41,7 +41,7 @@ const navigationByRole = {
         // La direction détient `stagiaire.consulter` et `stagiaire.gerer`, mais aucune entrée ne
         // menait au parcours de stage : un compte de stagiaire restait « invité » sans que rien
         // n'indique où remplir la fiche d'entrée, désigner le tuteur, puis activer le compte.
-        more: ['Tableau de bord direction', 'Mon rapport du jour', 'Mes objectifs', 'Tâches', 'Projets', 'Livrables', 'Absences', "Fiches d'entrée", 'Stages', 'Capacité des tuteurs', 'Organisation', 'Comptes et rôles', 'Paramètres', 'Calendrier', "Journal d'audit", 'Connexions', 'Réserve', 'Parts de contribution', 'Rapport mensuel', 'Plans correctifs', 'Recherche', 'Listes et exports', 'Documents', 'Profil', 'Déconnexion'],
+        more: ['Tableau de bord direction', 'Mon rapport du jour', 'Mes objectifs', 'Priorités d’entreprise', 'Tâches', 'Projets', 'Livrables', 'Absences', 'Rapports à valider', 'Blocages de l’équipe', 'Revues hebdomadaires', 'Plans d’accompagnement', "Fiches d'entrée", 'Stages', 'Arrivées et départs', 'Capacité des tuteurs', 'Organisation', 'Comptes et rôles', 'Paramètres', 'Calendrier', "Journal d'audit", 'Connexions', 'Réserve', 'Parts de contribution', 'Rapport mensuel', 'Rapprochement', 'Clients et factures', 'Plans correctifs', 'Recherche', 'Listes et exports', 'Documents', 'Profil', 'Déconnexion'],
     },
     finance: {
         primary: [
@@ -50,7 +50,7 @@ const navigationByRole = {
             ['Dépenses', 'expenses', '▥', 'depense.consulter'],
             ['Contrats', 'contracts', '▧', 'client.consulter'],
         ],
-        more: ['Tableau de bord direction', 'Rapprochement', 'Rapport mensuel', 'Plans correctifs', 'Budgets et charges', 'Clients et factures', 'Mon rapport du jour', 'Mes objectifs', 'Tâches', 'Projets', 'Livrables', 'Mes absences', 'Recherche', 'Listes et exports', 'Documents', 'Profil', 'Déconnexion'],
+        more: ['Tableau de bord direction', 'Paiement des dépenses', 'Rapprochement', 'Rapport mensuel', 'Plans correctifs', 'Budgets et charges', 'Clients et factures', 'Mon rapport du jour', 'Mes objectifs', 'Tâches', 'Projets', 'Livrables', 'Mes absences', 'Recherche', 'Listes et exports', 'Documents', 'Profil', 'Déconnexion'],
     },
     super_admin: {
         primary: [

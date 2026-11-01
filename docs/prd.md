@@ -100,7 +100,7 @@ Reprises sans modification du § 17 du brief d'entrée et des décisions directi
 | RM-06 | Maximum **3 stagiaires actifs par tuteur**, paramétrable, contrôle **bloquant**. |
 | RM-07 | Rapport quotidien attendu avant **17 h 45**, heure paramétrable. |
 | RM-08 | Revue hebdomadaire le **vendredi**. |
-| RM-09 | **Deux approbateurs distincts pour toute dépense, sans seuil de montant.** Aucune dérogation, aucune délégation. |
+| RM-09 | **Deux approbateurs distincts pour toute dépense, sans seuil de montant.** Aucune dérogation, aucune délégation. *(Décision du propriétaire, 2026-11-01 : approbations requises = 2 ; pour une demande d’un dirigeant (ou dont il est bénéficiaire) = min(2, autres comptes `direction` actifs), au moins 1 — une demande d'un dirigeant, quand il n'y en a que deux, est approuvée par l'autre seul ; personne n'approuve sa propre dépense. Nombre figé sur la dépense au passage à `approuvee`.)* |
 | RM-10 | Le demandeur ne peut jamais être approbateur de sa propre demande. |
 | RM-11 | Réserve cible : **3 mois de charges fixes** ; alimentation **20 % du bénéfice total du contrat**, prélevés sur la part de 60 % de PTR Niger. |
 | RM-12 | Répartition d'un contrat : apporteur **10 %**, PTR Niger **60 %**, exécutants **30 %** ; sans exécution 10/90 ; sans apporteur 100 % PTR Niger. |
@@ -298,7 +298,7 @@ fermé à la Finance (D-04), rôle Auditeur retiré (C7).
 
 - **FR35 :** Un calendrier des jours travaillés est défini au niveau de l'entreprise : jours de la semaine travaillés par défaut, plus une liste de jours fériés ou de fermeture saisissables par `direction`.
 - **FR36 :** Un utilisateur peut déclarer une absence : type (congé, maladie, autre), date de début, date de fin, motif court, justificatif optionnel.
-- **FR37 :** Une absence est soumise à l'approbation du responsable direct ; états : `demandee`, `approuvee`, `refusee`, `annulee`.
+- **FR37 :** Une absence est soumise à l'approbation du responsable direct ; états : `demandee`, `approuvee`, `refusee`, `annulee`. *(Décision du propriétaire, 2026-11-01 : si le demandeur n'a pas de responsable direct actif, tout compte `direction` actif autre que lui décide ; sinon règle inchangée.)*
 - **FR38 :** Aucun rapport quotidien n'est attendu ni compté comme manquant sur un jour non travaillé ou couvert par une absence `approuvee`.
 - **FR39 :** Les indicateurs de ponctualité excluent du dénominateur les jours non travaillés et les jours d'absence approuvée.
 
@@ -415,7 +415,7 @@ fermé à la Finance (D-04), rôle Auditeur retiré (C7).
 
 - **FR115 :** [Étape 1] Une demande de dépense porte : demandeur, motif, montant, bénéficiaire, projet ou contrat optionnel, résultat attendu, justificatif prévisionnel optionnel, catégorie.
 - **FR116 :** [Étape 1] Les états d'une dépense sont : `demandee`, `approuvee`, `refusee`, `payee`, `annulee`. L'état de paiement est distinct de l'état d'approbation : une approbation ne vaut jamais paiement.
-- **FR117 :** [Étape 1] **Toute** dépense, quel que soit son montant et qu'elle soit ou non prévue au budget, exige l'approbation des **deux comptes `direction` distincts**. Aucune dérogation, aucune délégation, aucun seuil (RM-09).
+- **FR117 :** [Étape 1] **Toute** dépense, quel que soit son montant et qu'elle soit ou non prévue au budget, exige l'approbation des **deux comptes `direction` distincts**. Aucune dérogation, aucune délégation, aucun seuil (RM-09). *(Décision du propriétaire, 2026-11-01 : approbations requises = 2 ; pour une demande d’un dirigeant (ou dont il est bénéficiaire) = min(2, autres comptes `direction` actifs), au moins 1 — une demande d'un dirigeant, quand il n'y en a que deux, est approuvée par l'autre seul ; personne n'approuve sa propre dépense. Nombre figé sur la dépense au passage à `approuvee`.)*
 - **FR118 :** [Étape 1] Tant que le second consentement manque, la dépense reste à l'état `demandee` et n'est jamais payable.
 - **FR119 :** [Étape 1] Le demandeur ne peut jamais compter comme approbateur de sa propre demande, y compris lorsqu'il porte le rôle `direction` (RM-10).
 - **FR120 :** [Étape 1] Chaque compte `direction` dispose d'un écran **« En attente de mon approbation »** présenté en tête de son tableau de bord, avec le nombre de dépenses concernées et leur ancienneté.
@@ -453,7 +453,7 @@ fermé à la Finance (D-04), rôle Auditeur retiré (C7).
 - **FR143 :** Tant que l'objectif n'est pas atteint, chaque encaissement imputé à un contrat affecte à la réserve **20 % du bénéfice correspondant**, prélevés sur la part de 60 % de PTR Niger, sans jamais toucher les parts de 10 % et 30 %.
 - **FR144 :** Le prélèvement s'interrompt automatiquement dès l'objectif atteint et reprend automatiquement si la réserve descend sous l'objectif.
 - **FR145 :** L'application affiche en permanence le montant de la réserve et le **nombre de mois de charges couverts**, avec la méthode de calcul et la date des données source.
-- **FR146 :** Toute utilisation de la réserve exige un motif, la double approbation `direction` et un plan de reconstitution enregistré.
+- **FR146 :** Toute utilisation de la réserve exige un motif, la double approbation `direction` et un plan de reconstitution enregistré. *(Décision du propriétaire, 2026-11-01 : pour une demande d’un dirigeant, approbations requises = min(2, autres comptes `direction` actifs), au moins 1 ; une demande de la finance en exige toujours 2. Nombre figé au passage à `approved`.)*
 - **FR147 :** L'ajout d'une charge fixe augmente mécaniquement l'objectif de réserve ; l'application affiche l'impact chiffré **avant** la confirmation de l'ajout.
 
 ### 5.21 Rapprochement hebdomadaire — [Étape 4]
@@ -867,7 +867,7 @@ afin de ne pas être compté en retard alors que j'étais en congé ou malade.
 
 1. Une absence porte type (congé, maladie, autre), date de début, date de fin, motif court, justificatif optionnel.
 2. Les états sont `demandee`, `approuvee`, `refusee`, `annulee` ; le refus exige un motif.
-3. L'approbation appartient au responsable direct ; un utilisateur ne peut pas approuver sa propre absence.
+3. L'approbation appartient au responsable direct ; un utilisateur ne peut pas approuver sa propre absence. *(Décision du propriétaire, 2026-11-01 : si le demandeur n'a pas de responsable direct actif, tout compte `direction` actif autre que lui décide ; sinon règle inchangée.)*
 4. Aucun rapport quotidien n'est attendu sur un jour couvert par une absence `approuvee` ; un test crée une absence approuvée et vérifie que le jour n'apparaît pas dans les rapports manquants.
 5. Une absence `demandee` ou `refusee` ne suspend pas l'attente de rapport.
 6. Les indicateurs de ponctualité excluent du dénominateur les jours non travaillés et les jours d'absence approuvée ; un test calcule le taux sur un mois comportant l'un et l'autre.

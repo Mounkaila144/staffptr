@@ -79,7 +79,7 @@ function toggleAttachment(event, expense) {
             <header class="grid min-w-0 gap-2">
                 <h1 class="break-words text-page-title">{{ title }}</h1>
                 <p class="max-w-2xl text-ink-secondary">
-                    {{ isHandledView ? 'Retrouvez ici les dépenses pour lesquelles vous avez déjà décidé.' : 'Chaque dépense exige les décisions de deux comptes de direction distincts, quel que soit son montant.' }}
+                    {{ isHandledView ? 'Retrouvez ici les dépenses pour lesquelles vous avez déjà décidé.' : 'Chaque dépense exige les décisions de deux comptes de direction distincts, quel que soit son montant ; une demande faite par un dirigeant se contente de l’approbation de l’autre. Personne n’approuve sa propre dépense.' }}
                 </p>
                 <nav v-if="!isDirectDecision" class="flex min-w-0 flex-wrap gap-3" aria-label="Vues des approbations">
                     <Link href="/depenses/approbations" class="touch-target inline-flex items-center font-semibold text-primary underline-offset-4 hover:underline" :aria-current="!isHandledView ? 'page' : undefined">En attente</Link>
@@ -139,9 +139,10 @@ function toggleAttachment(event, expense) {
                         <StatusBadge :status="expense.state" />
                     </div>
 
-                    <p class="rounded-lg border border-separator bg-page p-3 font-semibold">
-                        {{ expense.approval_progress }}
-                    </p>
+                    <div class="grid min-w-0 gap-1 rounded-lg border border-separator bg-page p-3">
+                        <p class="font-semibold">{{ expense.approval_progress }}</p>
+                        <p v-if="expense.approval_rule" class="text-sm text-ink-secondary">{{ expense.approval_rule }}</p>
+                    </div>
 
                     <dl class="grid min-w-0 gap-3 text-sm sm:grid-cols-2">
                         <div class="grid min-w-0 gap-1">

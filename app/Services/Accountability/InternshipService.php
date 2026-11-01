@@ -10,8 +10,10 @@ use App\Models\Accountability\Internship;
 use App\Models\Accountability\InternshipChecklistItem;
 use App\Models\Accountability\InternshipIntakeForm;
 use App\Models\Identity\User;
+use App\Services\Identity\HierarchyService;
 use App\Services\Identity\IdentityService;
 use App\Services\Identity\InternActivationReadiness;
+use App\Services\Identity\SessionRevocationService;
 use App\Support\Auditing\AuditLogger;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +33,8 @@ final class InternshipService
         private readonly IdentityService $identityService,
         private readonly InternActivationReadiness $readiness,
         private readonly TutorCapacityService $tutorCapacity,
+        private readonly HierarchyService $hierarchy,
+        private readonly SessionRevocationService $sessionRevocation,
     ) {}
 
     /**
@@ -99,6 +103,15 @@ final class InternshipService
             ]);
             $internship->saveOrFail();
 
+            // Le tuteur devient le responsable direct du stagiaire (décision du propriétaire du
+            // 2026-11-01) : visibilité et validation des objectifs reposent sur `manager_id`.
+            $this->hierarchy->changeManager(
+                user: $candidate,
+                managerId: (int) $form->tutor_id,
+                actor: $actor,
+                reason: 'Le tuteur du stage devient le responsable direct du stagiaire.',
+            );
+
             $this->generateChecklist($internship, InternshipChecklistType::Integration);
 
             $this->auditLogger->record(
@@ -156,12 +169,24 @@ final class InternshipService
                 reason: 'Changement de tuteur du stage.',
             );
 
+            $intern = User::query()->findOrFail($locked->user_id);
+            $this->hierarchy->changeManager(
+                user: $intern,
+                managerId: (int) $locked->tutor_id,
+                actor: $actor,
+                reason: 'Changement de tuteur : le nouveau tuteur devient le responsable direct du stagiaire.',
+            );
+
             return $locked;
         });
     }
 
     /**
      * Clôture un stage : la place occupée chez le tuteur est immédiatement libérée (AC 23).
+     *
+     * Décision du propriétaire du 2026-11-01 : si le compte n'a que le rôle `stagiaire`, son
+     * accès est fermé dans la même transaction (état `termine`, sessions révoquées, audité).
+     * Un stagiaire qui a aussi un autre rôle (ex. devenu employé) garde son accès.
      */
     public function end(Internship $internship, User $actor, InternshipState $state = InternshipState::Termine): Internship
     {
@@ -188,6 +213,8 @@ final class InternshipService
                 newValues: ['state' => $locked->state->value],
                 reason: 'Fin du stage.',
             );
+
+            $this->closeInternAccess($locked, $actor);
 
             return $locked;
         });
@@ -218,6 +245,48 @@ final class InternshipService
             ]);
             $item->saveOrFail();
         }
+    }
+
+    /**
+     * Le compte du stagiaire est-il celui d'un stagiaire « pur », dont l'accès doit être fermé à la
+     * fin du stage ?
+     */
+    public function accessClosesAtEnd(User $intern): bool
+    {
+        return $intern->getRoleNames()->values()->all() === ['stagiaire'];
+    }
+
+    private function closeInternAccess(Internship $internship, User $actor): void
+    {
+        $intern = User::query()->whereKey($internship->user_id)->lockForUpdate()->firstOrFail();
+
+        if (! $this->accessClosesAtEnd($intern) || $intern->state !== UserState::Actif) {
+            return;
+        }
+
+        $this->identityService->changeUserState(
+            user: $intern,
+            state: UserState::Termine,
+            actorId: $actor->getKey(),
+            actorLabel: $this->labelFor($actor),
+            reason: "Fin du stage : l'accès du stagiaire à l'application est fermé.",
+        );
+
+        $revoked = $this->sessionRevocation->revokeFor($intern);
+
+        $this->auditLogger->record(
+            actorId: $actor->getKey(),
+            actorLabel: $this->labelFor($actor),
+            auditable: $intern,
+            action: 'intern_access_closed',
+            oldValues: ['state' => UserState::Actif->value],
+            newValues: [
+                'state' => UserState::Termine->value,
+                'sessions_revoked' => $revoked,
+                'internship_id' => $internship->getKey(),
+            ],
+            reason: 'Fin du stage : compte du stagiaire fermé, sessions révoquées. Les données sont conservées.',
+        );
     }
 
     private function labelFor(User $user): string

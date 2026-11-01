@@ -77,6 +77,29 @@ class OrganizationManagementTest extends IdentityTestCase
         $this->assertSame(1, JobFunction::query()->count());
     }
 
+    public function test_names_stay_unique_and_each_change_is_confirmed(): void
+    {
+        $direction = $this->userWithRole('direction');
+
+        $this->actingAs($direction)->post('/organisation/services', ['name' => 'Technique'])
+            ->assertSessionHas('success', 'Service créé.');
+        $this->actingAs($direction)->post('/organisation/services', ['name' => 'Technique'])
+            ->assertSessionHasErrors(['name' => 'Un service porte déjà ce nom.']);
+        $department = Department::query()->where('name', 'Technique')->sole();
+        $this->actingAs($direction)->patch("/organisation/services/{$department->getKey()}", ['name' => 'Technique'])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success', 'Service renommé.');
+        $this->actingAs($direction)->patch("/organisation/services/{$department->getKey()}/desactiver")
+            ->assertSessionHas('success', 'Service désactivé.');
+
+        $this->actingAs($direction)->post('/organisation/fonctions', ['name' => 'Comptable'])
+            ->assertSessionHas('success', 'Fonction créée.');
+        $this->actingAs($direction)->post('/organisation/fonctions', ['name' => 'Comptable'])
+            ->assertSessionHasErrors(['name' => 'Une fonction porte déjà ce nom.']);
+        $this->assertSame(1, Department::query()->count());
+        $this->assertSame(1, JobFunction::query()->count());
+    }
+
     public function test_ac_2_five_other_roles_receive_403_on_every_organization_write_route(): void
     {
         $department = Department::factory()->create();

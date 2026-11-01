@@ -79,18 +79,27 @@ final class DailyReportListSource extends AbstractListSource
         $labels = [];
 
         if (($state = $this->filterValue($filters, 'state')) !== null) {
-            $labels[] = ['key' => 'state', 'label' => "État : {$state}"];
+            $labels[] = ['key' => 'state', 'label' => 'État : '.(DailyReportState::tryFrom($state)?->label() ?? $state)];
         }
 
         if (($from = $this->filterValue($filters, 'from')) !== null) {
-            $labels[] = ['key' => 'from', 'label' => "À partir du {$from}"];
+            $labels[] = ['key' => 'from', 'label' => 'Rapports à partir du '.$this->displayDate($from)];
         }
 
         if (($to = $this->filterValue($filters, 'to')) !== null) {
-            $labels[] = ['key' => 'to', 'label' => "Jusqu'au {$to}"];
+            $labels[] = ['key' => 'to', 'label' => "Rapports jusqu'au ".$this->displayDate($to)];
         }
 
         return $labels;
+    }
+
+    public function filterFields(): array
+    {
+        return [
+            $this->enumField('state', 'État', DailyReportState::cases()),
+            $this->dateField('from', 'Rapports à partir du'),
+            $this->dateField('to', "Rapports jusqu'au"),
+        ];
     }
 
     /** @return list<string> */
@@ -121,7 +130,7 @@ final class DailyReportListSource extends AbstractListSource
             (int) $record->getKey(),
             $record->author->person->full_name,
             $record->report_date->toDateString(),
-            $record->state->value,
+            $record->state->label(),
             $record->submitted_at?->setTimezone('Africa/Niamey')->format('Y-m-d H:i'),
         ];
     }

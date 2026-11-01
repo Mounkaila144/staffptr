@@ -48,7 +48,7 @@ class SettingController extends Controller
             $this->actor($request),
         );
 
-        return redirect()->route('settings.index')->with('status', 'Paramètres enregistrés.');
+        return redirect()->route('settings.index')->with('success', 'Paramètres enregistrés.');
     }
 
     public function preview(PreviewSettingRequest $request): JsonResponse

@@ -19,4 +19,10 @@ class ReturnDailyReportRequest extends FormRequest
     {
         return ['reason' => ['required', 'string', 'max:1000']];
     }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return ['reason.required' => 'Indiquez pourquoi le rapport est retourné.'];
+    }
 }

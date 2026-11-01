@@ -66,7 +66,8 @@ class InternalDocumentController extends Controller
             actor: $this->actor($request),
         );
 
-        return redirect()->route('internal-documents.show', $document);
+        return redirect()->route('internal-documents.show', $document)
+            ->with('success', 'Document publié. Les membres concernés sont prévenus.');
     }
 
     public function storeVersion(
@@ -81,7 +82,8 @@ class InternalDocumentController extends Controller
             actor: $this->actor($request),
         );
 
-        return redirect()->route('internal-documents.show', $internalDocument);
+        return redirect()->route('internal-documents.show', $internalDocument)
+            ->with('success', 'Nouvelle version publiée.');
     }
 
     public function acknowledge(Request $request, InternalDocument $internalDocument): RedirectResponse
@@ -89,7 +91,8 @@ class InternalDocumentController extends Controller
         Gate::authorize('acknowledge', $internalDocument);
         $this->internalDocumentService->acknowledge($internalDocument, $this->actor($request));
 
-        return redirect()->route('internal-documents.show', $internalDocument);
+        return redirect()->route('internal-documents.show', $internalDocument)
+            ->with('success', 'Votre acceptation est enregistrée.');
     }
 
     public function acknowledgements(Request $request, InternalDocument $internalDocument): Response

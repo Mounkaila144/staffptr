@@ -52,6 +52,11 @@ class HandleInertiaRequests extends Middleware
                 'permissions' => $permissions,
                 'person_id' => $user instanceof User ? (int) $user->person_id : null,
             ],
+            // Confirmation d'une action (« La tâche a été créée. ») : posée en session par les
+            // contrôleurs, elle n'arrivait jusqu'ici à aucun écran.
+            'flash' => fn (): array => [
+                'success' => $request->hasSession() ? $request->session()->get('success') : null,
+            ],
             'notifications' => fn (): array => [
                 'unread_count' => $user instanceof User
                     ? $user->unreadNotifications()->count()
