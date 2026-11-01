@@ -8,6 +8,7 @@ use App\Models\Finance\ExpenseApproval;
 use App\Models\Finance\ExpenseCategory;
 use App\Models\Identity\User;
 use App\Services\Finance\AlertLevelExpenseNotice;
+use App\Services\Finance\ExpenseApprovalRequirement;
 use App\Services\Finance\ExpenseApprovalService;
 use App\Services\Identity\ExpenseApprovalReadiness;
 use App\Support\Auditing\AuditContext;
@@ -248,6 +249,7 @@ class ExpenseApprovalConcurrencyDatabaseTest extends TestCase
                     $logger,
                     app(ExpenseApprovalReadiness::class),
                     app(AlertLevelExpenseNotice::class),
+                    app(ExpenseApprovalRequirement::class),
                 );
                 $service->approve($expense, $approver);
             } else {

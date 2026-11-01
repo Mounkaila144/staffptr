@@ -13,6 +13,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Imagick;
+use ImagickException;
 use Tests\Support\IdentityTestCase;
 
 class PrivateAttachmentProcessingTest extends IdentityTestCase
@@ -104,10 +105,16 @@ class PrivateAttachmentProcessingTest extends IdentityTestCase
             $this->markTestSkipped('Imagick avec libheif est requis pour la preuve HEIC.');
         }
 
-        $imagick = new Imagick;
-        $imagick->newImage(20, 20, 'white');
-        $imagick->setImageFormat('heic');
-        $blob = $imagick->getImagesBlob();
+        // Certaines plateformes (images CI Ubuntu récentes) déclarent HEIC mais ne savent que le
+        // lire : sans encodeur, on ne peut pas fabriquer l'échantillon du test.
+        try {
+            $imagick = new Imagick;
+            $imagick->newImage(20, 20, 'white');
+            $imagick->setImageFormat('heic');
+            $blob = $imagick->getImagesBlob();
+        } catch (ImagickException $exception) {
+            $this->markTestSkipped('Imagick ne sait pas encoder HEIC sur cette plateforme : '.$exception->getMessage());
+        }
 
         // La requête tranche le type avec `finfo`, donc libmagic. Écrire du HEIC ne suffit pas :
         // encore faut-il que la plateforme le reconnaisse comme tel, ce qui dépend de la version

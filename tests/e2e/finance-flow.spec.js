@@ -21,14 +21,14 @@ test('AC 72, 95 et 97 — encaissement vers parts et réserve au franc près sou
     await page.getByLabel('Compte crédité').selectOption({ label: 'Caisse principale E2E' });
     await page.getByLabel('Montant encaissé en XOF').fill('1000000');
     await page.getByRole('button', { name: 'Valider et attribuer le reçu' }).click();
-    await expect(page.getByText('1 000 000 FCFA').first()).toBeVisible();
+    await expect(page.getByText('1 000 000 FCFA').filter({ visible: true }).first()).toBeVisible();
 
     await page.goto('/finances/parts');
-    await expect(page.getByText('100 000 FCFA').first()).toBeVisible();
-    await expect(page.getByText('600 000 FCFA').first()).toBeVisible();
-    await expect(page.getByText('300 000 FCFA').first()).toBeVisible();
+    await expect(page.getByText('100 000 FCFA').filter({ visible: true }).first()).toBeVisible();
+    await expect(page.getByText('600 000 FCFA').filter({ visible: true }).first()).toBeVisible();
+    await expect(page.getByText('300 000 FCFA').filter({ visible: true }).first()).toBeVisible();
     await page.goto('/finances/reserve');
-    await expect(page.getByText('200 000 FCFA').first()).toBeVisible();
+    await expect(page.getByText('200 000 FCFA').filter({ visible: true }).first()).toBeVisible();
 
     await expectNoHorizontalOverflow(page);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);

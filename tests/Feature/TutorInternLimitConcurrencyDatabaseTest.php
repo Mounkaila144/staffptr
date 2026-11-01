@@ -7,8 +7,10 @@ use App\Models\Identity\User;
 use App\Models\Platform\AuditLog;
 use App\Services\Accountability\InternshipService;
 use App\Services\Accountability\TutorCapacityService;
+use App\Services\Identity\HierarchyService;
 use App\Services\Identity\IdentityService;
 use App\Services\Identity\InternActivationReadiness;
+use App\Services\Identity\SessionRevocationService;
 use App\Support\Auditing\AuditContext;
 use App\Support\Auditing\AuditLogger;
 use Database\Seeders\RolePermissionSeeder;
@@ -192,6 +194,8 @@ class TutorInternLimitConcurrencyDatabaseTest extends TestCase
                     app(IdentityService::class),
                     app(InternActivationReadiness::class),
                     app(TutorCapacityService::class),
+                    app(HierarchyService::class),
+                    app(SessionRevocationService::class),
                 );
                 $service->assignTutor($internship, $tutor, $actor);
             } else {

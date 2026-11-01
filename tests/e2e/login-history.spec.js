@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { expectNoHorizontalOverflow } from './support/layout.js';
+import { openNavigationLink } from './support/navigation.js';
 
 test('AC 4 et 5 — la direction consulte connexions et sessions à 320 px', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 });
@@ -10,7 +11,7 @@ test('AC 4 et 5 — la direction consulte connexions et sessions à 320 px', asy
     await page.getByRole('button', { name: 'Se connecter' }).click();
 
     await expect(page).toHaveURL(/\/$/);
-    await page.getByRole('link', { name: 'Connexions', exact: true }).click();
+    await openNavigationLink(page, 'Connexions');
 
     await expect(page).toHaveURL(/\/connexions$/);
     await expect(page.getByRole('heading', { name: 'Historique de connexion' })).toBeVisible();
@@ -29,7 +30,7 @@ test('Story 2.10 AC 1, 4 et 5 — la direction filtre et exporte le journal à 3
     await page.getByLabel('Mot de passe').fill('Direction-E2E-2026');
     await page.getByRole('button', { name: 'Se connecter' }).click();
 
-    await page.getByRole('link', { name: "Journal d'audit", exact: true }).click();
+    await openNavigationLink(page, "Journal d'audit");
 
     await expect(page).toHaveURL(/\/journal-audit$/);
     await expect(page.getByRole('heading', { name: 'Journal d’audit' })).toBeVisible();

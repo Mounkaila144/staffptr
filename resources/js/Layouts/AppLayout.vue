@@ -265,14 +265,14 @@ watch(() => [page.props.flash?.success, page.props.success], ([flash, own]) => {
         <div class="md:pl-64">
             <header class="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-separator bg-surface/90 px-4 backdrop-blur md:px-8" aria-label="En-tête">
                 <a href="/" class="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-xs font-bold text-white md:hidden" aria-label="PTR Staff, accueil">PTR</a>
-                <a v-if="backLabel" :href="backHref" class="touch-target inline-flex shrink-0 items-center gap-1 rounded-lg pr-2 text-sm font-semibold text-primary hover:text-primary-strong">
-                    <AppIcon name="back" :size="18" />{{ backLabel }}
+                <a v-if="backLabel" :href="backHref" class="touch-target inline-flex min-w-0 max-w-[45%] items-center gap-1 rounded-lg pr-2 text-sm font-semibold text-primary hover:text-primary-strong">
+                    <AppIcon name="back" :size="18" class="shrink-0" /><span class="truncate">{{ backLabel }}</span>
                 </a>
                 <span v-if="backLabel" class="hidden h-5 w-px bg-separator sm:block" aria-hidden="true" />
                 <p class="min-w-0 flex-1 truncate font-semibold text-ink">{{ title }}</p>
                 <a
                     href="/notifications"
-                    class="touch-target relative inline-flex items-center justify-center rounded-full text-ink-secondary transition-colors hover:bg-neutral-soft hover:text-ink"
+                    class="touch-target relative inline-flex shrink-0 items-center justify-center rounded-full text-ink-secondary transition-colors hover:bg-neutral-soft hover:text-ink"
                     :aria-label="unreadNotificationCount > 0 ? `Notifications, ${unreadNotificationCount} non lue${unreadNotificationCount > 1 ? 's' : ''}` : 'Notifications, aucune non lue'"
                 >
                     <AppIcon name="bell" :size="20" />
